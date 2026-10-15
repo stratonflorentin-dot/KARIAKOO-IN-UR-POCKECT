@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
-import { stockLevel } from "@/lib/catalog";
+import { stockLevel } from "@/lib/product-utils";
 
 export function StockBadge({ stock }: { stock: number }) {
   const level = stockLevel(stock);

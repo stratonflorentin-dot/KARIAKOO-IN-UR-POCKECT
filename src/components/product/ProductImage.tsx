@@ -1,8 +1,9 @@
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { safeImageUrl } from "@/lib/product-utils";
 import type { CategorySlug } from "@/lib/types";
 
-// Illustrated placeholder until sellers upload real photos to Supabase
-// Storage (Phase 3). Each category has its own warm tint and icon.
+// Shows the seller's photo when there is one; otherwise an illustrated
+// placeholder with a warm tint and icon per category.
 const tints: Record<CategorySlug, string> = {
   electronics: "from-stone-900 to-stone-700 text-brand-300",
   fashion: "from-orange-200 to-amber-50 text-brand-800",
@@ -22,7 +23,23 @@ const tints: Record<CategorySlug, string> = {
   food: "from-red-200 to-amber-100 text-red-900",
 };
 
-export function ProductImage({ category, name, size = "md" }: { category: CategorySlug; name: string; size?: "sm" | "md" | "lg" }) {
+export function ProductImage({ category, name, imageUrl, size = "md" }: {
+  category: CategorySlug;
+  name: string;
+  imageUrl?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const src = safeImageUrl(imageUrl);
+  if (src) {
+    return (
+      <div className="relative aspect-square w-full overflow-hidden bg-subtle">
+        {/* Plain <img>: seller photos come from Supabase Storage (and blob: previews). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+
   const iconSize = { sm: 28, md: 56, lg: 120 }[size];
   return (
     <div

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isOnOffer } from "@/lib/catalog";
+import { isOnOffer } from "@/lib/product-utils";
 import type { Product } from "@/lib/types";
 import { Price } from "./Price";
 import { ProductImage } from "./ProductImage";
@@ -9,7 +9,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_10px_30px_-10px_rgba(234,88,12,0.45)] focus-within:ring-2 focus-within:ring-brand-500">
       <div className="relative">
-        <ProductImage category={product.category} name={product.name} />
+        <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} />
         {isOnOffer(product) && (
           <span className="absolute right-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">Offer</span>
         )}

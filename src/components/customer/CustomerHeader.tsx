@@ -38,9 +38,12 @@ export function CustomerHeader() {
       <div className="border-t border-line bg-subtle">
         <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
           <LocationSelector />
-          <Link href="/seller" className="hidden shrink-0 text-xs font-medium text-muted hover:text-brand-700 sm:inline">
-            Sell on KARIAKOO
-          </Link>
+          <nav aria-label="Departments" className="flex shrink-0 items-center gap-3 text-xs font-semibold">
+            <Link href="/customer/department/men" className="hover:text-brand-700">Men</Link>
+            <Link href="/customer/department/women" className="hover:text-brand-700">Women</Link>
+            <Link href="/customer/department/kids" className="hover:text-brand-700">Kids</Link>
+            <Link href="/seller" className="hidden font-medium text-muted hover:text-brand-700 sm:inline">Sell on KARIAKOO</Link>
+          </nav>
         </div>
       </div>
     </header>

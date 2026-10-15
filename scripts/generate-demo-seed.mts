@@ -1,12 +1,14 @@
 // Generates supabase/seed/demo_catalog.sql from the app's demo data, so the
 // database and the demo files never drift apart. Every row is is_demo = true.
-// Run: node scripts/generate-demo-seed.mts  (Node 22.18+ runs TypeScript directly)
+// Run: node scripts/generate-demo-seed.mts   (Node 22.18+ runs TypeScript directly)
 import { writeFileSync } from "node:fs";
 import { demoCategories } from "../src/data/demo/categories.ts";
+import { shopGeo } from "../src/data/demo/geo.ts";
 import { demoProducts } from "../src/data/demo/products.ts";
 import { demoShops } from "../src/data/demo/shops.ts";
 
 const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
+const qn = (v: string | undefined) => (v === undefined ? "null" : q(v));
 const arr = (xs: string[]) => `array[${xs.map(q).join(", ")}]::text[]`;
 
 const lines: string[] = [
@@ -18,31 +20,31 @@ const lines: string[] = [
   demoCategories.map((c, i) => `  (${q(c.slug)}, ${q(c.name)}, ${q(c.nameSw)}, ${i})`).join(",\n"),
   "on conflict (slug) do update set name = excluded.name, name_sw = excluded.name_sw, sort_order = excluded.sort_order;",
   "",
-  "insert into public.shops (slug, name, primary_category, area, address, description, opening_hours, status, verified, rating, review_count, is_demo) values",
+  "insert into public.shops (slug, name, primary_category, area, address, description, opening_hours, status, verified, rating, review_count, lat, lng, is_demo) values",
   demoShops
-    .map(
-      (s) =>
-        `  (${q(s.slug)}, ${q(s.name)}, ${q(s.categories[0])}, ${q(s.area)}, ${q(s.address)}, ${q(s.description)}, ${q(s.openingHours)}, ${q(s.status)}, ${s.verified}, ${s.rating}, ${s.reviewCount}, true)`,
-    )
+    .map((s) => {
+      const g = shopGeo[s.id];
+      return `  (${q(s.slug)}, ${q(s.name)}, ${q(s.categories[0])}, ${q(s.area)}, ${q(s.address)}, ${q(s.description)}, ${q(s.openingHours)}, ${q(s.status)}, ${s.verified}, ${s.rating}, ${s.reviewCount}, ${g ? g[1] : "null"}, ${g ? g[0] : "null"}, true)`;
+    })
     .join(",\n"),
-  "on conflict (slug) do nothing;",
+  "on conflict (slug) do update set lat = excluded.lat, lng = excluded.lng where public.shops.is_demo;",
   "",
 ];
 
 const shopSlug = new Map(demoShops.map((s) => [s.id, s.slug]));
 lines.push(
-  "insert into public.products (shop_id, slug, name, category, price_tzs, compare_at_tzs, stock, unit, description, highlights, status, sold_count, is_demo)",
-  "select s.id, v.slug, v.name, v.category, v.price, v.compare_at, v.stock, v.unit, v.description, v.highlights, v.status::public.product_status, v.sold, true",
+  "insert into public.products (shop_id, slug, name, category, price_tzs, compare_at_tzs, stock, unit, description, highlights, status, sold_count, audience, product_type, is_demo)",
+  "select s.id, v.slug, v.name, v.category, v.price, v.compare_at, v.stock, v.unit, v.description, v.highlights, v.status::public.product_status, v.sold, v.audience::public.audience, v.product_type, true",
   "from (values",
   demoProducts
     .map(
       (p) =>
-        `  (${q(shopSlug.get(p.shopId)!)}, ${q(p.slug)}, ${q(p.name)}, ${q(p.category)}, ${p.priceTzs}::bigint, ${p.compareAtTzs ?? "null"}::bigint, ${p.stock}, ${q(p.unit)}, ${q(p.description)}, ${arr(p.highlights)}, ${q(p.status)}, ${p.soldCount})`,
+        `  (${q(shopSlug.get(p.shopId)!)}, ${q(p.slug)}, ${q(p.name)}, ${q(p.category)}, ${p.priceTzs}::bigint, ${p.compareAtTzs ?? "null"}::bigint, ${p.stock}, ${q(p.unit)}, ${q(p.description)}, ${arr(p.highlights)}, ${q(p.status)}, ${p.soldCount}, ${qn(p.audience)}, ${qn(p.productType)})`,
     )
     .join(",\n"),
-  ") as v(shop_slug, slug, name, category, price, compare_at, stock, unit, description, highlights, status, sold)",
+  ") as v(shop_slug, slug, name, category, price, compare_at, stock, unit, description, highlights, status, sold, audience, product_type)",
   "join public.shops s on s.slug = v.shop_slug",
-  "on conflict (slug) do nothing;",
+  "on conflict (slug) do update set audience = excluded.audience, product_type = excluded.product_type where public.products.is_demo;",
   "",
   "-- Commission rule history (same as the demo dashboard).",
   "insert into public.commission_rules (scope, rate_bps, effective_from, note)",

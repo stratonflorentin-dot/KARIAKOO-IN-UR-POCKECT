@@ -165,6 +165,11 @@ demoShops.push(
     description: "Freshly cooked Swahili meals: pilau, wali maharage, chips mayai and mandazi. Hot food, delivered fast.",
     categories: ["food"], rating: 4.9, reviewCount: 410, verified: true, status: "approved", openingHours: "Mon–Sun 6:30–21:00", joinedYear: 2025, isDemo: true,
   },
+  {
+    id: "shop-015", slug: "kariakoo-mitindo-fashion-house", name: "Kariakoo Mitindo Fashion House", area: "kariakoo", address: "Tandamti St, Kariakoo",
+    description: "Men's, women's and kids' clothing: shirts, trousers, jeans, blouses, skirts and jackets.",
+    categories: ["fashion", "kids"], rating: 4.7, reviewCount: 186, verified: true, status: "approved", openingHours: "Mon–Sat 8:30–19:30", joinedYear: 2024, isDemo: true,
+  },
 );
 
 export const shopAreaLabel: Record<Shop["area"], string> = {

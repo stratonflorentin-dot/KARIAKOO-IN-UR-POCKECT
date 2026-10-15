@@ -11,6 +11,7 @@ import { cacheLife } from "next/cache";
 import { demoProducts } from "@/data/demo/products";
 import { demoShops } from "@/data/demo/shops";
 import { createCatalog, demoCatalog, getCategories, type Catalog, type CatalogData } from "@/lib/catalog";
+import { isAudience, isProductType } from "@/lib/departments";
 import type { CategorySlug, Product, Shop, ShopArea } from "@/lib/types";
 
 export type CatalogSource =
@@ -42,6 +43,8 @@ interface ShopRow {
   verified: boolean;
   rating: number;
   review_count: number;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 }
 
@@ -59,6 +62,9 @@ interface ProductRow {
   highlights: string[];
   status: Product["status"];
   sold_count: number;
+  audience: string | null;
+  product_type: string | null;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -73,8 +79,8 @@ async function loadFromSupabase(): Promise<LoadResult> {
   try {
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const [shopsRes, productsRes] = await Promise.all([
-      db.from("shops").select("id,slug,name,primary_category,area,address,description,opening_hours,status,verified,rating,review_count,created_at").returns<ShopRow[]>(),
-      db.from("products").select("id,shop_id,slug,name,category,price_tzs,compare_at_tzs,stock,unit,description,highlights,status,sold_count,created_at").returns<ProductRow[]>(),
+      db.from("shops").select("id,slug,name,primary_category,area,address,description,opening_hours,status,verified,rating,review_count,lat,lng,created_at").returns<ShopRow[]>(),
+      db.from("products").select("id,shop_id,slug,name,category,price_tzs,compare_at_tzs,stock,unit,description,highlights,status,sold_count,audience,product_type,image_url,created_at").returns<ProductRow[]>(),
     ]);
     if (shopsRes.error) throw new Error(shopsRes.error.message);
     if (productsRes.error) throw new Error(productsRes.error.message);
@@ -113,6 +119,7 @@ async function loadFromSupabase(): Promise<LoadResult> {
           status: r.status,
           openingHours: r.opening_hours,
           joinedYear: legacy?.joinedYear ?? new Date(r.created_at).getUTCFullYear(),
+          geo: r.lat !== null && r.lng !== null ? [r.lng, r.lat] : undefined,
           isDemo: true,
         } satisfies Shop;
       });
@@ -136,6 +143,9 @@ async function loadFromSupabase(): Promise<LoadResult> {
           status: r.status,
           soldCount: r.sold_count,
           listedAt: legacy?.listedAt ?? r.created_at.slice(0, 10),
+          audience: isAudience(r.audience) ? r.audience : undefined,
+          productType: isProductType(r.product_type) ? r.product_type : undefined,
+          imageUrl: r.image_url ?? undefined,
           isDemo: true,
         } satisfies Product;
       });

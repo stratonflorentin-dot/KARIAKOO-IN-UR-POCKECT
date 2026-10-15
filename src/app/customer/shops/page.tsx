@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { MapLoader } from "@/components/map/MapLoader";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { EmptyState, Skeleton } from "@/components/ui/States";
@@ -49,6 +50,18 @@ async function Directory({ searchParams }: Pick<PageProps<"/customer/shops">, "s
           ))}
         </ul>
       </nav>
+      {shops.some((s) => s.geo) && (
+        <section aria-labelledby="shops-map-heading" className="mt-6">
+          <h2 id="shops-map-heading" className="mb-2 text-lg font-semibold">Find shops on the map</h2>
+          <MapLoader
+            ariaLabel="Map of KARIAKOO shops"
+            heightClass="h-72 sm:h-96"
+            locate
+            note="Tap a pin to open the shop. Demo locations are approximate."
+            points={shops.flatMap((s) => (s.geo ? [{ id: s.id, kind: "shop" as const, badge: s.name.charAt(0), label: `${s.name} · ${s.address}`, geo: s.geo, href: `/customer/shops/${s.slug}`, linkLabel: "Visit shop" }] : []))}
+          />
+        </section>
+      )}
       <div className="mt-6">
         {shops.length > 0 ? (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

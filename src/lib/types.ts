@@ -52,10 +52,37 @@ export interface Shop {
   status: ShopStatus;
   openingHours: string;
   joinedYear: number;
+  /** Map position as [longitude, latitude], when known. */
+  geo?: [number, number];
   isDemo: true;
 }
 
 export type ProductStatus = "active" | "archived";
+
+/** Who a product is for. Unisex items show in both Men and Women. */
+export type Audience = "men" | "women" | "kids" | "unisex";
+
+/** Clothing / fashion product types used for department browsing. */
+export type ProductType =
+  | "shirts"
+  | "t-shirts"
+  | "blouses"
+  | "trousers"
+  | "jeans"
+  | "shorts"
+  | "dresses"
+  | "skirts"
+  | "suits"
+  | "jackets"
+  | "traditional"
+  | "sneakers"
+  | "formal-shoes"
+  | "sandals"
+  | "school-shoes"
+  | "bags"
+  | "watches"
+  | "sunglasses"
+  | "jewellery";
 
 export interface Product {
   id: string;
@@ -73,6 +100,12 @@ export interface Product {
   status: ProductStatus;
   /** Units sold to date (demo), used for "popular" sorting. */
   soldCount: number;
+  /** Who it is for (clothing, shoes and accessories). */
+  audience?: Audience;
+  /** Clothing / fashion type, e.g. shirts or trousers. */
+  productType?: ProductType;
+  /** Product photo (https URL from Supabase Storage). Placeholder art if absent. */
+  imageUrl?: string;
   /** Display name of the shop (filled in by the catalog). */
   shopName?: string;
   /** ISO date the product was listed, used for "newest" sorting. */

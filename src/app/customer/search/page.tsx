@@ -10,6 +10,7 @@ import { EmptyState, Skeleton } from "@/components/ui/States";
 import { shopAreaLabel } from "@/data/demo/shops";
 import { getCategories, parseProductFilters, type ProductFilters } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalog-source";
+import { departments, productTypes } from "@/lib/departments";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -40,6 +41,8 @@ function hrefWith(filters: ProductFilters, patch: Partial<ProductFilters>) {
   if (f.q) params.set("q", f.q);
   if (f.category) params.set("category", f.category);
   if (f.area) params.set("area", f.area);
+  if (f.audience) params.set("for", f.audience);
+  if (f.productType) params.set("type", f.productType);
   if (f.minPrice !== undefined) params.set("min", String(f.minPrice));
   if (f.maxPrice !== undefined) params.set("max", String(f.maxPrice));
   if (f.inStockOnly) params.set("instock", "1");
@@ -55,7 +58,7 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/customer/search"
   const result = catalog.searchProducts(filters);
   const shops = filters.q ? catalog.searchShops(filters.q) : [];
   const categories = getCategories();
-  const hasFilters = Boolean(filters.category || filters.area || filters.minPrice !== undefined || filters.maxPrice !== undefined || filters.inStockOnly);
+  const hasFilters = Boolean(filters.category || filters.area || filters.audience || filters.productType || filters.minPrice !== undefined || filters.maxPrice !== undefined || filters.inStockOnly);
 
   return (
     <div className="mt-5 grid gap-6 lg:grid-cols-[16rem_1fr]">
@@ -75,6 +78,22 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/customer/search"
               <option value="">All categories</option>
               {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="f-for" className="text-sm font-medium">For</label>
+              <select id="f-for" name="for" defaultValue={filters.audience ?? ""} className={`${compactInputClass} mt-1`}>
+                <option value="">Everyone</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="f-type" className="text-sm font-medium">Type</label>
+              <select id="f-type" name="type" defaultValue={filters.productType ?? ""} className={`${compactInputClass} mt-1`}>
+                <option value="">Any</option>
+                {productTypes.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
           </div>
           <div>
             <label htmlFor="f-area" className="text-sm font-medium">Shop location</label>

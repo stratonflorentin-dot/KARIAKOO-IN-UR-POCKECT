@@ -7,8 +7,10 @@ import { ProductCard, ProductGrid } from "@/components/product/ProductCard";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { SearchBar } from "@/components/ui/SearchBar";
-import { getCategories, isOnOffer } from "@/lib/catalog";
+import { getCategories } from "@/lib/catalog";
+import { isOnOffer } from "@/lib/product-utils";
 import { getCatalog } from "@/lib/catalog-source";
+import { departments } from "@/lib/departments";
 
 export default async function CustomerHomePage() {
   const catalog = await getCatalog();
@@ -61,6 +63,23 @@ export default async function CustomerHomePage() {
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 pt-10 sm:px-6">
         <RecentlyViewed products={recentInfo} />
+
+        <section aria-labelledby="dept-heading">
+          <SectionHeading id="dept-heading" title="Shop by department" subtitle="Shirts, trousers, dresses, shoes and more" />
+          <ul className="grid grid-cols-3 gap-3">
+            {departments.map((d, i) => (
+              <li key={d.id}>
+                <Link
+                  href={`/customer/department/${d.id}`}
+                  className={`flex h-28 flex-col justify-end rounded-3xl p-4 text-white transition hover:-translate-y-0.5 sm:h-36 sm:p-6 ${["bg-night", "bg-brand-600", "bg-stone-700"][i]}`}
+                >
+                  <span className="text-xl font-bold tracking-tight sm:text-3xl">{d.label}</span>
+                  <span className="text-xs text-white/75 sm:text-sm">{d.labelSw}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <section aria-labelledby="featured-heading">
           <SectionHeading id="featured-heading" title="Featured in Kariakoo" subtitle="Best sellers, in stock and ready for delivery" href="/customer/search?sort=popular" linkLabel="Browse all" />

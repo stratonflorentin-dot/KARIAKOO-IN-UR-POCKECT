@@ -1,6 +1,9 @@
 import { AlertTriangle, Banknote, ClipboardList, Package, Percent, ShoppingBag, Timer, Wallet } from "lucide-react";
 import Link from "next/link";
+import { MapLoader } from "@/components/map/MapLoader";
 import { FulfillmentBadge } from "@/components/orders/StatusBadges";
+import { shopGeo } from "@/data/demo/geo";
+import { directionsUrl } from "@/lib/maps";
 import { ShopKindBadge } from "@/components/shop/ShopMark";
 import { DemoTag } from "@/components/ui/Badge";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
@@ -71,6 +74,23 @@ export default async function SellerDashboardPage() {
           )}
         </Card>
       </div>
+
+      {shopGeo[shop.id] && (
+        <Card aria-labelledby="shop-map" className="mt-6">
+          <CardHeader
+            id="shop-map"
+            title="Your shop on the map"
+            subtitle={`Riders collect here: ${shop.address}. ${orders.filter((o) => o.group.status === "ready_for_pickup").length} order(s) ready for pickup.`}
+            action={<a href={directionsUrl(shopGeo[shop.id])} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-brand-700 hover:underline">Directions</a>}
+          />
+          <MapLoader
+            ariaLabel={`Map showing ${shop.name}`}
+            heightClass="h-56 sm:h-64"
+            points={[{ id: shop.id, kind: "shop", badge: shop.name.charAt(0), label: `${shop.name} · ${shop.address}`, geo: shopGeo[shop.id] }]}
+            note="This pin is what customers and riders see. Changing your shop location arrives with shop profile editing (Phase 3)."
+          />
+        </Card>
+      )}
 
       <Card aria-labelledby="recent-orders" className="mt-6">
         <CardHeader id="recent-orders" title="Recent orders" action={<Link href="/seller/orders" className="text-sm font-medium text-brand-700 hover:underline">All orders</Link>} />

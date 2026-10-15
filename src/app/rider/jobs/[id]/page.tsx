@@ -4,8 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Timeline } from "@/components/orders/Timeline";
 import { DeliveryFlow } from "@/components/rider/DeliveryFlow";
-import { RiderMapLoader } from "@/components/rider/RiderMapLoader";
-import type { MapStop } from "@/components/rider/RiderMap";
+import { MapLoader } from "@/components/map/MapLoader";
+import type { MapPoint } from "@/components/map/MarketMap";
 import { Badge } from "@/components/ui/Badge";
 import { requireRole } from "@/lib/auth/session";
 import { riderJob } from "@/lib/data/access";
@@ -23,9 +23,9 @@ export default async function RiderJobPage({ params }: PageProps<"/rider/jobs/[i
   // Not assigned to this rider → same as not existing.
   if (!job) notFound();
   const navLink = "inline-flex h-11 items-center gap-1.5 rounded-full bg-night px-4 text-sm font-semibold text-white";
-  const stops: MapStop[] = [
-    ...job.pickups.flatMap((p) => (p.geo ? [{ kind: "pickup" as const, label: `Pick up: ${p.shopName}`, geo: p.geo }] : [])),
-    ...(job.dropoffGeo ? [{ kind: "dropoff" as const, label: `Deliver: ${job.dropoffAddress}`, geo: job.dropoffGeo }] : []),
+  const stops: MapPoint[] = [
+    ...job.pickups.flatMap((p, i) => (p.geo ? [{ id: `pickup-${i}`, kind: "pickup" as const, badge: String(i + 1), label: `Pick up: ${p.shopName}`, geo: p.geo }] : [])),
+    ...(job.dropoffGeo ? [{ id: "dropoff", kind: "dropoff" as const, label: `Deliver: ${job.dropoffAddress}`, geo: job.dropoffGeo }] : []),
   ];
   // Before pickup the next stop is the first shop; after pickup it is the customer.
   const nextStop = ["PICKED_UP", "IN_TRANSIT"].includes(job.status) ? stops.length - 1 : ["DELIVERED", "FAILED", "CANCELLED"].includes(job.status) ? -1 : 0;
@@ -38,7 +38,14 @@ export default async function RiderJobPage({ params }: PageProps<"/rider/jobs/[i
         <span className="font-semibold">{formatTzs(job.payoutTzs)}</span>
       </div>
 
-      <RiderMapLoader stops={stops} nextStopIndex={nextStop} />
+      <MapLoader
+        points={stops}
+        ariaLabel="Delivery map showing pickup and drop-off points"
+        route
+        locate
+        nextIndex={nextStop}
+        note="Demo locations are approximate. The dashed line is a guide, not a road route: use Navigate for directions."
+      />
 
       <DeliveryFlow orderId={job.orderId} initial={job.status} />
 

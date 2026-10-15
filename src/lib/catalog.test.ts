@@ -56,6 +56,22 @@ describe("searchProducts", () => {
   });
 });
 
+describe("departments", () => {
+  it("filters by men / women / kids and product type", () => {
+    const menShirts = searchProducts({ audience: "men", productType: "shirts", pageSize: 48 }).items;
+    expect(menShirts.map((p) => p.id).sort()).toEqual(["prd-022", "prd-043"]);
+    const womenTrousers = searchProducts({ audience: "women", productType: "trousers" }).items;
+    expect(womenTrousers.map((p) => p.id)).toEqual(["prd-048"]);
+  });
+
+  it("shows unisex items in both men and women, but not kids", () => {
+    const has = (aud: "men" | "women" | "kids") => searchProducts({ audience: aud, pageSize: 48 }).items.some((p) => p.id === "prd-010");
+    expect(has("men")).toBe(true);
+    expect(has("women")).toBe(true);
+    expect(has("kids")).toBe(false);
+  });
+});
+
 describe("searchShops", () => {
   it("finds shops by name or category", () => {
     expect(searchShops("footwear").map((s) => s.id)).toEqual(["shop-003"]);
@@ -67,6 +83,8 @@ describe("parseProductFilters", () => {
   it("parses valid params and drops invalid ones", () => {
     expect(
       parseProductFilters({ q: "  rice ", category: "groceries", min: "1,000", max: "abc", sort: "hack", page: "-2", instock: "1", area: "moon" }),
-    ).toEqual({ q: "rice", category: "groceries", area: undefined, minPrice: 1000, maxPrice: undefined, inStockOnly: true, sort: "relevance", page: 1 });
+    ).toEqual({ q: "rice", category: "groceries", area: undefined, audience: undefined, productType: undefined, minPrice: 1000, maxPrice: undefined, inStockOnly: true, sort: "relevance", page: 1 });
+    expect(parseProductFilters({ for: "women", type: "skirts" })).toMatchObject({ audience: "women", productType: "skirts" });
+    expect(parseProductFilters({ for: "aliens", type: "spacesuits" })).toMatchObject({ audience: undefined, productType: undefined });
   });
 });

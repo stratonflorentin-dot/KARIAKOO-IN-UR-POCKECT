@@ -18,6 +18,7 @@ export const shopGeo: Record<string, LngLat> = {
   "shop-012": [39.278, -6.826], // Gerezani
   "shop-013": [39.227, -6.769], // Mwenge
   "shop-014": [39.2752, -6.8188], // Sikukuu St
+  "shop-015": [39.2768, -6.8193], // Tandamti St
 };
 
 export const dropoffGeo: Record<string, LngLat> = {

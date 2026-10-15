@@ -74,6 +74,7 @@ Project: **KARIAKOO-IN-UR-POCKECT**. All database changes are SQL files in `supa
 |---|---|
 | `20261015120000_core_schema_rls.sql` | 13 tables (profiles, user_roles, categories, shops, products, riders, commission_rules, orders, order_items, fulfillment_groups, deliveries, order_status_history, audit_logs), constraints, RLS on every table, integrity triggers |
 | `20261015123000_private_helpers_and_indexes.sql` | Moves permission helpers to a private schema (not exposed by the API), locks trigger functions, adds foreign-key indexes |
+| `20261015140000_departments_photos_locations.sql` | Product department (men/women/kids/unisex), product type, photo URL (https only), shop map coordinates |
 
 - **Isolation tests:** `supabase/tests/rls_isolation.sql`. Paste it into the Supabase SQL editor and run it. It impersonates customers, sellers, riders and an admin, checks 32 rules, then rolls everything back. The expected result is an "error" saying `RLS OK: 32 checks passed`.
 - **Demo catalog:** `node scripts/generate-demo-seed.mts` regenerates `supabase/seed/demo_catalog.sql` from `src/data/demo/`. It's safe to re-run, and every row has `is_demo = true`.
@@ -88,6 +89,9 @@ Project: **KARIAKOO-IN-UR-POCKECT**. All database changes are SQL files in `supa
 - **Authorization runs on the server, at every layer.** Hidden links are not security. Each protected page calls `requireRole()` itself, because in Next.js a layout and its page render in parallel, so a layout check alone does not stop page code. Data functions check the role again. Other people's records return 404, so ids can't be probed.
 - **Statuses are separate.** Payment, fulfilment (per shop) and delivery each have their own state machine. Sellers can never mark goods delivered; riders complete delivery only with the customer's PIN, verified on the server.
 - **Every kind of shop.** 16 shop types (fashion, electronics, pharmacy, food, furniture, auto parts and more), each with its own label, icon and colour. Pharmacies list over-the-counter products only; prescription medicines are not sold online, and pharmacy licences must be verified at onboarding.
+- **Departments.** Men, Women and Kids pages (`/customer/department/men` etc.) with type chips: shirts, T-shirts, blouses, trousers, jeans, dresses, skirts, jackets, traditional wear, sneakers, formal shoes, sandals, school shoes, bags, watches and more. Unisex items appear under both Men and Women. Search also filters by "For" and "Type".
+- **Adding products with a photo.** The seller's "Add a product" form validates the photo (JPG/PNG/WebP, 5 MB max, must decode as an image), the description (20 to 1,000 characters), price and stock, and shows a live customer preview (card and product page). In demo mode the photo stays on the seller's device; real uploads go to Supabase Storage once sellers sign in (Phase 3). Product cards and pages show the photo whenever a product has one (https URLs only).
+- **Maps (satellite by default)** for every role: riders (pickups, drop-off, route guide, opt-in location), customers (map of all shops, each shop's location with directions, their order's delivery route) and shop owners ("Your shop on the map"). Every map has a Satellite / Map toggle.
 - **Rider map.** MapLibre GL, with the setup adapted from the `my-view` project. It shows numbered pickups, the drop-off, a guide line and "Navigate" handoff to Google Maps. Location sharing is opt-in, stays on the phone, and stops when the rider leaves the screen. There is no fake live tracking for customers; they see an honest status timeline.
 
 ## What works now (tested)
@@ -142,4 +146,5 @@ All products, shops, people, orders, commissions, deliveries and settlements are
 
 ### Phase 7: production
 - [ ] Security review, backups and restore drill, error monitoring, performance and accessibility audit
-- [ ] Commercial map tile plan (MapTiler or similar), deployment (ask first, may cost money)
+- [ ] Commercial map tiles and satellite imagery: the keyless Esri imagery and CARTO streets are for development only. Add a licensed plan (e.g. MapTiler, set `NEXT_PUBLIC_MAPTILER_API_KEY`) before launch (ask first, may cost money)
+- [ ] Deployment (ask first, may cost money)

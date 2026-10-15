@@ -4,25 +4,17 @@
 // demo dashboards use `demoCatalog`.
 import { demoCategories } from "@/data/demo/categories";
 import { demoProducts } from "@/data/demo/products";
+import { shopGeo } from "@/data/demo/geo";
 import { demoShops } from "@/data/demo/shops";
-import type { Category, CategorySlug, Product, Shop, ShopArea } from "@/lib/types";
+import { inDepartment, isAudience, isProductType } from "@/lib/departments";
+import type { Audience, Category, CategorySlug, Product, ProductType, Shop, ShopArea } from "@/lib/types";
+
+export { isOnOffer, stockLevel, type StockLevel } from "@/lib/product-utils";
 
 export interface CatalogData {
   categories: Category[];
   shops: Shop[];
   products: Product[];
-}
-
-export type StockLevel = "out" | "low" | "in";
-
-export function stockLevel(stock: number): StockLevel {
-  if (stock <= 0) return "out";
-  if (stock <= 5) return "low";
-  return "in";
-}
-
-export function isOnOffer(p: Product): boolean {
-  return p.compareAtTzs !== undefined && p.compareAtTzs > p.priceTzs;
 }
 
 /** Categories are fixed reference data (the database is seeded from this list). */
@@ -40,6 +32,9 @@ export interface ProductFilters {
   q?: string;
   category?: CategorySlug;
   area?: ShopArea;
+  /** Department: men / women / kids (unisex items count for men and women). */
+  audience?: Audience;
+  productType?: ProductType;
   shopId?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -92,6 +87,8 @@ export function createCatalog(data: CatalogData) {
       if (filters.category && p.category !== filters.category) return false;
       if (filters.shopId && p.shopId !== filters.shopId) return false;
       if (filters.area && getShopArea(p.shopId) !== filters.area) return false;
+      if (filters.audience && !inDepartment(p.audience, filters.audience)) return false;
+      if (filters.productType && p.productType !== filters.productType) return false;
       if (filters.minPrice !== undefined && p.priceTzs < filters.minPrice) return false;
       if (filters.maxPrice !== undefined && p.priceTzs > filters.maxPrice) return false;
       if (filters.inStockOnly && p.stock <= 0) return false;
@@ -149,7 +146,11 @@ export function createCatalog(data: CatalogData) {
 
 export type Catalog = ReturnType<typeof createCatalog>;
 
-export const demoCatalog = createCatalog({ categories: demoCategories, shops: demoShops, products: demoProducts });
+export const demoCatalog = createCatalog({
+  categories: demoCategories,
+  shops: demoShops.map((s) => ({ ...s, geo: shopGeo[s.id] })),
+  products: demoProducts,
+});
 
 const SORTS: SortOption[] = ["relevance", "price-asc", "price-desc", "popular", "newest"];
 const AREAS: ShopArea[] = ["kariakoo", "posta", "sinza", "mwenge"];
@@ -170,10 +171,14 @@ export function parseProductFilters(params: Record<string, string | string[] | u
   const area = first(params.area);
   const sort = first(params.sort);
   const page = Number(first(params.page));
+  const audience = first(params.for);
+  const type = first(params.type);
   return {
     q: first(params.q)?.trim().slice(0, 100) || undefined,
     category: getCategory(category ?? "") ? (category as CategorySlug) : undefined,
     area: AREAS.includes(area as ShopArea) ? (area as ShopArea) : undefined,
+    audience: isAudience(audience) && audience !== "unisex" ? audience : undefined,
+    productType: isProductType(type) ? type : undefined,
     minPrice: toPrice(first(params.min)),
     maxPrice: toPrice(first(params.max)),
     inStockOnly: first(params.instock) === "1",

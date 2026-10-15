@@ -2,7 +2,9 @@ import { BadgeCheck, Clock, MapPin, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { MapLoader } from "@/components/map/MapLoader";
 import { ProductGrid } from "@/components/product/ProductCard";
+import { directionsUrl } from "@/lib/maps";
 import { ShopKindBadge, ShopMark } from "@/components/shop/ShopMark";
 import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
@@ -89,6 +91,23 @@ async function ShopContent({ params, searchParams }: PageProps<"/customer/shops/
           <ProductGrid products={items} />
         ) : (
           <EmptyState title="No matching products" body="Try another word or category." action={<Link className={buttonClasses({ variant: "outline" })} href={`/customer/shops/${shop.slug}`}>Show all products</Link>} />
+        )}
+
+        {shop.geo && (
+          <section aria-labelledby="location-heading" className="mt-12">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h2 id="location-heading" className="text-lg font-semibold">Location</h2>
+              <a href={directionsUrl(shop.geo)} target="_blank" rel="noopener noreferrer" className={buttonClasses({ variant: "outline", size: "sm" })}>
+                Get directions
+              </a>
+            </div>
+            <MapLoader
+              ariaLabel={`Map showing ${shop.name}`}
+              heightClass="h-64"
+              points={[{ id: shop.id, kind: "shop", badge: shop.name.charAt(0), label: `${shop.name} · ${shop.address}`, geo: shop.geo }]}
+              note="You can also order online: a KARIAKOO rider collects from this shop and delivers to you."
+            />
+          </section>
         )}
 
         <section aria-labelledby="reviews-heading" className="mt-12 rounded-2xl border border-line p-5">

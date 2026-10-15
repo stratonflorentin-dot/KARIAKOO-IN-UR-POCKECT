@@ -11,6 +11,7 @@ import { ProductImage } from "@/components/product/ProductImage";
 import { StockBadge } from "@/components/product/StockBadge";
 import { Skeleton } from "@/components/ui/States";
 import { getCategory } from "@/lib/catalog";
+import { audienceLabel, productTypeLabel } from "@/lib/departments";
 import { getCatalog } from "@/lib/catalog-source";
 import { deliveryZones, EXTRA_PICKUP_FEE_TZS } from "@/lib/delivery";
 import { formatTzs } from "@/lib/format";
@@ -56,7 +57,7 @@ async function ProductContent({ params }: Pick<PageProps<"/customer/product/[slu
 
       <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:gap-12">
         <div className="overflow-hidden rounded-3xl border border-line">
-          <ProductImage category={product.category} name={product.name} size="lg" />
+          <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} size="lg" />
         </div>
 
         <div>
@@ -70,6 +71,18 @@ async function ProductContent({ params }: Pick<PageProps<"/customer/product/[slu
             </div>
           )}
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-4xl">{product.name}</h1>
+          {product.audience && (
+            <p className="mt-2 flex flex-wrap gap-2 text-sm">
+              <Link href={product.audience === "unisex" ? "/customer/department/men" : `/customer/department/${product.audience}`} className="rounded-full bg-night px-3 py-1 font-medium text-white hover:bg-stone-800">
+                {product.audience === "unisex" ? "Men & Women" : audienceLabel(product.audience)}
+              </Link>
+              {product.productType && (
+                <Link href={`/customer/search?type=${product.productType}${product.audience !== "unisex" ? `&for=${product.audience}` : ""}`} className="rounded-full border border-line px-3 py-1 font-medium hover:border-brand-300">
+                  {productTypeLabel(product.productType)}
+                </Link>
+              )}
+            </p>
+          )}
           <div className="mt-4">
             <Price amount={product.priceTzs} compareAt={product.compareAtTzs} size="lg" />
             <p className="mt-1 text-sm text-muted">per {product.unit} · delivery from {formatTzs(cheapest)}</p>

@@ -5,7 +5,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
+import { MapLoader } from "@/components/map/MapLoader";
+import type { MapPoint } from "@/components/map/MarketMap";
 import { Timeline } from "@/components/orders/Timeline";
+import { dropoffGeo, shopGeo } from "@/data/demo/geo";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice, Skeleton } from "@/components/ui/States";
 import { demoRiders } from "@/data/demo/people";
@@ -61,6 +64,13 @@ async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, 
   const totals = orderTotals(order.items, order.deliveryFeeTzs);
   const pin = deliveryPinForCustomer(session, order.id);
   const rider = demoRiders.find((r) => r.id === order.delivery.riderId);
+  const mapPoints: MapPoint[] = [
+    ...order.groups.flatMap((g, i) => {
+      const geo = shopGeo[g.shopId];
+      return geo ? [{ id: g.shopId, kind: "pickup" as const, badge: String(i + 1), label: `Collected from ${demoCatalog.getShopName(g.shopId)}`, geo }] : [];
+    }),
+    ...(dropoffGeo[order.id] ? [{ id: "dropoff", kind: "dropoff" as const, label: `Delivered to ${order.address}`, geo: dropoffGeo[order.id] }] : []),
+  ];
 
   return (
     <div className="mt-4 space-y-5">
@@ -91,6 +101,19 @@ async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, 
             <CardHeader id="track-heading" title="Order progress" subtitle="Recorded status updates. Live map tracking is not enabled." />
             <Timeline events={order.history} upcoming={upcomingSteps(order)} />
           </Card>
+
+          {mapPoints.length > 0 && (
+            <section aria-labelledby="route-heading">
+              <h2 id="route-heading" className="mb-2 font-semibold">Delivery route</h2>
+              <MapLoader
+                ariaLabel="Map of where your order is collected and delivered"
+                points={mapPoints}
+                route
+                heightClass="h-64 sm:h-72"
+                note="Shows the shops and your delivery address. The rider's live position is not tracked yet; follow progress in the timeline."
+              />
+            </section>
+          )}
 
           <Card aria-labelledby="items-heading">
             <CardHeader id="items-heading" title="Items" />
