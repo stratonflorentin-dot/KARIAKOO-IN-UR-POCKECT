@@ -1,0 +1,43 @@
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import type { CategorySlug } from "@/lib/types";
+
+// Illustrated placeholder until sellers upload real photos to Supabase
+// Storage (Phase 3). Each category has its own warm tint and icon.
+const tints: Record<CategorySlug, string> = {
+  electronics: "from-stone-900 to-stone-700 text-brand-300",
+  fashion: "from-orange-200 to-amber-50 text-brand-800",
+  shoes: "from-amber-200 to-orange-50 text-amber-900",
+  fabrics: "from-brand-500 to-amber-300 text-white",
+  accessories: "from-stone-800 to-amber-800 text-amber-200",
+  "home-kitchen": "from-stone-200 to-orange-50 text-stone-800",
+  beauty: "from-rose-200 to-orange-50 text-rose-900",
+  groceries: "from-lime-200 to-amber-50 text-lime-900",
+  hardware: "from-zinc-300 to-stone-100 text-zinc-800",
+  kids: "from-sky-200 to-amber-50 text-sky-900",
+  pharmacy: "from-emerald-100 to-white text-emerald-800",
+  stationery: "from-indigo-100 to-amber-50 text-indigo-900",
+  sports: "from-brand-200 to-white text-brand-800",
+  "auto-parts": "from-stone-700 to-stone-500 text-white",
+  furniture: "from-amber-300 to-amber-100 text-amber-950",
+  food: "from-red-200 to-amber-100 text-red-900",
+};
+
+export function ProductImage({ category, name, size = "md" }: { category: CategorySlug; name: string; size?: "sm" | "md" | "lg" }) {
+  const iconSize = { sm: 28, md: 56, lg: 120 }[size];
+  return (
+    <div
+      role="img"
+      aria-label={`${name}, illustration`}
+      className={`relative grid aspect-square w-full place-items-center overflow-hidden bg-gradient-to-br ${tints[category]}`}
+    >
+      <div aria-hidden="true" className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+      <div aria-hidden="true" className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-black/5" />
+      <CategoryIcon slug={category} size={iconSize} strokeWidth={1.4} />
+      {size !== "sm" && (
+        <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stone-600">
+          Photo coming soon
+        </span>
+      )}
+    </div>
+  );
+}
