@@ -2,7 +2,7 @@
 
 A multi-vendor marketplace for Kariakoo and Dar es Salaam. Customers buy from many shops in one order and **pay KARIAKOO**. KARIAKOO confirms the order with each shop, one rider collects and delivers everything, and each shop is paid after delivery, minus commission.
 
-> **Status: Phase 1 (foundation and visual experience).** Everything runs on clearly labelled **demo data**. Supabase is connected, but sign-in, real orders and payments are not live yet. No real money moves.
+> **Status: Phase 1 complete, Phase 2 in progress.** The app runs on clearly labelled **demo data**. The Supabase database now has its schema, Row Level Security (32 isolation checks passing) and a seeded demo catalog, but the app does not read from it yet, and sign-in, real orders and payments are not live. No real money moves.
 
 ## Run it locally
 
@@ -66,6 +66,19 @@ e2e/                Playwright tests
 supabase/migrations SQL migrations (schema + Row Level Security)
 ```
 
+## Database (Supabase)
+
+Project: **KARIAKOO-IN-UR-POCKECT**. All database changes are SQL files in `supabase/migrations/`, applied in order:
+
+| File | What it does |
+|---|---|
+| `20261015120000_core_schema_rls.sql` | 13 tables (profiles, user_roles, categories, shops, products, riders, commission_rules, orders, order_items, fulfillment_groups, deliveries, order_status_history, audit_logs), constraints, RLS on every table, integrity triggers |
+| `20261015123000_private_helpers_and_indexes.sql` | Moves permission helpers to a private schema (not exposed by the API), locks trigger functions, adds foreign-key indexes |
+
+- **Isolation tests:** `supabase/tests/rls_isolation.sql`. Paste it into the Supabase SQL editor and run it. It impersonates customers, sellers, riders and an admin, checks 32 rules, then rolls everything back. The expected result is an "error" saying `RLS OK: 32 checks passed`.
+- **Demo catalog:** `node scripts/generate-demo-seed.mts` regenerates `supabase/seed/demo_catalog.sql` from `src/data/demo/`. It's safe to re-run, and every row has `is_demo = true`.
+- **Roles** live in `user_roles`, which **no client can write**. New sign-ups automatically get the `customer` role. Seller, rider and admin roles are granted only by trusted server code after verification. There is no public admin sign-up.
+
 ## Key engineering decisions
 
 - **Money is exact.** All amounts are integer Tanzanian shillings and rates are integer basis points (1000 = 10%). There is no floating-point maths on money. Commission is rounded half-up per line.
@@ -99,8 +112,9 @@ All products, shops, people, orders, commissions, deliveries and settlements are
 
 ### Phase 2: database and authentication
 - [x] Supabase project connected (`.env.local`), live connection check
-- [ ] Migrations: schema, constraints, indexes
-- [ ] Row Level Security policies + isolation tests in the database
+- [x] Migrations: schema, constraints, indexes
+- [x] Row Level Security policies + isolation tests in the database (32/32 passing)
+- [x] Demo catalog seeded (16 categories, 14 shops, 42 products, `is_demo`)
 - [ ] Supabase Auth (phone OTP / email), protected routes, roles from `user_roles` (admin-only writes)
 - [ ] Admin accounts created only by a protected provisioning script (no public admin sign-up), MFA
 - [ ] Move catalog reads from demo files to Supabase
