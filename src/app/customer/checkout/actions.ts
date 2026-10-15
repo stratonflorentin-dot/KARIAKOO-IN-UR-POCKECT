@@ -7,6 +7,7 @@
 // Phase 1 does NOT create orders or take payments: it returns a verified
 // quote. Order creation (with a database transaction, stock reservation and
 // an idempotency key) arrives in Phase 4.
+import { getCatalog } from "@/lib/catalog-source";
 import { buildQuote, type QuoteIssue } from "@/lib/pricing";
 import { getPaymentProviders } from "@/lib/payments/providers";
 import { checkoutSchema } from "@/lib/validation/checkout";
@@ -71,7 +72,7 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
     return { status: "error", errors, values: raw };
   }
 
-  const quote = buildQuote(cart, parsed.data.zone as DeliveryZoneId);
+  const quote = buildQuote(cart, parsed.data.zone as DeliveryZoneId, new Date().toISOString(), await getCatalog());
   if (quote.groups.length === 0) {
     return { status: "error", errors: { cart: quote.issues[0]?.message ?? "Your cart is empty." }, values: raw };
   }

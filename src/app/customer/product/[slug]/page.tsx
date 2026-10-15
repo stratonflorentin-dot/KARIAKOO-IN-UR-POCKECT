@@ -10,17 +10,18 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { ProductImage } from "@/components/product/ProductImage";
 import { StockBadge } from "@/components/product/StockBadge";
 import { Skeleton } from "@/components/ui/States";
-import { getCategory, getProduct, getProducts, getShop, searchProducts } from "@/lib/catalog";
+import { getCategory } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 import { deliveryZones, EXTRA_PICKUP_FEE_TZS } from "@/lib/delivery";
 import { formatTzs } from "@/lib/format";
 
-export function generateStaticParams() {
-  return getProducts().map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getCatalog()).getProducts().map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/customer/product/[slug]">) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = (await getCatalog()).getProduct(slug);
   return product ? { title: product.name, description: product.description } : { title: "Product not found" };
 }
 
@@ -36,11 +37,12 @@ export default function ProductPage({ params }: PageProps<"/customer/product/[sl
 
 async function ProductContent({ params }: Pick<PageProps<"/customer/product/[slug]">, "params">) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const catalog = await getCatalog();
+  const product = catalog.getProduct(slug);
   if (!product) notFound();
-  const shop = getShop(product.shopId);
+  const shop = catalog.getShop(product.shopId);
   const category = getCategory(product.category);
-  const related = searchProducts({ category: product.category, sort: "popular", pageSize: 5 }).items.filter((p) => p.id !== product.id).slice(0, 4);
+  const related = catalog.searchProducts({ category: product.category, sort: "popular", pageSize: 5 }).items.filter((p) => p.id !== product.id).slice(0, 4);
   const cheapest = Math.min(...deliveryZones.map((z) => z.feeTzs));
 
   return (

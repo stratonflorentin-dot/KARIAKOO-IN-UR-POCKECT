@@ -1,54 +1,16 @@
-// Read-only public catalog. Today it reads demo data; in Phase 2 these
-// functions will query Supabase (through RLS) and nothing else changes.
+// The public catalog. `createCatalog` builds a read-only view over catalog
+// data from either source: Supabase (src/lib/catalog-source.ts) or the demo
+// files. Pages get the active one with `await getCatalog()`; tests and the
+// demo dashboards use `demoCatalog`.
 import { demoCategories } from "@/data/demo/categories";
 import { demoProducts } from "@/data/demo/products";
 import { demoShops } from "@/data/demo/shops";
 import type { Category, CategorySlug, Product, Shop, ShopArea } from "@/lib/types";
 
-/** Only approved shops are visible to customers. */
-const publicShops = demoShops.filter((s) => s.status === "approved");
-const publicShopIds = new Set(publicShops.map((s) => s.id));
-/** Only active products from approved shops are visible to customers. */
-const publicProducts = demoProducts.filter((p) => p.status === "active" && publicShopIds.has(p.shopId));
-
-export function getCategories(): Category[] {
-  return demoCategories;
-}
-
-export function getCategory(slug: string): Category | undefined {
-  return demoCategories.find((c) => c.slug === slug);
-}
-
-export function getShops(): Shop[] {
-  return publicShops;
-}
-
-export function getShop(slugOrId: string): Shop | undefined {
-  return publicShops.find((s) => s.slug === slugOrId || s.id === slugOrId);
-}
-
-export function getProducts(): Product[] {
-  return publicProducts;
-}
-
-export function getProduct(slugOrId: string): Product | undefined {
-  return publicProducts.find((p) => p.slug === slugOrId || p.id === slugOrId);
-}
-
-export function getProductsByCategory(slug: string): Product[] {
-  return publicProducts.filter((p) => p.category === slug);
-}
-
-export function getProductsByShop(shopId: string): Product[] {
-  return publicProducts.filter((p) => p.shopId === shopId);
-}
-
-export function getShopName(shopId: string): string {
-  return demoShops.find((s) => s.id === shopId)?.name ?? "Unknown shop";
-}
-
-export function getShopArea(shopId: string): ShopArea | undefined {
-  return demoShops.find((s) => s.id === shopId)?.area;
+export interface CatalogData {
+  categories: Category[];
+  shops: Shop[];
+  products: Product[];
 }
 
 export type StockLevel = "out" | "low" | "in";
@@ -63,7 +25,14 @@ export function isOnOffer(p: Product): boolean {
   return p.compareAtTzs !== undefined && p.compareAtTzs > p.priceTzs;
 }
 
-/* ---------------------------- Search ---------------------------- */
+/** Categories are fixed reference data (the database is seeded from this list). */
+export function getCategories(): Category[] {
+  return demoCategories;
+}
+
+export function getCategory(slug: string): Category | undefined {
+  return demoCategories.find((c) => c.slug === slug);
+}
 
 export type SortOption = "relevance" | "price-asc" | "price-desc" | "popular" | "newest";
 
@@ -95,59 +64,92 @@ function termsOf(query: string | undefined): string[] {
   return normalise(query ?? "").split(/\s+/).filter(Boolean).slice(0, 8);
 }
 
-function productHaystack(p: Product): string {
-  const c = getCategory(p.category);
-  return normalise([p.name, p.description, getShopName(p.shopId), c?.name, c?.nameSw].join(" "));
-}
+export function createCatalog(data: CatalogData) {
+  // Only approved shops, and only their active products, are public.
+  const shops = data.shops.filter((s) => s.status === "approved");
+  const shopById = new Map(data.shops.map((s) => [s.id, s]));
+  const publicShopIds = new Set(shops.map((s) => s.id));
+  const products = data.products
+    .filter((p) => p.status === "active" && publicShopIds.has(p.shopId))
+    .map((p) => ({ ...p, shopName: p.shopName ?? shopById.get(p.shopId)?.name ?? "Unknown shop" }));
 
-/** Pure, testable product search with filters, sorting and pagination. */
-export function searchProducts(filters: ProductFilters, source: Product[] = publicProducts): ProductSearchResult {
-  const terms = termsOf(filters.q);
-  const pageSize = Math.min(Math.max(filters.pageSize ?? 12, 1), 48);
+  const getShop = (slugOrId: string) => shops.find((s) => s.slug === slugOrId || s.id === slugOrId);
+  const getProduct = (slugOrId: string) => products.find((p) => p.slug === slugOrId || p.id === slugOrId);
+  const getShopName = (shopId: string) => shopById.get(shopId)?.name ?? "Unknown shop";
+  const getShopArea = (shopId: string) => shopById.get(shopId)?.area;
 
-  let items = source.filter((p) => {
-    if (filters.category && p.category !== filters.category) return false;
-    if (filters.shopId && p.shopId !== filters.shopId) return false;
-    if (filters.area && getShopArea(p.shopId) !== filters.area) return false;
-    if (filters.minPrice !== undefined && p.priceTzs < filters.minPrice) return false;
-    if (filters.maxPrice !== undefined && p.priceTzs > filters.maxPrice) return false;
-    if (filters.inStockOnly && p.stock <= 0) return false;
-    if (terms.length > 0) {
-      const text = productHaystack(p);
-      if (!terms.every((t) => text.includes(t))) return false;
-    }
-    return true;
-  });
-
-  const sort = filters.sort ?? "relevance";
-  const byName = (a: Product, b: Product) => a.name.localeCompare(b.name);
-  const sorters: Record<SortOption, (a: Product, b: Product) => number> = {
-    // Relevance: name matches first, then popularity.
-    relevance: (a, b) => {
-      const score = (p: Product) => (terms.length && terms.every((t) => normalise(p.name).includes(t)) ? 1 : 0);
-      return score(b) - score(a) || b.soldCount - a.soldCount || byName(a, b);
-    },
-    "price-asc": (a, b) => a.priceTzs - b.priceTzs || byName(a, b),
-    "price-desc": (a, b) => b.priceTzs - a.priceTzs || byName(a, b),
-    popular: (a, b) => b.soldCount - a.soldCount || byName(a, b),
-    newest: (a, b) => b.listedAt.localeCompare(a.listedAt) || byName(a, b),
+  const haystack = (p: Product) => {
+    const c = getCategory(p.category);
+    return normalise([p.name, p.description, getShopName(p.shopId), c?.name, c?.nameSw].join(" "));
   };
-  items = [...items].sort(sorters[sort]);
 
-  const total = items.length;
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const page = Math.min(Math.max(Math.floor(filters.page ?? 1), 1), pageCount);
-  return { items: items.slice((page - 1) * pageSize, page * pageSize), total, page, pageCount };
+  /** Product search with filters, sorting and pagination. */
+  function searchProducts(filters: ProductFilters): ProductSearchResult {
+    const terms = termsOf(filters.q);
+    const pageSize = Math.min(Math.max(filters.pageSize ?? 12, 1), 48);
+
+    let items = products.filter((p) => {
+      if (filters.category && p.category !== filters.category) return false;
+      if (filters.shopId && p.shopId !== filters.shopId) return false;
+      if (filters.area && getShopArea(p.shopId) !== filters.area) return false;
+      if (filters.minPrice !== undefined && p.priceTzs < filters.minPrice) return false;
+      if (filters.maxPrice !== undefined && p.priceTzs > filters.maxPrice) return false;
+      if (filters.inStockOnly && p.stock <= 0) return false;
+      if (terms.length > 0) {
+        const text = haystack(p);
+        if (!terms.every((t) => text.includes(t))) return false;
+      }
+      return true;
+    });
+
+    const byName = (a: Product, b: Product) => a.name.localeCompare(b.name);
+    const sorters: Record<SortOption, (a: Product, b: Product) => number> = {
+      // Relevance: name matches first, then popularity.
+      relevance: (a, b) => {
+        const score = (p: Product) => (terms.length && terms.every((t) => normalise(p.name).includes(t)) ? 1 : 0);
+        return score(b) - score(a) || b.soldCount - a.soldCount || byName(a, b);
+      },
+      "price-asc": (a, b) => a.priceTzs - b.priceTzs || byName(a, b),
+      "price-desc": (a, b) => b.priceTzs - a.priceTzs || byName(a, b),
+      popular: (a, b) => b.soldCount - a.soldCount || byName(a, b),
+      newest: (a, b) => b.listedAt.localeCompare(a.listedAt) || byName(a, b),
+    };
+    items = [...items].sort(sorters[filters.sort ?? "relevance"]);
+
+    const total = items.length;
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(Math.max(Math.floor(filters.page ?? 1), 1), pageCount);
+    return { items: items.slice((page - 1) * pageSize, page * pageSize), total, page, pageCount };
+  }
+
+  function searchShops(query: string): Shop[] {
+    const terms = termsOf(query);
+    if (terms.length === 0) return [];
+    return shops.filter((s) => {
+      const text = normalise([s.name, s.address, s.description, ...s.categories.map((c) => getCategory(c)?.name)].join(" "));
+      return terms.every((t) => text.includes(t));
+    });
+  }
+
+  return {
+    getCategories,
+    getCategory,
+    getShops: () => shops,
+    getShop,
+    getProducts: () => products,
+    getProduct,
+    getProductsByCategory: (slug: string) => products.filter((p) => p.category === slug),
+    getProductsByShop: (shopId: string) => products.filter((p) => p.shopId === shopId),
+    getShopName,
+    getShopArea,
+    searchProducts,
+    searchShops,
+  };
 }
 
-export function searchShops(query: string): Shop[] {
-  const terms = termsOf(query);
-  if (terms.length === 0) return [];
-  return publicShops.filter((s) => {
-    const text = normalise([s.name, s.address, s.description, ...s.categories.map((c) => getCategory(c)?.name)].join(" "));
-    return terms.every((t) => text.includes(t));
-  });
-}
+export type Catalog = ReturnType<typeof createCatalog>;
+
+export const demoCatalog = createCatalog({ categories: demoCategories, shops: demoShops, products: demoProducts });
 
 const SORTS: SortOption[] = ["relevance", "price-asc", "price-desc", "popular", "newest"];
 const AREAS: ShopArea[] = ["kariakoo", "posta", "sinza", "mwenge"];

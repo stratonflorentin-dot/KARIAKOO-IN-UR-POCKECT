@@ -8,15 +8,16 @@ import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import { shopAreaLabel } from "@/data/demo/shops";
-import { getCategory, getShop, getShops, parseProductFilters, searchProducts } from "@/lib/catalog";
+import { getCategory, parseProductFilters } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 
-export function generateStaticParams() {
-  return getShops().map((s) => ({ slug: s.slug }));
+export async function generateStaticParams() {
+  return (await getCatalog()).getShops().map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/customer/shops/[slug]">) {
   const { slug } = await params;
-  return { title: getShop(slug)?.name ?? "Shop" };
+  return { title: (await getCatalog()).getShop(slug)?.name ?? "Shop" };
 }
 
 export default function ShopPage({ params, searchParams }: PageProps<"/customer/shops/[slug]">) {
@@ -29,10 +30,11 @@ export default function ShopPage({ params, searchParams }: PageProps<"/customer/
 
 async function ShopContent({ params, searchParams }: PageProps<"/customer/shops/[slug]">) {
   const { slug } = await params;
-  const shop = getShop(slug);
+  const catalog = await getCatalog();
+  const shop = catalog.getShop(slug);
   if (!shop) notFound();
   const filters = parseProductFilters(await searchParams);
-  const { items } = searchProducts({ q: filters.q, category: filters.category, shopId: shop.id, sort: "popular", pageSize: 48 });
+  const { items } = catalog.searchProducts({ q: filters.q, category: filters.category, shopId: shop.id, sort: "popular", pageSize: 48 });
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 A multi-vendor marketplace for Kariakoo and Dar es Salaam. Customers buy from many shops in one order and **pay KARIAKOO**. KARIAKOO confirms the order with each shop, one rider collects and delivers everything, and each shop is paid after delivery, minus commission.
 
-> **Status: Phase 1 complete, Phase 2 in progress.** The app runs on clearly labelled **demo data**. The Supabase database now has its schema, Row Level Security (32 isolation checks passing) and a seeded demo catalog, but the app does not read from it yet, and sign-in, real orders and payments are not live. No real money moves.
+> **Status: Phase 1 complete, Phase 2 in progress.** The **store catalog is read live from Supabase** (schema, Row Level Security with 32 passing isolation checks, and a seeded demo catalog marked `is_demo`). Orders, riders and dashboards still use demo files until sign-in arrives. Real orders and payments are not live. No real money moves.
 
 ## Run it locally
 
@@ -77,6 +77,7 @@ Project: **KARIAKOO-IN-UR-POCKECT**. All database changes are SQL files in `supa
 
 - **Isolation tests:** `supabase/tests/rls_isolation.sql`. Paste it into the Supabase SQL editor and run it. It impersonates customers, sellers, riders and an admin, checks 32 rules, then rolls everything back. The expected result is an "error" saying `RLS OK: 32 checks passed`.
 - **Demo catalog:** `node scripts/generate-demo-seed.mts` regenerates `supabase/seed/demo_catalog.sql` from `src/data/demo/`. It's safe to re-run, and every row has `is_demo = true`.
+- **How the app reads it:** `src/lib/catalog-source.ts` (server-only) loads categories, approved shops and active products with the publishable key, so RLS decides what is visible. Results are cached and refreshed about every minute. If Supabase is missing or unreachable, the store falls back to the demo files. The store footer and the admin Systems card always show which source is live.
 - **Roles** live in `user_roles`, which **no client can write**. New sign-ups automatically get the `customer` role. Seller, rider and admin roles are granted only by trusted server code after verification. There is no public admin sign-up.
 
 ## Key engineering decisions
@@ -117,7 +118,8 @@ All products, shops, people, orders, commissions, deliveries and settlements are
 - [x] Demo catalog seeded (16 categories, 14 shops, 42 products, `is_demo`)
 - [ ] Supabase Auth (phone OTP / email), protected routes, roles from `user_roles` (admin-only writes)
 - [ ] Admin accounts created only by a protected provisioning script (no public admin sign-up), MFA
-- [ ] Move catalog reads from demo files to Supabase
+- [x] Store catalog read from Supabase (with demo-file fallback)
+- [ ] Orders, riders and dashboards read from Supabase (needs sign-in)
 
 ### Phase 3: seller operations
 - [ ] Onboarding and verification documents (private storage bucket), pharmacy licence checks

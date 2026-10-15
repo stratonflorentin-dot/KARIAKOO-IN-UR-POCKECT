@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getShopName, isOnOffer } from "@/lib/catalog";
+import { isOnOffer } from "@/lib/catalog";
 import type { Product } from "@/lib/types";
 import { Price } from "./Price";
 import { ProductImage } from "./ProductImage";
@@ -15,7 +15,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
-        <p className="truncate text-xs text-muted">{getShopName(product.shopId)}</p>
+        <p className="truncate text-xs text-muted">{product.shopName}</p>
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-ink sm:text-[15px]">
           {/* The ::after stretches this link over the whole card: one tab stop, whole card clickable. */}
           <Link href={`/customer/product/${product.slug}`} className="outline-none after:absolute after:inset-0">

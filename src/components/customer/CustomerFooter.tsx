@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CatalogSourceNote } from "@/components/CatalogSourceNote";
 import { Logo } from "@/components/ui/Logo";
 
 export function CustomerFooter() {
@@ -29,9 +30,10 @@ export function CustomerFooter() {
           </ul>
         </div>
       </div>
-      <p className="mx-auto mt-10 max-w-7xl px-4 text-xs text-white/50 sm:px-6">
-        Development build. All products, shops, prices, people and orders shown are demo data.
-      </p>
+      <div className="mx-auto mt-10 max-w-7xl space-y-1 px-4 sm:px-6">
+        <p className="text-xs text-white/50">Development build. All products, shops, prices, people and orders shown are demo data.</p>
+        <CatalogSourceNote />
+      </div>
     </footer>
   );
 }

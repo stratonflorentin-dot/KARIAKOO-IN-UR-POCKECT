@@ -7,15 +7,17 @@ import { ProductCard, ProductGrid } from "@/components/product/ProductCard";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { SearchBar } from "@/components/ui/SearchBar";
-import { getCategories, getProducts, getShopName, getShops, isOnOffer, searchProducts } from "@/lib/catalog";
+import { getCategories, isOnOffer } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 
-export default function CustomerHomePage() {
+export default async function CustomerHomePage() {
+  const catalog = await getCatalog();
   const categories = getCategories();
-  const featured = searchProducts({ sort: "popular", inStockOnly: true, pageSize: 8 }).items;
-  const newest = searchProducts({ sort: "newest", inStockOnly: true, pageSize: 4 }).items;
-  const offers = getProducts().filter(isOnOffer);
-  const shops = [...getShops()].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 6);
-  const recentInfo = getProducts().map((p) => ({ id: p.id, slug: p.slug, name: p.name, priceTzs: p.priceTzs, shopName: getShopName(p.shopId) }));
+  const featured = catalog.searchProducts({ sort: "popular", inStockOnly: true, pageSize: 8 }).items;
+  const newest = catalog.searchProducts({ sort: "newest", inStockOnly: true, pageSize: 4 }).items;
+  const offers = catalog.getProducts().filter(isOnOffer);
+  const shops = [...catalog.getShops()].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 6);
+  const recentInfo = catalog.getProducts().map((p) => ({ id: p.id, slug: p.slug, name: p.name, priceTzs: p.priceTzs, shopName: catalog.getShopName(p.shopId) }));
 
   return (
     <>

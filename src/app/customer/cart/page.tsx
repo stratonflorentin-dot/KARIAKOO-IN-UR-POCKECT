@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { CartView } from "@/components/cart/CartView";
 import { getCartCatalog } from "@/lib/cart-catalog";
+import { getCatalog } from "@/lib/catalog-source";
 
 export const metadata: Metadata = { title: "Cart" };
 
-export default function CartPage() {
+export default async function CartPage() {
+  const catalog = await getCatalog();
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your cart</h1>
-      <CartView catalog={getCartCatalog()} />
+      <CartView catalog={getCartCatalog(catalog)} />
     </div>
   );
 }

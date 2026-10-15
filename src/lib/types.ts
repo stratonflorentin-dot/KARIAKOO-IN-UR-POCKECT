@@ -73,6 +73,8 @@ export interface Product {
   status: ProductStatus;
   /** Units sold to date (demo), used for "popular" sorting. */
   soldCount: number;
+  /** Display name of the shop (filled in by the catalog). */
+  shopName?: string;
   /** ISO date the product was listed, used for "newest" sorting. */
   listedAt: string;
   isDemo: true;

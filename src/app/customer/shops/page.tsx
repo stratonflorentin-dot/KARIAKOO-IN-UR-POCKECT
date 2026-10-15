@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { EmptyState, Skeleton } from "@/components/ui/States";
-import { getShops } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 import { shopKind, shopKindLabel } from "@/lib/shop-kind";
 import type { CategorySlug } from "@/lib/types";
 
@@ -25,7 +25,7 @@ export default function ShopsDirectoryPage({ searchParams }: PageProps<"/custome
 async function Directory({ searchParams }: Pick<PageProps<"/customer/shops">, "searchParams">) {
   const raw = (await searchParams).type;
   const type = typeof raw === "string" && raw in shopKindLabel ? (raw as CategorySlug) : undefined;
-  const all = getShops();
+  const all = (await getCatalog()).getShops();
   // Only show types that at least one approved shop has.
   const kinds = [...new Set(all.map(shopKind))];
   const shops = type ? all.filter((s) => shopKind(s) === type) : all;

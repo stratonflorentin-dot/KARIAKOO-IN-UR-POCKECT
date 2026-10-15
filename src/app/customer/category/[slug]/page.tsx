@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { ProductGrid } from "@/components/product/ProductCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { EmptyState, Skeleton } from "@/components/ui/States";
-import { getCategories, getCategory, searchProducts } from "@/lib/catalog";
+import { getCategories, getCategory } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 
 export function generateStaticParams() {
   return getCategories().map((c) => ({ slug: c.slug }));
@@ -29,7 +30,7 @@ async function CategoryContent({ params }: Pick<PageProps<"/customer/category/[s
   const { slug } = await params;
   const category = getCategory(slug);
   if (!category) notFound();
-  const { items } = searchProducts({ category: category.slug, sort: "popular", pageSize: 48 });
+  const { items } = (await getCatalog()).searchProducts({ category: category.slug, sort: "popular", pageSize: 48 });
 
   return (
     <>

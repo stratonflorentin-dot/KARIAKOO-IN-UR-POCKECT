@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { getProduct, getProducts, getShop, parseProductFilters, searchProducts, searchShops } from "./catalog";
+import { demoCatalog, parseProductFilters } from "./catalog";
+
+const { getProduct, getProducts, getShop, searchProducts, searchShops } = demoCatalog;
 
 describe("public catalog visibility", () => {
   it("hides products from shops that are not approved", () => {

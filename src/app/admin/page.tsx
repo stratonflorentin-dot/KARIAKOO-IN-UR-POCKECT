@@ -11,6 +11,7 @@ import { platformMetrics } from "@/lib/admin-metrics";
 import { requireRole } from "@/lib/auth/session";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { breakdown } from "@/lib/money";
+import { getCatalogSource } from "@/lib/catalog-source";
 import { getSupabaseStatus } from "@/lib/supabase/status";
 
 export default async function AdminOverviewPage() {
@@ -98,14 +99,17 @@ export default async function AdminOverviewPage() {
 }
 
 async function SupabaseStatusRow() {
-  const s = await getSupabaseStatus();
+  const [s, source] = await Promise.all([getSupabaseStatus(), getCatalogSource()]);
   return (
     <p className="flex items-start gap-2 text-sm">
       <Database size={16} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" />
       <span>
         Supabase:{" "}
         {s.state === "reachable" ? <Badge tone="success">Connected</Badge> : s.state === "unreachable" ? <Badge tone="danger">Unreachable ({s.detail})</Badge> : <Badge>Not configured</Badge>}
-        <span className="mt-1 block text-xs text-muted">Live check of the Auth service. Database tables and security rules are created in Phase 2; the app still reads demo data.</span>
+        <span className="mt-1 block text-xs text-muted">
+          Store catalog: {source.kind === "supabase" ? `read from Supabase (${source.shops} shops, ${source.products} products)` : `demo files (${source.reason})`}.
+          Orders, riders and dashboards stay on demo data until sign-in arrives.
+        </span>
       </span>
     </p>
   );

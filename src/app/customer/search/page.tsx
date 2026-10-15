@@ -8,7 +8,8 @@ import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import { shopAreaLabel } from "@/data/demo/shops";
-import { getCategories, parseProductFilters, searchProducts, searchShops, type ProductFilters } from "@/lib/catalog";
+import { getCategories, parseProductFilters, type ProductFilters } from "@/lib/catalog";
+import { getCatalog } from "@/lib/catalog-source";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -50,8 +51,9 @@ function hrefWith(filters: ProductFilters, patch: Partial<ProductFilters>) {
 
 async function SearchResults({ searchParams }: Pick<PageProps<"/customer/search">, "searchParams">) {
   const filters = parseProductFilters(await searchParams);
-  const result = searchProducts(filters);
-  const shops = filters.q ? searchShops(filters.q) : [];
+  const catalog = await getCatalog();
+  const result = catalog.searchProducts(filters);
+  const shops = filters.q ? catalog.searchShops(filters.q) : [];
   const categories = getCategories();
   const hasFilters = Boolean(filters.category || filters.area || filters.minPrice !== undefined || filters.maxPrice !== undefined || filters.inStockOnly);
 

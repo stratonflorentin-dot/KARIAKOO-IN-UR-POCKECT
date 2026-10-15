@@ -7,7 +7,7 @@ import "server-only";
 // Server-only: importing this file from a Client Component fails the build,
 // so the browser can never supply or override prices, fees or commission.
 import { demoCommissionRules } from "@/data/demo/commission-rules";
-import { getProduct, getShop } from "@/lib/catalog";
+import { demoCatalog, type Catalog } from "@/lib/catalog";
 import { resolveCommissionBps } from "@/lib/commission";
 import { deliveryFeeFor } from "@/lib/delivery";
 import { breakdown, lineTotal } from "@/lib/money";
@@ -68,9 +68,15 @@ export interface Quote {
 /**
  * Builds a quote from untrusted cart input. Only product ids and quantities
  * are read; every price, fee and commission rate is looked up here.
- * `at` is the pricing time (used to pick the commission rule in force).
+ * `at` is the pricing time (used to pick the commission rule in force) and
+ * `catalog` is the live catalog (Supabase or demo) to price against.
  */
-export function buildQuote(rawLines: unknown, zone: DeliveryZoneId, at: string = new Date().toISOString()): Quote {
+export function buildQuote(
+  rawLines: unknown,
+  zone: DeliveryZoneId,
+  at: string = new Date().toISOString(),
+  catalog: Catalog = demoCatalog,
+): Quote {
   const issues: QuoteIssue[] = [];
   const byShop = new Map<string, ShopGroup>();
   const lines = Array.isArray(rawLines) ? rawLines.slice(0, MAX_LINES_PER_ORDER) : [];
@@ -82,7 +88,7 @@ export function buildQuote(rawLines: unknown, zone: DeliveryZoneId, at: string =
     if (!productId || seen.has(productId)) continue;
     seen.add(productId);
 
-    const product = getProduct(productId);
+    const product = catalog.getProduct(productId);
     if (!product) {
       issues.push({ productId, message: "A product in your cart is no longer available." });
       continue;
@@ -95,7 +101,7 @@ export function buildQuote(rawLines: unknown, zone: DeliveryZoneId, at: string =
       issues.push({ productId, message: `${product.name} is out of stock.` });
       continue;
     }
-    const shop = getShop(product.shopId);
+    const shop = catalog.getShop(product.shopId);
     if (!shop) {
       issues.push({ productId, message: `${product.name}'s shop is not currently selling.` });
       continue;

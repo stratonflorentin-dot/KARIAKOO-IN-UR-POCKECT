@@ -15,7 +15,7 @@ import { getZone } from "@/lib/delivery";
 import { deliveryPinForCustomer } from "@/lib/delivery-pin";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { orderTotals } from "@/lib/money";
-import { getShopName } from "@/lib/catalog";
+import { demoCatalog } from "@/lib/catalog";
 import { isCustomerCancellable } from "@/lib/status";
 import type { Order } from "@/lib/types";
 
@@ -98,7 +98,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, 
               {order.groups.map((g) => (
                 <div key={g.shopId}>
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                    <Store size={15} className="text-brand-600" aria-hidden="true" /> {getShopName(g.shopId)} <FulfillmentBadge status={g.status} />
+                    <Store size={15} className="text-brand-600" aria-hidden="true" /> {demoCatalog.getShopName(g.shopId)} <FulfillmentBadge status={g.status} />
                   </p>
                   {g.rejectionReason && <p className="mt-1 text-sm text-red-700">Reason: {g.rejectionReason}</p>}
                   <ul className="mt-2 divide-y divide-line text-sm">
