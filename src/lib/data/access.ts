@@ -92,7 +92,7 @@ export interface RiderJobView {
   placedAt: string;
   status: DeliveryStatus;
   payoutTzs: number;
-  pickups: { shopName: string; address: string; itemCount: number; ready: boolean; geo?: LngLat }[];
+  pickups: { shopId: string; shopName: string; address: string; itemCount: number; items: { name: string; quantity: number }[]; ready: boolean; geo?: LngLat }[];
   zone: Order["zone"];
   dropoffAddress: string;
   dropoffGeo?: LngLat;
@@ -100,6 +100,8 @@ export interface RiderJobView {
   /** Present only while the rider is actively handling the delivery. */
   customer?: { name: string; phone: string };
   history: Order["delivery"]["history"];
+  /** When the delivery was completed, if it was. */
+  deliveredAt?: string;
   /** Cash to collect for cash-on-delivery orders that are not yet paid. */
   cashToCollectTzs: number;
 }
@@ -114,8 +116,11 @@ function toRiderJob(o: Order): RiderJobView {
     payoutTzs: o.delivery.riderPayoutTzs,
     pickups: o.groups.map((g) => {
       const shop = demoShops.find((s) => s.id === g.shopId);
+      const lines = o.items.filter((i) => i.shopId === g.shopId);
       return {
+        shopId: g.shopId,
         shopName: shop?.name ?? g.shopId,
+        items: lines.map((i) => ({ name: i.productName, quantity: i.quantity })),
         address: shop?.address ?? "",
         itemCount: o.items.filter((i) => i.shopId === g.shopId).reduce((s, i) => s + i.quantity, 0),
         ready: g.status === "ready_for_pickup" || g.status === "picked_up" || g.status === "delivered",
@@ -128,6 +133,7 @@ function toRiderJob(o: Order): RiderJobView {
     instructions: o.instructions,
     customer: CONTACT_VISIBLE.includes(o.delivery.status) && customer ? { name: customer.name, phone: customer.phone } : undefined,
     history: o.delivery.history,
+    deliveredAt: o.delivery.status === "DELIVERED" ? [...o.delivery.history].reverse().find((h) => h.label.startsWith("Delivered"))?.at : undefined,
     cashToCollectTzs:
       o.paymentMethod === "cod" && o.paymentStatus === "pending"
         ? breakdown(o.items).merchandiseTzs + o.deliveryFeeTzs
@@ -148,6 +154,31 @@ export function riderJob(session: Session | null, orderId: string): RiderJobView
   assertRole(session, "rider");
   const order = demoOrders.find((o) => o.id === orderId);
   return order && order.delivery.riderId === session.riderId ? toRiderJob(order) : null;
+}
+
+export interface DemandArea {
+  shopName: string;
+  geo: LngLat;
+  /** Orders at this shop that still need a rider. */
+  waiting: number;
+}
+
+/**
+ * Where riders are needed: shops with orders that have no rider yet.
+ * Aggregated counts only; riders never see other customers' details.
+ */
+export function riderDemandAreas(session: Session | null): DemandArea[] {
+  assertRole(session, "rider");
+  const counts = new Map<string, number>();
+  for (const o of demoOrders) {
+    if (o.status === "cancelled" || o.delivery.status !== "PENDING_ASSIGNMENT") continue;
+    for (const g of o.groups) counts.set(g.shopId, (counts.get(g.shopId) ?? 0) + 1);
+  }
+  return [...counts.entries()].flatMap(([shopId, waiting]) => {
+    const geo = shopGeo[shopId];
+    const shop = demoShops.find((s) => s.id === shopId);
+    return geo && shop ? [{ shopName: shop.name, geo, waiting }] : [];
+  });
 }
 
 export function riderProfile(session: Session | null) {

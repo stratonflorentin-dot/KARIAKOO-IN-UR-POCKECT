@@ -1,11 +1,12 @@
 "use client";
 
-import { Bike, History, User } from "lucide-react";
+import { Bike, History, User, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/rider", label: "Deliveries", Icon: Bike, exact: true },
+  { href: "/rider/earnings", label: "Earnings", Icon: Wallet },
   { href: "/rider/history", label: "History", Icon: History },
   { href: "/rider/profile", label: "Profile", Icon: User },
 ];
@@ -15,7 +16,7 @@ export function RiderNav() {
   const pathname = usePathname();
   return (
     <nav aria-label="Rider" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-night pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto grid max-w-md grid-cols-3">
+      <ul className="mx-auto grid max-w-md grid-cols-4">
         {tabs.map(({ href, label, Icon, exact }) => {
           const active = exact ? pathname === href || pathname.startsWith("/rider/jobs") : pathname.startsWith(href);
           return (

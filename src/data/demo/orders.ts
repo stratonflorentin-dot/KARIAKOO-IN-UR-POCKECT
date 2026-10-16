@@ -198,4 +198,73 @@ export const demoOrders: Order[] = [
     ],
     isDemo: true,
   },
+  {
+    id: "ord-110", reference: "KK-260110", customerId: "cust-003", placedAt: "2026-10-15T07:50:00+03:00",
+    zone: "kariakoo", address: "Lumumba St, Block C",
+    status: "delivered", paymentStatus: "successful", paymentMethod: "mpesa", deliveryFeeTzs: 2_000,
+    items: [
+      { productId: "prd-039", shopId: "shop-014", productName: "Pilau ya Nyama with Kachumbari", unitPriceTzs: 7_000, quantity: 2, commissionBps: 1000 },
+      { productId: "prd-040", shopId: "shop-014", productName: "Chips Mayai", unitPriceTzs: 4_000, quantity: 1, commissionBps: 1000 },
+    ],
+    groups: [{ shopId: "shop-014", status: "delivered", settlement: "pending" }],
+    delivery: {
+      status: "DELIVERED", riderId: "rider-001", riderPayoutTzs: 1_500,
+      history: [
+        { label: "Rider accepted", at: "2026-10-15T08:02:00+03:00", actor: "rider" },
+        { label: "Picked up from Mama Lishe Kariakoo Kitchen", at: "2026-10-15T08:20:00+03:00", actor: "rider" },
+        { label: "Delivered (PIN verified)", at: "2026-10-15T08:45:00+03:00", actor: "rider" },
+      ],
+    },
+    history: [
+      { label: "Order placed", at: "2026-10-15T07:50:00+03:00", actor: "customer" },
+      { label: "Payment confirmed by provider", at: "2026-10-15T07:51:00+03:00", actor: "system" },
+      { label: "Delivered", at: "2026-10-15T08:45:00+03:00", actor: "rider" },
+    ],
+    isDemo: true,
+  },
+  {
+    id: "ord-111", reference: "KK-260111", customerId: "cust-002", placedAt: "2026-10-15T11:40:00+03:00",
+    zone: "ilala", address: "Bibi Titi Mohamed Rd, near the stadium",
+    status: "delivered", paymentStatus: "successful", paymentMethod: "airtelmoney", deliveryFeeTzs: 3_500,
+    items: [
+      { productId: "prd-043", shopId: "shop-015", productName: "Men's Oxford Shirt (Long Sleeve)", unitPriceTzs: 35_000, quantity: 1, commissionBps: 1000 },
+      { productId: "prd-045", shopId: "shop-015", productName: "Men's Straight Denim Jeans", unitPriceTzs: 45_000, quantity: 1, commissionBps: 1000 },
+    ],
+    groups: [{ shopId: "shop-015", status: "delivered", settlement: "pending" }],
+    delivery: {
+      status: "DELIVERED", riderId: "rider-001", riderPayoutTzs: 2_500,
+      history: [
+        { label: "Rider accepted", at: "2026-10-15T11:55:00+03:00", actor: "rider" },
+        { label: "Picked up from Kariakoo Mitindo Fashion House", at: "2026-10-15T12:15:00+03:00", actor: "rider" },
+        { label: "Delivered (PIN verified)", at: "2026-10-15T12:50:00+03:00", actor: "rider" },
+      ],
+    },
+    history: [
+      { label: "Order placed", at: "2026-10-15T11:40:00+03:00", actor: "customer" },
+      { label: "Payment confirmed by provider", at: "2026-10-15T11:41:00+03:00", actor: "system" },
+      { label: "Delivered", at: "2026-10-15T12:50:00+03:00", actor: "rider" },
+    ],
+    isDemo: true,
+  },
+  {
+    id: "ord-112", reference: "KK-260112", customerId: "cust-003", placedAt: "2026-10-13T10:05:00+03:00",
+    zone: "kinondoni", address: "Mwenge, near the bus terminal",
+    status: "delivered", paymentStatus: "successful", paymentMethod: "mpesa", deliveryFeeTzs: 5_000,
+    items: [
+      { productId: "prd-014", shopId: "shop-005", productName: "Kyela Rice (5kg)", unitPriceTzs: 17_500, quantity: 1, commissionBps: 700 },
+    ],
+    groups: [{ shopId: "shop-005", status: "delivered", settlement: "pending" }],
+    delivery: {
+      status: "DELIVERED", riderId: "rider-001", riderPayoutTzs: 3_500,
+      history: [
+        { label: "Rider accepted", at: "2026-10-13T10:20:00+03:00", actor: "rider" },
+        { label: "Delivered (PIN verified)", at: "2026-10-13T11:30:00+03:00", actor: "rider" },
+      ],
+    },
+    history: [
+      { label: "Order placed", at: "2026-10-13T10:05:00+03:00", actor: "customer" },
+      { label: "Delivered", at: "2026-10-13T11:30:00+03:00", actor: "rider" },
+    ],
+    isDemo: true,
+  },
 ];

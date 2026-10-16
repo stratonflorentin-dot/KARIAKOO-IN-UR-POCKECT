@@ -4,6 +4,7 @@ import { DevRoleBar } from "@/components/auth/DevRoleBar";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { AvailabilityToggle } from "@/components/rider/AvailabilityToggle";
 import { RiderNav } from "@/components/rider/RiderNav";
+import { SafetyButton } from "@/components/rider/SafetyButton";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
 
@@ -29,7 +30,10 @@ export default function RiderLayout({ children }: LayoutProps<"/rider">) {
             <Logo tone="light" href="/rider" compact />
             <span className="text-sm font-bold tracking-wide">RIDER</span>
           </div>
-          <AvailabilityToggle />
+          <div className="flex items-center gap-2">
+            <SafetyButton />
+            <AvailabilityToggle />
+          </div>
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-5">

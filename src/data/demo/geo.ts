@@ -31,6 +31,9 @@ export const dropoffGeo: Record<string, LngLat> = {
   "ord-107": [39.342, -6.869], // Kibada, Kigamboni
   "ord-108": [39.279, -6.818],
   "ord-109": [39.226, -6.788], // Sinza Mori
+  "ord-110": [39.279, -6.818], // Lumumba St
+  "ord-111": [39.271, -6.829], // Bibi Titi Mohamed Rd
+  "ord-112": [39.226, -6.768], // Mwenge
 };
 
 /** Kariakoo market, used to centre maps. */

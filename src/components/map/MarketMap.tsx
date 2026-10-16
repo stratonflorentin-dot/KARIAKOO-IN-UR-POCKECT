@@ -141,6 +141,7 @@ export default function MarketMap({
   nextIndex,
   heightClass = "h-72 sm:h-80",
   note,
+  heat = [],
 }: {
   points: MapPoint[];
   ariaLabel: string;
@@ -151,6 +152,8 @@ export default function MarketMap({
   nextIndex?: number;
   heightClass?: string;
   note?: string;
+  /** Shaded circles showing demand; bigger weight = bigger, stronger circle. */
+  heat?: { geo: LngLat; weight: number }[];
 }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -161,6 +164,7 @@ export default function MarketMap({
   const [view, setView] = useState<"satellite" | "streets">("satellite");
   const viewRef = useRef(view);
   const pointsKey = JSON.stringify(points);
+  const heatKey = JSON.stringify(heat);
 
   useEffect(() => {
     const pts: MapPoint[] = JSON.parse(pointsKey);
@@ -193,6 +197,26 @@ export default function MarketMap({
     }
 
     map.on("load", () => {
+      const heatPts: { geo: LngLat; weight: number }[] = JSON.parse(heatKey);
+      if (heatPts.length) {
+        map.addSource("heat", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: heatPts.map((h) => ({ type: "Feature", properties: { w: h.weight }, geometry: { type: "Point", coordinates: h.geo } })) },
+        });
+        map.addLayer({
+          id: "heat",
+          type: "circle",
+          source: "heat",
+          paint: {
+            "circle-color": "#f97316",
+            "circle-opacity": 0.35,
+            "circle-stroke-color": "#ea580c",
+            "circle-stroke-width": 2,
+            // Grows with demand and with zoom.
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["*", 10, ["get", "w"]], 16, ["*", 40, ["get", "w"]]],
+          },
+        });
+      }
       if (route && pts.length > 1) {
         map.addSource("guide", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map((p) => p.geo) } } });
         map.addLayer({ id: "guide", type: "line", source: "guide", paint: { "line-color": "#ea580c", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 } });
@@ -209,7 +233,7 @@ export default function MarketMap({
       mapRef.current = null;
       meMarker.current = null;
     };
-  }, [pointsKey, route]);
+  }, [pointsKey, heatKey, route]);
 
   // Switch between satellite and street map without rebuilding the map.
   useEffect(() => {

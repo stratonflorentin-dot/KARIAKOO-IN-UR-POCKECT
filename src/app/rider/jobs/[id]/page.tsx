@@ -17,8 +17,10 @@ export const metadata: Metadata = { title: "Delivery" };
 
 const mapsLink = (address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Dar es Salaam, Tanzania`)}`;
 
-export default async function RiderJobPage({ params }: PageProps<"/rider/jobs/[id]">) {
+export default async function RiderJobPage({ params, searchParams }: PageProps<"/rider/jobs/[id]">) {
   const { id } = await params;
+  // Accepted from the job offer pop-up (demo: not yet sent to dispatch).
+  const acceptedFromOffer = (await searchParams).accepted === "1";
   const job = riderJob(await requireRole("rider"), id);
   // Not assigned to this rider → same as not existing.
   if (!job) notFound();
@@ -47,7 +49,11 @@ export default async function RiderJobPage({ params }: PageProps<"/rider/jobs/[i
         note="Demo locations are approximate. The dashed line is a guide, not a road route: use Navigate for directions."
       />
 
-      <DeliveryFlow orderId={job.orderId} initial={job.status} />
+      <DeliveryFlow
+        orderId={job.orderId}
+        initial={acceptedFromOffer && job.status === "ASSIGNED" ? "ACCEPTED" : job.status}
+        pickups={job.pickups.map((p) => ({ shopName: p.shopName, items: p.items }))}
+      />
 
       <section aria-labelledby="pickup-heading" className="rounded-3xl bg-white p-4">
         <h2 id="pickup-heading" className="font-semibold">1. Pick up ({job.pickups.length} {job.pickups.length === 1 ? "shop" : "shops"})</h2>

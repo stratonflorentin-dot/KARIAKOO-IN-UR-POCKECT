@@ -62,10 +62,12 @@ test.describe("dashboards", () => {
   test("rider completes a delivery only with the correct PIN", async ({ page }) => {
     await previewAs(page, "Rider");
     await expect(page).toHaveURL(/\/rider$/);
-    await page.getByRole("link", { name: /KK-260102/ }).click();
+    await page.goto("/rider/jobs/ord-102");
     await expect(page.locator(".maplibregl-canvas")).toBeVisible(); // map rendered
     await expect(page.getByRole("region", { name: /Delivery map/ })).toBeVisible();
 
+    // Swipe-to-confirm is keyboard accessible too.
+    await page.getByRole("button", { name: /Arrived at customer: swipe right/ }).press("Enter");
     await page.getByLabel(/4-digit delivery PIN/).fill("0000");
     await page.getByRole("button", { name: "Confirm delivery" }).click();
     await expect(page.getByText(/That PIN is not correct/)).toBeVisible();
@@ -86,7 +88,7 @@ test.describe("dashboards", () => {
 test.describe("every dashboard page fits the screen", () => {
   const pages: Record<string, { role: Parameters<typeof previewAs>[1]; paths: string[] }> = {
     seller: { role: "Business owner", paths: ["/seller", "/seller/orders", "/seller/products", "/seller/finances"] },
-    rider: { role: "Rider", paths: ["/rider", "/rider/jobs/ord-102", "/rider/jobs/ord-106", "/rider/history", "/rider/profile"] },
+    rider: { role: "Rider", paths: ["/rider", "/rider/jobs/ord-102", "/rider/jobs/ord-106", "/rider/earnings", "/rider/history", "/rider/profile"] },
     admin: { role: "Admin / founder", paths: ["/admin", "/admin/orders", "/admin/orders/ord-102", "/admin/shops", "/admin/riders", "/admin/customers", "/admin/products", "/admin/commission"] },
     customer: { role: "Customer", paths: ["/customer/orders", "/customer/orders/ord-102", "/customer/profile"] },
   };

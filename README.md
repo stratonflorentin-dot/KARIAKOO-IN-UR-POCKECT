@@ -92,6 +92,7 @@ Project: **KARIAKOO-IN-UR-POCKECT**. All database changes are SQL files in `supa
 - **Departments.** Men, Women and Kids pages (`/customer/department/men` etc.) with type chips: shirts, T-shirts, blouses, trousers, jeans, dresses, skirts, jackets, traditional wear, sneakers, formal shoes, sandals, school shoes, bags, watches and more. Unisex items appear under both Men and Women. Search also filters by "For" and "Type".
 - **Adding products with a photo.** The seller's "Add a product" form validates the photo (JPG/PNG/WebP, 5 MB max, must decode as an image), the description (20 to 1,000 characters), price and stock, and shows a live customer preview (card and product page). In demo mode the photo stays on the seller's device; real uploads go to Supabase Storage once sellers sign in (Phase 3). Product cards and pages show the photo whenever a product has one (https URLs only).
 - **Maps (satellite by default)** for every role: riders (pickups, drop-off, route guide, opt-in location), customers (map of all shops, each shop's location with directions, their order's delivery route) and shop owners ("Your shop on the map"). Every map has a Satellite / Map toggle.
+- **Rider app (Bolt-style, built from public UX patterns, no copied code).** Full-screen job requests with a 30-second countdown (area shown, exact address only after accepting; also offered as the "next job" during a delivery); swipe-to-confirm steps (arrived at shop → checklist + pickup photo → goods collected → start trip → arrived → customer PIN); an Earnings tab (today, this week, paid every Monday vs pending); a busy-areas satellite map; Online / Finish this job / Offline; and an SOS button with Tanzanian emergency numbers (112, 114, 115: verify before launch) and problem reports. Demo preview: rider decisions stay on the phone until dispatch is live (Phase 6), except the PIN, which the server checks.
 - **Rider map.** MapLibre GL, with the setup adapted from the `my-view` project. It shows numbered pickups, the drop-off, a guide line and "Navigate" handoff to Google Maps. Location sharing is opt-in, stays on the phone, and stops when the rider leaves the screen. There is no fake live tracking for customers; they see an honest status timeline.
 
 ## What works now (tested)
@@ -141,7 +142,8 @@ All products, shops, people, orders, commissions, deliveries and settlements are
 - [ ] Settlements ledger (append-only), reconciliation, CSV reports
 
 ### Phase 6: rider operations
-- [ ] Registration and documents, dispatch and assignment, pickup codes, delivery proofs
+- [ ] Registration and documents, dispatch and assignment, pickup codes, delivery proofs (upload the pickup photo)
+- [ ] Send rider availability, offer answers and SOS reports to dispatch; set `NEXT_PUBLIC_SUPPORT_PHONE`; verify emergency numbers
 - [ ] Opt-in location sharing to dispatch with privacy controls, payouts
 
 ### Phase 7: production
