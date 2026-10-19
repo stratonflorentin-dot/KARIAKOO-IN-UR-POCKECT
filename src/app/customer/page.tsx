@@ -1,4 +1,4 @@
-import { Bike, ShieldCheck, Store, Wallet } from "lucide-react";
+import { Bike, Headset, ShieldCheck, Store, Wallet } from "lucide-react";
 import Link from "next/link";
 import { LocationSelector } from "@/components/customer/LocationSelector";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
@@ -59,6 +59,25 @@ export default async function CustomerHomePage() {
             </ul>
           </nav>
         </div>
+      </section>
+
+      <section aria-label="Why shop with KARIAKOO" className="border-b border-line bg-subtle">
+        <ul className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-4 sm:px-6">
+          {[
+            { Icon: ShieldCheck, t: "Secure payments", h: "You pay KARIAKOO" },
+            { Icon: Bike, t: "Fast delivery", h: "One rider, door to door" },
+            { Icon: Store, t: "Verified shops", h: "Real Kariakoo sellers" },
+            { Icon: Headset, t: "24/7 support", h: "We're here to help" },
+          ].map(({ Icon, t, h }) => (
+            <li key={t} className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700"><Icon size={18} aria-hidden="true" /></span>
+              <span>
+                <span className="block text-sm font-semibold">{t}</span>
+                <span className="block text-xs text-muted">{h}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 pt-10 sm:px-6">

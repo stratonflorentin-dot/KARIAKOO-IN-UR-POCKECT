@@ -19,11 +19,35 @@ import { ProductComposer, type PublishedDraft } from "./ProductComposer";
 
 type Row = Pick<Product, "id" | "slug" | "name" | "category" | "priceTzs" | "stock" | "status" | "description" | "audience" | "productType" | "imageUrl">;
 
+type Tab = "all" | "active" | "low" | "out" | "archived";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "low", label: "Low stock" },
+  { id: "out", label: "Out of stock" },
+  { id: "archived", label: "Archived" },
+];
+
+/** Which status group a product falls into, for the tabs. */
+function groupOf(r: Row): Exclude<Tab, "all"> {
+  if (r.status === "archived") return "archived";
+  if (r.stock === 0) return "out";
+  if (r.stock <= 5) return "low";
+  return "active";
+}
+
 export function SellerProductsManager({ initialProducts, categories, shopName }: { initialProducts: Row[]; categories: Category[]; shopName: string }) {
   const [rows, setRows] = useState<Row[]>(initialProducts);
   const [message, setMessage] = useState("");
   const [nextId, setNextId] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("all");
+
+  const counts = { all: rows.length } as Record<Tab, number>;
+  for (const t of ["active", "low", "out", "archived"] as const) counts[t] = 0;
+  for (const r of rows) counts[groupOf(r)] += 1;
+  const visible = tab === "all" ? rows : rows.filter((r) => groupOf(r) === tab);
 
   const update = (id: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
@@ -40,11 +64,32 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
       <ProductComposer categories={categories} shopName={shopName} onPublish={publish} />
       <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-emerald-800">{message}</p>
 
+      <div role="tablist" aria-label="Filter products by status" className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
+              tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
+            }`}
+          >
+            {t.label}
+            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>{counts[t.id]}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mt-3">
+        {visible.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-muted">No products in this list.</p>
+        ) : (
         <TableCard label="Your products" minWidth="52rem">
           <THead><Th>Product</Th><Th>Price (TSh)</Th><Th>Stock</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></THead>
           <tbody className={tbodyClass}>
-            {rows.map((r) => (
+            {visible.map((r) => (
               <Fragment key={r.id}>
                 <tr className={r.status === "archived" ? "bg-subtle text-muted" : ""}>
                   <th scope="row" className={`${tdClass} font-medium`}>
@@ -117,6 +162,7 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
             ))}
           </tbody>
         </TableCard>
+        )}
       </div>
     </>
   );

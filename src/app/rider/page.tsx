@@ -1,7 +1,8 @@
-import { ChevronRight, MapPin, Package, Store } from "lucide-react";
+import { ChevronRight, MapPin, Navigation, Package, Store } from "lucide-react";
 import Link from "next/link";
 import { MapLoader } from "@/components/map/MapLoader";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
+import { deliveryStatusLabel } from "@/lib/status";
 import { AvailabilityBanner } from "@/components/rider/AvailabilityBanner";
 import { IncomingOffer, type OfferView } from "@/components/rider/IncomingOffer";
 import { DemoTag } from "@/components/ui/Badge";
@@ -37,6 +38,33 @@ function JobCard({ job, highlight = false }: { job: RiderJobView; highlight?: bo
       <div className="mt-3 flex items-center justify-between">
         <span className="font-semibold">You earn {formatTzs(job.payoutTzs)}</span>
         <ChevronRight aria-hidden="true" />
+      </div>
+    </Link>
+  );
+}
+
+/** The active job shown big at the top, like a courier app's "on the way" view. */
+function ActiveDeliveryHero({ job }: { job: RiderJobView }) {
+  return (
+    <Link href={`/rider/jobs/${job.orderId}`} className="block overflow-hidden rounded-3xl bg-night text-white transition active:scale-[0.99]">
+      <div className="flex items-center justify-between gap-2 px-5 pt-5">
+        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">
+          <Navigation size={15} aria-hidden="true" /> {deliveryStatusLabel[job.status]}
+        </span>
+        <span className="text-sm text-white/70">{job.reference}</span>
+      </div>
+      <div className="space-y-2.5 px-5 pb-5 pt-4">
+        <p className="flex items-start gap-2 text-sm text-white/85"><Store size={16} className="mt-0.5 shrink-0 text-gold-400" aria-hidden="true" /> Pick up: {job.pickups.map((p) => p.shopName).join(" + ")}</p>
+        <p className="flex items-start gap-2 text-sm text-white/85"><MapPin size={16} className="mt-0.5 shrink-0 text-gold-400" aria-hidden="true" /> Deliver to: {getZone(job.zone).name}</p>
+        <div className="flex items-center justify-between pt-2">
+          <div>
+            <p className="text-xs text-white/60">You earn</p>
+            <p className="text-2xl font-extrabold">{formatTzs(job.payoutTzs)}</p>
+          </div>
+          <span className="inline-flex h-12 items-center gap-1.5 rounded-full bg-gold-400 px-5 font-bold text-ink">
+            Continue <ChevronRight size={18} aria-hidden="true" />
+          </span>
+        </div>
       </div>
     </Link>
   );
@@ -97,7 +125,7 @@ export default async function RiderHomePage() {
 
       <section aria-labelledby="active-heading">
         <h2 id="active-heading" className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">Active delivery</h2>
-        {active.length ? active.map((j) => <JobCard key={j.orderId} job={j} highlight />) : <EmptyState icon={<Package size={22} />} title="No active delivery" body="New requests pop up here while you're online." />}
+        {active.length ? active.map((j) => <ActiveDeliveryHero key={j.orderId} job={j} />) : <EmptyState icon={<Package size={22} />} title="No active delivery" body="New requests pop up here while you're online." />}
       </section>
 
       <section aria-labelledby="requests-heading">
