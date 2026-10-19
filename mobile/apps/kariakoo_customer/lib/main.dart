@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
-import 'screens/customer_home.dart';
+import 'screens/customer_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +21,7 @@ class CustomerApp extends StatelessWidget {
       theme: AppTheme.light,
       home: AuthGate(
         appName: 'Customer',
-        home: (context, session) => CustomerHome(session: session),
+        home: (context, session) => CustomerShell(session: session),
       ),
     );
   }
