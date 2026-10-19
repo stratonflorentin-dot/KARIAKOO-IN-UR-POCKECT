@@ -1,0 +1,25 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+
+# Generated platform shells (recreate with `flutter create`; see README)
+**/android/
+**/ios/
+**/linux/
+**/macos/
+**/windows/
+**/web/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Flutter tooling
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata

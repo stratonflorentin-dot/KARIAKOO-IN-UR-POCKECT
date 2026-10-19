@@ -1,0 +1,21 @@
+name: kariakoo
+
+packages:
+  - packages/**
+  - apps/**
+
+command:
+  bootstrap:
+    # Use pub directly so path-dependencies resolve across the monorepo.
+    runPubGetInParallel: true
+
+scripts:
+  analyze:
+    description: Analyze all packages.
+    run: melos exec -- flutter analyze
+  format:
+    description: Format all Dart code.
+    run: melos exec -- dart format .
+  test:
+    description: Run tests where present.
+    run: melos exec --dir-exists=test -- flutter test

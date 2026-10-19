@@ -1,0 +1,21 @@
+name: kariakoo_seller
+description: KARIAKOO seller app — manage your shop, products and orders.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  kariakoo_core:
+    path: ../../packages/kariakoo_core
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
