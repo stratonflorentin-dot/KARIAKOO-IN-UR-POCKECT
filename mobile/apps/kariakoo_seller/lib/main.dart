@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
+import 'screens/seller_products.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initSupabase();
@@ -19,8 +21,26 @@ class SellerApp extends StatelessWidget {
       theme: AppTheme.light,
       home: AuthGate(
         appName: 'Seller',
-        home: (context, session) => SellerHome(session: session),
+        home: (context, session) => SellerEntry(session: session),
       ),
+    );
+  }
+}
+
+/// Routes a signed-in user: an approved seller with a shop goes to the products
+/// portal; anyone else sees the "not a seller yet" placeholder.
+class SellerEntry extends ConsumerWidget {
+  const SellerEntry({super.key, required this.session});
+  final AppSession session;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!session.hasRole(AppRole.seller)) return SellerHome(session: session);
+    final shop = ref.watch(myShopProvider);
+    return shop.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => SellerHome(session: session),
+      data: (s) => s == null ? SellerHome(session: session) : SellerProductsScreen(session: session, shop: s),
     );
   }
 }

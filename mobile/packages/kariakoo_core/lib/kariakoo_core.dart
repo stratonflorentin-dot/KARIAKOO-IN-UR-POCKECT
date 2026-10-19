@@ -23,6 +23,7 @@ export 'src/auth/session_controller.dart';
 
 export 'src/repositories/catalog_repository.dart';
 export 'src/repositories/dispatch_repository.dart';
+export 'src/repositories/seller_repository.dart';
 
 export 'src/util/format.dart';
 
