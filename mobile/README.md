@@ -54,6 +54,22 @@ flutter run \
 
 Tip: put these in a VS Code `launch.json` or a `run.sh` so you don't retype them.
 
+## Rider app — location permission
+
+The rider app uses real device GPS (`geolocator`) to go online. After `flutter create`
+generates its `android/`/`ios/` shells, add the permissions once:
+
+- `apps/kariakoo_rider/android/app/src/main/AndroidManifest.xml` (inside `<manifest>`):
+  ```xml
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  ```
+- `apps/kariakoo_rider/ios/Runner/Info.plist`:
+  ```xml
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>KARIAKOO uses your location to send you nearby delivery jobs.</string>
+  ```
+
 ## Notes
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps

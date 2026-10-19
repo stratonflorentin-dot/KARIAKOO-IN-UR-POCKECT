@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
+import 'screens/rider_dashboard.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initSupabase();
@@ -19,7 +21,9 @@ class RiderApp extends StatelessWidget {
       theme: AppTheme.light,
       home: AuthGate(
         appName: 'Rider',
-        home: (context, session) => RiderHome(session: session),
+        home: (context, session) => (session.hasRole(AppRole.rider) && session.riderId != null)
+            ? RiderDashboard(session: session)
+            : RiderHome(session: session),
       ),
     );
   }

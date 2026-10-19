@@ -15,11 +15,14 @@ export 'src/models/profile.dart';
 export 'src/models/category.dart';
 export 'src/models/shop.dart';
 export 'src/models/product.dart';
+export 'src/models/delivery_offer.dart';
+export 'src/models/rider_delivery.dart';
 
 export 'src/auth/auth_repository.dart';
 export 'src/auth/session_controller.dart';
 
 export 'src/repositories/catalog_repository.dart';
+export 'src/repositories/dispatch_repository.dart';
 
 export 'src/util/format.dart';
 
