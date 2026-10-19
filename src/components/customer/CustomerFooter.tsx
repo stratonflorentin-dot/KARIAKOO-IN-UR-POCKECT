@@ -20,6 +20,7 @@ export function CustomerFooter() {
             <li><Link className="hover:text-white" href="/customer/shops">All shops</Link></li>
             <li><Link className="hover:text-white" href="/customer/search">Search</Link></li>
             <li><Link className="hover:text-white" href="/customer/orders">My orders</Link></li>
+            <li><Link className="hover:text-white" href="/customer/support">Help centre</Link></li>
           </ul>
         </div>
         <div>
@@ -27,6 +28,7 @@ export function CustomerFooter() {
           <ul className="mt-3 space-y-2 text-sm">
             <li><Link className="hover:text-white" href="/seller">Business owners</Link></li>
             <li><Link className="hover:text-white" href="/rider">Riders</Link></li>
+            <li><Link className="hover:text-white" href="/welcome">Choose your role</Link></li>
           </ul>
         </div>
       </div>

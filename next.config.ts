@@ -11,10 +11,6 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  async redirects() {
-    // The customer marketplace lives under /customer; send visitors there.
-    return [{ source: "/", destination: "/customer", permanent: false }];
-  },
   async headers() {
     // Baseline security headers for every response.
     return [

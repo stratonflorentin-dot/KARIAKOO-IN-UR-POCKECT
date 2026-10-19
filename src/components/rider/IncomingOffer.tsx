@@ -7,6 +7,7 @@
 import { Clock, MapPin, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { acceptOffer, declineOffer } from "@/app/rider/actions";
 import { formatTzs } from "@/lib/format";
 import { secondsLeft } from "@/lib/rider-earnings";
 import { useAvailability } from "@/lib/rider-store";
@@ -22,7 +23,7 @@ export interface OfferView {
 
 export const OFFER_SECONDS = 30;
 
-export function IncomingOffer({ offers, queued = false }: { offers: OfferView[]; queued?: boolean }) {
+export function IncomingOffer({ offers, queued = false, live = false }: { offers: OfferView[]; queued?: boolean; live?: boolean }) {
   const router = useRouter();
   const { availability } = useAvailability();
   const [handled, setHandled] = useState<string[]>([]);
@@ -34,6 +35,30 @@ export function IncomingOffer({ offers, queued = false }: { offers: OfferView[];
     if (message) setNote(message);
   };
 
+  const onAccept = async (o: OfferView) => {
+    // Live: the server decides (it may already be taken). Demo: straight through.
+    if (live) {
+      const result = await acceptOffer(o.orderId);
+      if (!result.ok) return done(o, result.message);
+      done(o);
+      router.push(`/rider/jobs/${o.orderId}`);
+      router.refresh();
+      return;
+    }
+    done(o);
+    router.push(`/rider/jobs/${o.orderId}?accepted=1`);
+  };
+
+  const onDecline = async (o: OfferView) => {
+    if (live) {
+      const result = await declineOffer(o.orderId);
+      done(o, result.ok ? `Declined ${o.reference}. It goes back to dispatch.` : result.message);
+      router.refresh();
+      return;
+    }
+    done(o, `Declined ${o.reference}. It goes back to dispatch (demo: not saved).`);
+  };
+
   return (
     <>
       <p role="status" aria-live="polite" className="empty:hidden rounded-2xl bg-white p-3 text-sm text-muted">{note}</p>
@@ -43,8 +68,8 @@ export function IncomingOffer({ offers, queued = false }: { offers: OfferView[];
           key={offer.orderId}
           offer={offer}
           queued={queued}
-          onAccept={() => { done(offer); router.push(`/rider/jobs/${offer.orderId}?accepted=1`); }}
-          onDecline={() => done(offer, `Declined ${offer.reference}. It goes back to dispatch (demo: not saved).`)}
+          onAccept={() => onAccept(offer)}
+          onDecline={() => onDecline(offer)}
           onExpire={() => done(offer, `Offer ${offer.reference} expired and went back to dispatch.`)}
         />
       )}

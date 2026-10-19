@@ -25,7 +25,7 @@ export default async function CustomerHomePage() {
     <>
       {/* Hero: dark, warm and premium, after the reference design. */}
       <section className="relative overflow-hidden bg-night text-white">
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(249,115,22,0.5),transparent_60%),radial-gradient(40rem_25rem_at_-10%_110%,rgba(194,65,12,0.35),transparent_60%)]" />
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(16,185,129,0.5),transparent_60%),radial-gradient(40rem_25rem_at_-10%_110%,rgba(4,120,87,0.35),transparent_60%)]" />
         <div aria-hidden="true" className="absolute inset-0 opacity-[0.06] [background-image:repeating-linear-gradient(45deg,#fff_0_2px,transparent_2px_22px)]" />
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pt-14 lg:pb-14">
           <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur md:hidden">

@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 /* KARIAKOO design tokens.
-   Clean white surfaces, near-black text, warm orange accent. The dark
-   "premium" hero and glass pills draw on the reference design. */
+   Clean white surfaces, near-black text, emerald-green brand with a gold
+   accent. The dark "premium" hero and glass pills draw on the reference
+   design (deep green-black surfaces, gold call-to-action). */
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -13,20 +14,28 @@
   --color-surface: #ffffff;
   --color-subtle: #fafaf9;
 
-  /* Brand orange. 600 is for fills behind white text (meets AA for bold
+  /* Brand emerald. 600 is for fills behind white text (meets AA for bold
      text); 700 is for text and links on white (meets AA at all sizes). */
-  --color-brand-50: #fff7ed;
-  --color-brand-100: #ffedd5;
-  --color-brand-200: #fed7aa;
-  --color-brand-300: #fdba74;
-  --color-brand-400: #fb923c;
-  --color-brand-500: #f97316;
-  --color-brand-600: #ea580c;
-  --color-brand-700: #c2410c;
-  --color-brand-800: #9a3412;
-  --color-brand-900: #7c2d12;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
 
-  --color-night: #14110f;
+  /* Gold accent for the top calls-to-action and the logo mark. Gold always
+     carries ink (near-black) text, which meets AA on these shades. */
+  --color-gold-300: #fcd34d;
+  --color-gold-400: #f5be1e;
+  --color-gold-500: #e0a80e;
+  --color-gold-600: #b7870b;
+
+  /* Deep green-black for heroes, nav and premium surfaces. */
+  --color-night: #0a211a;
 }
 
 html {

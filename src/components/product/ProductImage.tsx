@@ -3,24 +3,24 @@ import { safeImageUrl } from "@/lib/product-utils";
 import type { CategorySlug } from "@/lib/types";
 
 // Shows the seller's photo when there is one; otherwise an illustrated
-// placeholder with a warm tint and icon per category.
+// placeholder with a tint and icon per category (green/gold brand palette).
 const tints: Record<CategorySlug, string> = {
   electronics: "from-stone-900 to-stone-700 text-brand-300",
-  fashion: "from-orange-200 to-amber-50 text-brand-800",
-  shoes: "from-amber-200 to-orange-50 text-amber-900",
-  fabrics: "from-brand-500 to-amber-300 text-white",
-  accessories: "from-stone-800 to-amber-800 text-amber-200",
-  "home-kitchen": "from-stone-200 to-orange-50 text-stone-800",
-  beauty: "from-rose-200 to-orange-50 text-rose-900",
-  groceries: "from-lime-200 to-amber-50 text-lime-900",
+  fashion: "from-brand-100 to-brand-50 text-brand-800",
+  shoes: "from-gold-300 to-white text-ink",
+  fabrics: "from-brand-500 to-brand-300 text-white",
+  accessories: "from-stone-800 to-brand-900 text-brand-200",
+  "home-kitchen": "from-stone-200 to-white text-stone-800",
+  beauty: "from-rose-200 to-white text-rose-900",
+  groceries: "from-lime-200 to-white text-lime-900",
   hardware: "from-zinc-300 to-stone-100 text-zinc-800",
-  kids: "from-sky-200 to-amber-50 text-sky-900",
+  kids: "from-sky-200 to-white text-sky-900",
   pharmacy: "from-emerald-100 to-white text-emerald-800",
-  stationery: "from-indigo-100 to-amber-50 text-indigo-900",
+  stationery: "from-indigo-100 to-white text-indigo-900",
   sports: "from-brand-200 to-white text-brand-800",
   "auto-parts": "from-stone-700 to-stone-500 text-white",
-  furniture: "from-amber-300 to-amber-100 text-amber-950",
-  food: "from-red-200 to-amber-100 text-red-900",
+  furniture: "from-gold-400 to-gold-300 text-ink",
+  food: "from-red-200 to-white text-red-900",
 };
 
 export function ProductImage({ category, name, imageUrl, size = "md" }: {

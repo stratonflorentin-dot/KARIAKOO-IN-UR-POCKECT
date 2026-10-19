@@ -94,7 +94,7 @@ export function haversine(a: LngLat, b: LngLat): number {
 
 export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
 
-const pinColor: Record<MapPoint["kind"], string> = { shop: "#ea580c", pickup: "#ea580c", dropoff: "#14110f" };
+const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#059669", dropoff: "#0a211a" };
 
 function pinElement(point: MapPoint): HTMLElement {
   const el = document.createElement("div");
@@ -120,7 +120,7 @@ function popupContent(point: MapPoint): HTMLElement {
     const a = document.createElement("a");
     a.href = point.href;
     a.textContent = point.linkLabel ?? "Open";
-    a.style.cssText = "display:inline-block;margin-top:4px;color:#c2410c;font-weight:700";
+    a.style.cssText = "display:inline-block;margin-top:4px;color:#047857;font-weight:700";
     box.appendChild(a);
   }
   return box;
@@ -208,9 +208,9 @@ export default function MarketMap({
           type: "circle",
           source: "heat",
           paint: {
-            "circle-color": "#f97316",
+            "circle-color": "#10b981",
             "circle-opacity": 0.35,
-            "circle-stroke-color": "#ea580c",
+            "circle-stroke-color": "#059669",
             "circle-stroke-width": 2,
             // Grows with demand and with zoom.
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["*", 10, ["get", "w"]], 16, ["*", 40, ["get", "w"]]],
@@ -219,7 +219,7 @@ export default function MarketMap({
       }
       if (route && pts.length > 1) {
         map.addSource("guide", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map((p) => p.geo) } } });
-        map.addLayer({ id: "guide", type: "line", source: "guide", paint: { "line-color": "#ea580c", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 } });
+        map.addLayer({ id: "guide", type: "line", source: "guide", paint: { "line-color": "#059669", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 } });
       }
       if (pts.length > 1) {
         const bounds = new maplibregl.LngLatBounds(pts[0].geo, pts[0].geo);

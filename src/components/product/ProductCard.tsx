@@ -7,7 +7,7 @@ import { StockBadge } from "./StockBadge";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_10px_30px_-10px_rgba(234,88,12,0.45)] focus-within:ring-2 focus-within:ring-brand-500">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_10px_30px_-10px_rgba(5,150,105,0.45)] focus-within:ring-2 focus-within:ring-brand-500">
       <div className="relative">
         <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} />
         {isOnOffer(product) && (

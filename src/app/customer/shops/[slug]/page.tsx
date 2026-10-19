@@ -41,7 +41,7 @@ async function ShopContent({ params, searchParams }: PageProps<"/customer/shops/
   return (
     <>
       <section className="relative overflow-hidden bg-night text-white">
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_20rem_at_90%_0%,rgba(249,115,22,0.4),transparent_60%)]" />
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_20rem_at_90%_0%,rgba(16,185,129,0.4),transparent_60%)]" />
         <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6 sm:py-12">
           <ShopMark shop={shop} size="lg" />
           <div className="min-w-0">

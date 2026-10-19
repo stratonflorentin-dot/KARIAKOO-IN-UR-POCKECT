@@ -26,9 +26,9 @@ export const shopKindLabel: Record<CategorySlug, string> = {
 export const shopKindAccent: Record<CategorySlug, string> = {
   electronics: "bg-stone-900 text-brand-300",
   fashion: "bg-brand-100 text-brand-800",
-  shoes: "bg-amber-100 text-amber-900",
+  shoes: "bg-gold-300 text-ink",
   fabrics: "bg-brand-600 text-white",
-  accessories: "bg-amber-900 text-amber-100",
+  accessories: "bg-brand-900 text-brand-100",
   "home-kitchen": "bg-stone-200 text-stone-800",
   beauty: "bg-rose-100 text-rose-900",
   groceries: "bg-lime-100 text-lime-900",
@@ -36,9 +36,9 @@ export const shopKindAccent: Record<CategorySlug, string> = {
   kids: "bg-sky-100 text-sky-900",
   pharmacy: "bg-emerald-700 text-white",
   stationery: "bg-indigo-100 text-indigo-900",
-  sports: "bg-orange-100 text-orange-900",
+  sports: "bg-brand-100 text-brand-800",
   "auto-parts": "bg-stone-700 text-white",
-  furniture: "bg-amber-200 text-amber-950",
+  furniture: "bg-gold-400 text-ink",
   food: "bg-red-700 text-white",
 };
 

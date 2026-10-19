@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
-type Variant = "primary" | "dark" | "outline" | "ghost" | "danger" | "glass";
+type Variant = "primary" | "gold" | "dark" | "outline" | "ghost" | "danger" | "glass";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary: "bg-brand-600 text-white hover:bg-brand-700 disabled:bg-stone-300 disabled:text-stone-600",
+  // Top call-to-action: gold fill with ink text (the mockup's "Start shopping" / "Anza").
+  gold: "bg-gold-400 text-ink hover:bg-gold-500 disabled:bg-stone-300 disabled:text-stone-600",
   dark: "bg-ink text-white hover:bg-stone-800 disabled:bg-stone-400",
   outline: "border border-line bg-white text-ink hover:border-brand-300 hover:text-brand-700 disabled:text-stone-400",
   ghost: "text-ink hover:bg-subtle disabled:text-stone-400",

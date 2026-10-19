@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "Shop Kariakoo's trusted sellers online. Search shops and products, pay KARIAKOO, and get rider delivery across Dar es Salaam.",
 };
 
-export const viewport: Viewport = { themeColor: "#14110f" };
+export const viewport: Viewport = { themeColor: "#0a211a" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
