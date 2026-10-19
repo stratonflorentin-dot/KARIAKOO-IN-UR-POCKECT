@@ -10,7 +10,10 @@ import "server-only";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
+import { ACTIVE_ROLE_COOKIE, pickActiveRole } from "./active-role";
 import { DEMO_ROLE_COOKIE, DEMO_ROLE_PREVIEW_ENABLED } from "./demo-mode";
 
 export interface Session {
@@ -24,6 +27,8 @@ export interface Session {
   /** Set for riders. */
   riderId?: string;
   isDemo: boolean;
+  /** Every role the real signed-in user holds (for the role switcher). */
+  roles?: Role[];
 }
 
 export const ROLES: Role[] = ["customer", "seller", "rider", "admin"];
@@ -45,13 +50,60 @@ export const getSession = cache(async (): Promise<Session | null> => {
   // Always read the request's cookies, so pages that depend on the session
   // are rendered per request and never pre-generated at build time.
   const store = await cookies();
+
+  // Real Supabase Auth takes priority over the development role preview.
+  const real = await supabaseSession(store.get(ACTIVE_ROLE_COOKIE)?.value);
+  if (real) return real;
+
   if (DEMO_ROLE_PREVIEW_ENABLED) {
     const value = store.get(DEMO_ROLE_COOKIE)?.value;
     if (isRole(value)) return demoIdentities[value];
   }
-  // Phase 2: look up the Supabase Auth user and their role assignment here.
   return null;
 });
+
+/**
+ * Build a Session from the signed-in Supabase user, or null when nobody is
+ * signed in. Roles come from the user_roles table (admins cannot be minted
+ * from the client); the owned shop and rider rows give the scoping ids.
+ */
+async function supabaseSession(preferredRole: string | undefined): Promise<Session | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const sb = await createSupabaseServerClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return null;
+
+    const [{ data: roleRows }, { data: profileRows }, { data: shopRows }, { data: riderRows }] = await Promise.all([
+      sb.from("user_roles").select("role").eq("user_id", user.id),
+      sb.from("profiles").select("full_name").eq("id", user.id).limit(1),
+      sb.from("shops").select("id").eq("owner_id", user.id).limit(1),
+      sb.from("riders").select("id").eq("id", user.id).limit(1),
+    ]);
+
+    const roles = ((roleRows ?? []) as { role: unknown }[]).map((r) => r.role).filter(isRole);
+    const active = pickActiveRole(roles, preferredRole);
+    if (!active) return null;
+
+    const name = String((profileRows?.[0] as { full_name?: string } | undefined)?.full_name ?? "").trim();
+    const shopId = (shopRows?.[0] as { id?: string } | undefined)?.id;
+    const riderId = (riderRows?.[0] as { id?: string } | undefined)?.id;
+
+    return {
+      userId: user.id,
+      role: active,
+      displayName: name || user.email || "KARIAKOO user",
+      customerId: roles.includes("customer") ? user.id : undefined,
+      shopId,
+      riderId,
+      isDemo: false,
+      roles,
+    };
+  } catch {
+    // Network / config hiccup: fall back to no real session.
+    return null;
+  }
+}
 
 export class AuthorizationError extends Error {
   constructor(message = "You do not have permission to do that.") {

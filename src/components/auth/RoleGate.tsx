@@ -1,5 +1,6 @@
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
+import { SignOutButton, SwitchToRoleButton } from "@/components/auth/AccountControls";
 import { ButtonLink } from "@/components/ui/Button";
 import { DEMO_ROLE_PREVIEW_ENABLED } from "@/lib/auth/demo-mode";
 import { getSession } from "@/lib/auth/session";
@@ -22,7 +23,7 @@ export async function RoleGate({ role, children }: { role: Role; children: React
         <Lock aria-hidden="true" />
       </div>
       <h1 className="mt-5 text-2xl font-bold tracking-tight">This area is for {roleName[role]}s</h1>
-      {DEMO_ROLE_PREVIEW_ENABLED ? (
+      {DEMO_ROLE_PREVIEW_ENABLED && session?.isDemo !== false ? (
         <>
           <p className="mt-2 text-muted">
             {session
@@ -31,10 +32,24 @@ export async function RoleGate({ role, children }: { role: Role; children: React
           </p>
           <ButtonLink href="/dev" className="mt-6">Open role preview</ButtonLink>
         </>
+      ) : session ? (
+        <>
+          <p className="mt-2 text-muted">
+            You are signed in as {roleName[session.role]}.{" "}
+            {session.roles?.includes(role)
+              ? `Switch to your ${roleName[role]} role to view this area.`
+              : `Apply for a ${roleName[role]} account to access it.`}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {session.roles?.includes(role) ? <SwitchToRoleButton role={role} /> : <ButtonLink href="/welcome">Explore roles</ButtonLink>}
+            <SignOutButton />
+          </div>
+        </>
       ) : (
-        <p className="mt-2 text-muted">
-          Sign-in is not available yet. Accounts and secure login are being built (Phase 2).
-        </p>
+        <>
+          <p className="mt-2 text-muted">Please sign in to continue.</p>
+          <ButtonLink href="/sign-in" className="mt-6">Sign in</ButtonLink>
+        </>
       )}
     </div>
   );
