@@ -18,6 +18,8 @@ export default async function RiderDashboardPage() {
   const offers = await riderOffers(session);
 
   const active = jobs.filter((j) => ACTIVE.includes(j.status));
+  // Assigned (just offered/accepted) + active jobs — what the rider acts on now.
+  const toHandle = jobs.filter((j) => ["ASSIGNED", ...ACTIVE].includes(j.status));
   const todayKey = darDate(new Date().toISOString());
   const today = jobs.filter((j) => j.placedAt.startsWith(todayKey));
   const delivered = today.filter((j) => j.status === "DELIVERED");
@@ -45,39 +47,46 @@ export default async function RiderDashboardPage() {
         <StatCard label="Cash to collect" value={formatTzs(cash)} icon={<Wallet size={18} />} hint="Cash-on-delivery orders" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        {/* Earnings trend. */}
-        <Card aria-labelledby="earnings">
-          <TrendBars title="Your earnings, last 7 days" caption="Delivery payouts from completed jobs" points={trend} />
-        </Card>
-
-        {/* Active job (only one shown, the most urgent). */}
-        {active.length > 0 && (
-          <Card aria-labelledby="current-job">
-            <CardHeader id="current-job" title="Job in progress" subtitle={`Pick up from ${active[0].pickups.length} shop(s), deliver to ${active[0].dropoffAddress}`} />
-            <div className="space-y-4 text-sm">
-              <div className="grid gap-3 md:grid-cols-2">
-                {[
-                  { Icon: MapPin, label: "Pickup", value: active[0].pickups.map((p) => p.shopName).join(", ") },
-                  { Icon: Truck, label: "Dropoff", value: active[0].dropoffAddress },
-                ].map(({ Icon, label, value }) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <Icon size={16} className="text-brand-600 shrink-0" aria-hidden="true" />
-                    <div>
-                      <p className="text-xs text-muted uppercase tracking-wider">{label}</p>
-                      <p className="font-medium">{value}</p>
+      {/* Today's deliveries: assigned + active jobs as pickup → dropoff cards. */}
+      {toHandle.length > 0 && (
+        <section aria-labelledby="to-handle" className="mt-6">
+          <h2 id="to-handle" className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Deliveries to handle</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {toHandle.map((j) => (
+              <li key={j.orderId}>
+                <article className="flex h-full flex-col rounded-2xl border border-line bg-white p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">{j.reference}</span>
+                    <span className="font-semibold tabular-nums">{formatTzs(j.payoutTzs)}</span>
+                  </div>
+                  <div className="mt-1"><DeliveryStatusBadge status={j.status} /></div>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><MapPin size={13} aria-hidden="true" /></span>
+                      <div className="min-w-0"><p className="text-xs uppercase tracking-wider text-muted">Pickup</p><p className="truncate font-medium">{j.pickups.map((p) => p.shopName).join(", ")}</p></div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-stone-100 text-ink"><Truck size={13} aria-hidden="true" /></span>
+                      <div className="min-w-0"><p className="text-xs uppercase tracking-wider text-muted">Dropoff</p><p className="truncate font-medium">{j.dropoffAddress}</p></div>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-2 rounded-xl border border-line bg-white p-3">
-                <DeliveryStatusBadge status={active[0].status} />
-              </div>
-              <Link href={`/rider/jobs/${active[0].orderId}`} className="text-sm font-medium text-brand-700 hover:underline">Manage job →</Link>
-            </div>
-          </Card>
-        )}
-      </div>
+                  {j.cashToCollectTzs > 0 && (
+                    <p className="mt-3 rounded-xl bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-800">Collect cash: {formatTzs(j.cashToCollectTzs)}</p>
+                  )}
+                  <Link href={`/rider/jobs/${j.orderId}`} className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-brand-600 font-semibold text-white transition hover:bg-brand-700">
+                    {j.status === "ASSIGNED" ? "Open & accept" : "Open delivery"}
+                  </Link>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Earnings trend. */}
+      <Card aria-labelledby="earnings" className="mt-6">
+        <TrendBars title="Your earnings, last 7 days" caption="Delivery payouts from completed jobs" points={trend} />
+      </Card>
 
       {/* Recent jobs history. */}
       <Card aria-labelledby="recent-jobs" className="mt-6">
