@@ -69,9 +69,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           const SizedBox(height: 24),
           const Text('Payment method', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          _PaymentOption(value: 'mpesa', group: _payment, label: 'M-Pesa', onChanged: _setPayment),
-          _PaymentOption(value: 'airtel', group: _payment, label: 'Airtel Money', onChanged: _setPayment),
-          _PaymentOption(value: 'tigo', group: _payment, label: 'Mixx by Yas (Tigo)', onChanged: _setPayment),
+          RadioGroup<String>(
+            groupValue: _payment,
+            onChanged: _setPayment,
+            child: const Column(
+              children: [
+                _PaymentOption(value: 'mpesa', label: 'M-Pesa'),
+                _PaymentOption(value: 'airtel', label: 'Airtel Money'),
+                _PaymentOption(value: 'tigo', label: 'Mixx by Yas (Tigo)'),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(),
           Row(
@@ -98,18 +106,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 }
 
 class _PaymentOption extends StatelessWidget {
-  const _PaymentOption({required this.value, required this.group, required this.label, required this.onChanged});
+  const _PaymentOption({required this.value, required this.label});
   final String value;
-  final String group;
   final String label;
-  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    // The selected value + onChanged come from the RadioGroup ancestor.
     return RadioListTile<String>(
       value: value,
-      groupValue: group,
-      onChanged: onChanged,
       title: Text(label),
       contentPadding: EdgeInsets.zero,
     );

@@ -102,7 +102,7 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
             const SizedBox(height: 12),
             categories.maybeWhen(
               data: (cats) => DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: [for (final c in cats) DropdownMenuItem(value: c.slug, child: Text(c.name))],
                 onChanged: (v) => setState(() => _category = v),

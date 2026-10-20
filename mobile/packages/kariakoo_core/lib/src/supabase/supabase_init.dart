@@ -6,7 +6,8 @@ import '../config/env.dart';
 Future<void> initSupabase() async {
   await Supabase.initialize(
     url: Env.supabaseUrl,
-    anonKey: Env.supabaseKey,
+    // The publishable (sb_publishable_...) key — client-safe, RLS-governed.
+    publishableKey: Env.supabaseKey,
   );
 }
 

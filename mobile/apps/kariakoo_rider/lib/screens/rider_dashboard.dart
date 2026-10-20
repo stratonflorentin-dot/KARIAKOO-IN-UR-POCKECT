@@ -183,7 +183,7 @@ class _OnlineCard extends StatelessWidget {
         value: online,
         onChanged: onChanged,
         contentPadding: EdgeInsets.zero,
-        activeColor: AppColors.gold400,
+        activeThumbColor: AppColors.gold400,
         title: Text(
           online ? 'Online' : 'Offline',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
@@ -216,7 +216,7 @@ class _ActiveDeliveryCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(999)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(999)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -247,7 +247,7 @@ class _ActiveDeliveryCard extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
               child: const Text(
                 'On the way. Completing with the customer PIN arrives with the delivery-confirmation backend.',
                 style: TextStyle(color: Colors.white70, fontSize: 13),

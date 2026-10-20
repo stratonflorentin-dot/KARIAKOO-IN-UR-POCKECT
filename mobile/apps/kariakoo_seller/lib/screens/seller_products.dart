@@ -162,7 +162,7 @@ class _ProductRow extends StatelessWidget {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(999)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
               child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
             ),
             const Icon(Icons.chevron_right, color: AppColors.muted),
