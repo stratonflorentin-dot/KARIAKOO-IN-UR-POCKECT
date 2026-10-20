@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
 import 'product_forms.dart';
+import 'promotions.dart';
 
 String _groupOf(Product p) {
   if (p.status == 'archived') return 'archived';
@@ -45,6 +46,13 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Advertise',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => SellerPromotionsScreen(shop: widget.shop)),
+            ),
+            icon: const Icon(Icons.campaign),
+          ),
           IconButton(
             tooltip: 'Sign out',
             onPressed: () => ref.read(authRepositoryProvider).signOut(),

@@ -5,6 +5,7 @@ import 'package:kariakoo_core/kariakoo_core.dart';
 import '../../widgets/product_card.dart';
 import '../category_products.dart';
 import '../product_detail.dart';
+import '../status_feed.dart';
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -26,6 +27,7 @@ class HomeTab extends ConsumerWidget {
         child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _Hero()),
+            const SliverToBoxAdapter(child: StatusStrip()),
             SliverToBoxAdapter(child: _Categories(categories: categories)),
             products.when(
               loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
