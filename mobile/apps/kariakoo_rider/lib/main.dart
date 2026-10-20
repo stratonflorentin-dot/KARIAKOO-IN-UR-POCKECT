@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
+import 'screens/apply_rider.dart';
 import 'screens/rider_dashboard.dart';
 
 Future<void> main() async {
@@ -57,13 +58,18 @@ class RiderHome extends ConsumerWidget {
               const SizedBox(height: 16),
               Text('Habari, ${session.displayName}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(
-                isRider
-                    ? 'Going online, job offers, live delivery and earnings arrive in Phase 2 — wired to the dispatch backend.'
-                    : "You don't have a rider account yet. Applying to ride arrives with the role-application flow.",
+              const Text(
+                'Earn by delivering for KARIAKOO. Apply, get approved, go online and accept jobs near you.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.muted),
               ),
+              if (!isRider) ...[
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RiderApplyScreen())),
+                  child: const Text('Apply to ride'),
+                ),
+              ],
             ],
           ),
         ),

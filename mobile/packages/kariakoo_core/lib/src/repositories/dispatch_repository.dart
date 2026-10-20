@@ -44,6 +44,12 @@ class DispatchRepository {
     return res is String ? res : to;
   }
 
+  /// Finish an in-transit delivery by entering the customer's PIN.
+  Future<String> completeDelivery(String orderId, String pin) async {
+    final res = await supabase.rpc('rider_complete_delivery', params: {'p_order': orderId, 'p_pin': pin});
+    return res is String ? res : 'DELIVERED';
+  }
+
   /// The rider's current in-progress delivery, if any.
   Future<RiderDelivery?> activeDelivery(String riderId) async {
     final rows = await supabase

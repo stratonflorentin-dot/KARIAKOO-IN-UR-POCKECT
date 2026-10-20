@@ -17,12 +17,15 @@ export 'src/models/shop.dart';
 export 'src/models/product.dart';
 export 'src/models/delivery_offer.dart';
 export 'src/models/rider_delivery.dart';
+export 'src/models/order.dart';
 
 export 'src/auth/auth_repository.dart';
 export 'src/auth/session_controller.dart';
 
 export 'src/repositories/catalog_repository.dart';
 export 'src/repositories/dispatch_repository.dart';
+export 'src/repositories/orders_repository.dart';
+export 'src/repositories/roles_repository.dart';
 export 'src/repositories/seller_repository.dart';
 
 export 'src/util/format.dart';

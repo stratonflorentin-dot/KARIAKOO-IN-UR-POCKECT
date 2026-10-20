@@ -85,6 +85,40 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
     }
   }
 
+  Future<void> _complete(RiderDelivery delivery) async {
+    final pin = await _askPin();
+    if (pin == null || pin.isEmpty) return;
+    try {
+      await ref.read(dispatchRepositoryProvider).completeDelivery(delivery.orderId, pin);
+      ref.invalidate(activeDeliveryProvider(_riderId));
+      ref.invalidate(myOffersProvider);
+      _snack('Delivery completed. Nice work!');
+    } catch (e) {
+      _snack(_clean(e));
+    }
+  }
+
+  Future<String?> _askPin() {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Customer's 4-digit PIN"),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '0000'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, ctrl.text.trim()), child: const Text('Confirm delivery')),
+        ],
+      ),
+    );
+  }
+
   String _clean(Object e) {
     final s = e.toString();
     return s.length > 120 ? 'Something went wrong. Please try again.' : s.replaceFirst('Exception: ', '');
@@ -139,7 +173,7 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
               error: (_, __) => const Text('Could not load your delivery.'),
               data: (d) => d == null
                   ? const _Empty('No active delivery. Go online to receive jobs.')
-                  : _ActiveDeliveryCard(delivery: d, onAdvance: () => _advance(d)),
+                  : _ActiveDeliveryCard(delivery: d, onAdvance: () => _advance(d), onComplete: () => _complete(d)),
             ),
             const SizedBox(height: 24),
             const _SectionTitle('Job offers'),
@@ -198,9 +232,10 @@ class _OnlineCard extends StatelessWidget {
 }
 
 class _ActiveDeliveryCard extends StatelessWidget {
-  const _ActiveDeliveryCard({required this.delivery, required this.onAdvance});
+  const _ActiveDeliveryCard({required this.delivery, required this.onAdvance, required this.onComplete});
   final RiderDelivery delivery;
   final VoidCallback onAdvance;
+  final VoidCallback onComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -244,13 +279,13 @@ class _ActiveDeliveryCard extends StatelessWidget {
               ),
             )
           else
-            Container(
+            SizedBox(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-              child: const Text(
-                'On the way. Completing with the customer PIN arrives with the delivery-confirmation backend.',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold400, foregroundColor: AppColors.ink),
+                onPressed: onComplete,
+                icon: const Icon(Icons.verified),
+                label: const Text('Complete with customer PIN'),
               ),
             ),
         ],

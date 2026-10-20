@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
+import 'screens/apply_seller.dart';
 import 'screens/seller_products.dart';
 
 Future<void> main() async {
@@ -73,13 +74,18 @@ class SellerHome extends ConsumerWidget {
               const SizedBox(height: 16),
               Text('Karibu, ${session.displayName}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(
-                isSeller
-                    ? 'Your seller dashboard — products, orders and finances — arrives in Phase 3.'
-                    : "You don't have a seller account yet. Applying to sell arrives with the role-application flow.",
+              const Text(
+                'Sell to Kariakoo shoppers. Open a shop, get approved, then manage your products and orders.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.muted),
               ),
+              if (!isSeller) ...[
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SellerApplyScreen())),
+                  child: const Text('Open a shop'),
+                ),
+              ],
             ],
           ),
         ),
