@@ -8,11 +8,14 @@ import { DEMO_ROLE_PREVIEW_ENABLED } from "@/lib/auth/demo-mode";
 
 export const metadata: Metadata = { title: "Choose how you'll use KARIAKOO" };
 
+// `href` is where a real signed-in user goes: sellers and riders apply first
+// (an admin reviews the application); customers go straight in. The dev role
+// preview ignores href and sets the demo identity instead.
 const roles = [
-  { role: "customer", title: "Customer", body: "Discover shops, order and pay securely, and track delivery.", Icon: ShoppingBag, accent: "bg-brand-600" },
-  { role: "seller", title: "Business / Seller", body: "List products, manage stock, confirm orders and see your earnings.", Icon: Store, accent: "bg-brand-800" },
-  { role: "rider", title: "Rider", body: "Accept delivery jobs, follow pickup and drop-off, and earn.", Icon: Bike, accent: "bg-gold-500" },
-  { role: "admin", title: "Admin / Founder", body: "Oversee orders, shops, riders and commission across the market.", Icon: ShieldCheck, accent: "bg-night" },
+  { role: "customer", title: "Customer", body: "Discover shops, order and pay securely, and track delivery.", Icon: ShoppingBag, accent: "bg-brand-600", href: "/customer" },
+  { role: "seller", title: "Business / Seller", body: "List products, manage stock, confirm orders and see your earnings.", Icon: Store, accent: "bg-brand-800", href: "/apply/seller" },
+  { role: "rider", title: "Rider", body: "Accept delivery jobs, follow pickup and drop-off, and earn.", Icon: Bike, accent: "bg-gold-500", href: "/apply/rider" },
+  { role: "admin", title: "Admin / Founder", body: "Oversee orders, shops, riders and commission across the market.", Icon: ShieldCheck, accent: "bg-night", href: "/admin" },
 ] as const;
 
 /**
@@ -41,9 +44,9 @@ export default function WelcomePage() {
         )}
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {roles.map(({ role, title, body, Icon, accent }) => (
+          {roles.map(({ role, title, body, Icon, accent, href }) => (
             <li key={role}>
-              <RoleCard role={role} title={title} body={body} Icon={Icon} accent={accent} />
+              <RoleCard role={role} href={href} title={title} body={body} Icon={Icon} accent={accent} />
             </li>
           ))}
         </ul>
@@ -62,12 +65,14 @@ export default function WelcomePage() {
 
 function RoleCard({
   role,
+  href,
   title,
   body,
   Icon,
   accent,
 }: {
   role: string;
+  href: string;
   title: string;
   body: string;
   Icon: typeof ShoppingBag;
@@ -98,10 +103,9 @@ function RoleCard({
       </form>
     );
   }
-  // In production, the role areas are gated until accounts ship; link through
-  // so the role's own lock screen explains what's coming.
+  // Real users: customers go straight in; sellers and riders apply first.
   return (
-    <Link href={`/${role}`} className={cardClass}>
+    <Link href={href} className={cardClass}>
       {inner}
     </Link>
   );
