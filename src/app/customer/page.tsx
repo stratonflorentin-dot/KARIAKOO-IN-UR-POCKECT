@@ -1,23 +1,43 @@
-import { Bike, Headset, ShieldCheck, Store, Wallet } from "lucide-react";
+import { Bike, ChevronRight, Headset, MapPin, Package, ShieldCheck, Store, Wallet } from "lucide-react";
 import Link from "next/link";
 import { LocationSelector } from "@/components/customer/LocationSelector";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
 import { ShopPromotions } from "@/components/customer/ShopPromotions";
 import { SectionHeading } from "@/components/customer/SectionHeading";
+import { OrderStatusBadge } from "@/components/orders/StatusBadges";
 import { ProductCard, ProductGrid } from "@/components/product/ProductCard";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { SearchBar } from "@/components/ui/SearchBar";
+import { getSession } from "@/lib/auth/session";
 import { getCategories } from "@/lib/catalog";
 import { isOnOffer } from "@/lib/product-utils";
 import { getCatalog } from "@/lib/catalog-source";
+import { liveCustomerOrders } from "@/lib/data/customer-live";
 import { customerPromotions } from "@/lib/data/promotions";
 import { departments } from "@/lib/departments";
+import { formatTzs } from "@/lib/format";
+import { orderTotals } from "@/lib/money";
 
-// Reads live catalog and promotions, which can change, so render on demand.
+// Reads live catalog, session and orders, which change, so render on demand.
 export const instant = false;
 
+/** Time-of-day greeting in Dar es Salaam (not the server's timezone). */
+function darGreeting(): string {
+  // eslint-disable-next-line react-hooks/purity -- request-time greeting
+  const now = new Date();
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }).format(now));
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default async function CustomerHomePage() {
+  const session = await getSession();
+  const customer = session?.role === "customer" ? session : null;
+  const firstName = customer?.displayName?.trim().split(" ")[0] || "";
+  const recentOrders = customer ? (await liveCustomerOrders(customer)).slice(0, 3) : [];
+
   const catalog = await getCatalog();
   const promotions = await customerPromotions();
   const categories = getCategories();
@@ -29,6 +49,20 @@ export default async function CustomerHomePage() {
 
   return (
     <>
+      {customer && (
+        <div className="border-b border-line bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs text-muted">{darGreeting()}</p>
+              <p className="truncate font-bold">Karibu{firstName ? `, ${firstName}` : ""} 👋</p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-3 py-1 text-xs font-medium text-muted">
+              <MapPin size={13} aria-hidden="true" /> Dar es Salaam
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Hero: dark, warm and premium. */}
       <section className="relative overflow-hidden bg-night text-white">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(16,185,129,0.5),transparent_60%),radial-gradient(40rem_25rem_at_-10%_110%,rgba(4,120,87,0.35),transparent_60%)]" />
@@ -87,6 +121,32 @@ export default async function CustomerHomePage() {
       </section>
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 pt-10 sm:px-6">
+        {recentOrders.length > 0 && (
+          <section aria-labelledby="recent-orders-heading">
+            <SectionHeading id="recent-orders-heading" title="Your recent orders" subtitle="Pick up where you left off" href="/customer/orders" linkLabel="View all" />
+            <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {recentOrders.map((o) => {
+                const itemCount = o.items.reduce((s, i) => s + i.quantity, 0);
+                return (
+                  <li key={o.id}>
+                    <Link href={`/customer/orders/${o.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700"><Package size={18} aria-hidden="true" /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="font-semibold">{o.reference}</span>
+                          <OrderStatusBadge status={o.status} />
+                        </span>
+                        <span className="block text-xs text-muted">{itemCount} {itemCount === 1 ? "item" : "items"} · {formatTzs(orderTotals(o.items, o.deliveryFeeTzs).customerTotalTzs)}</span>
+                      </span>
+                      <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         <RecentlyViewed products={recentInfo} />
 
         <ShopPromotions promotions={promotions} />
