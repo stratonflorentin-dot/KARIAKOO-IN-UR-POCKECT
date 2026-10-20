@@ -14,6 +14,7 @@ export interface AdminOverviewLive {
   riders: number;
   pendingOrders: number;
   pendingShops: number;
+  pendingRiders: number;
   paidGmvTzs: number;
   recent: { id: string; reference: string; createdAt: string; paymentStatus: string; totalTzs: number }[];
 }
@@ -22,7 +23,7 @@ export interface AdminOverviewLive {
 export async function liveAdminOverview(session: Session | null): Promise<AdminOverviewLive> {
   assertRole(session, "admin");
   const sb = await createSupabaseServerClient();
-  const [orders, shops, products, customers, riders, pendingGroups, pendingShops, recentOrders] = await Promise.all([
+  const [orders, shops, products, customers, riders, pendingGroups, pendingShops, pendingRiders, recentOrders] = await Promise.all([
     sb.from("orders").select("id", { count: "exact", head: true }),
     sb.from("shops").select("id", { count: "exact", head: true }).eq("is_demo", false),
     sb.from("products").select("id", { count: "exact", head: true }).eq("status", "active").eq("is_demo", false),
@@ -30,9 +31,10 @@ export async function liveAdminOverview(session: Session | null): Promise<AdminO
     sb.from("riders").select("id", { count: "exact", head: true }).eq("status", "approved"),
     sb.from("fulfillment_groups").select("order_id", { count: "exact", head: true }).eq("status", "awaiting_seller"),
     sb.from("shops").select("id", { count: "exact", head: true }).eq("is_demo", false).neq("status", "approved"),
+    sb.from("riders").select("id", { count: "exact", head: true }).eq("status", "pending"),
     sb.from("orders").select("id,reference,created_at,payment_status,order_items(unit_price_tzs,quantity),fulfillment_groups(status)").order("created_at", { ascending: false }).limit(6),
   ]);
-  const failed = [orders, shops, products, customers, riders, pendingGroups, pendingShops, recentOrders].find((r) => r.error);
+  const failed = [orders, shops, products, customers, riders, pendingGroups, pendingShops, pendingRiders, recentOrders].find((r) => r.error);
   if (failed?.error) throw new Error(`Could not load admin overview: ${failed.error.message}`);
 
   const rows = (recentOrders.data ?? []) as unknown as {
@@ -47,6 +49,7 @@ export async function liveAdminOverview(session: Session | null): Promise<AdminO
     riders: riders.count ?? 0,
     pendingOrders: pendingGroups.count ?? 0,
     pendingShops: pendingShops.count ?? 0,
+    pendingRiders: pendingRiders.count ?? 0,
     paidGmvTzs: rows.filter((r) => r.payment_status === "successful").reduce((sum, r) => sum + r.order_items.reduce((n, i) => n + Number(i.unit_price_tzs) * i.quantity, 0), 0),
     recent: rows.map((r) => ({ id: r.id, reference: r.reference, createdAt: r.created_at, paymentStatus: r.payment_status, totalTzs: r.order_items.reduce((n, i) => n + Number(i.unit_price_tzs) * i.quantity, 0) })),
   };
