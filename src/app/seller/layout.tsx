@@ -16,6 +16,7 @@ const nav: NavItem[] = [
   { label: "Dashboard", icon: "overview", href: "/seller", exact: true },
   { label: "Orders", icon: "orders", href: "/seller/orders" },
   { label: "Products", icon: "products", href: "/seller/products" },
+  { label: "Advertising", icon: "advertising", href: "/seller/advertising" },
   { label: "Finances & commission", icon: "finances", href: "/seller/finances" },
   { label: "Inventory history", icon: "inventory", phase: 3 },
   { label: "Shop profile", icon: "shop", phase: 3 },

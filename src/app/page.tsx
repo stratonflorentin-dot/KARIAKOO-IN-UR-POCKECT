@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 };
 
 const trust = [
-  { Icon: ShieldCheck, title: "Secure payments", hint: "Pay KARIAKOO, not strangers" },
-  { Icon: Bike, title: "Fast delivery", hint: "One rider brings it all" },
-  { Icon: Store, title: "Verified shops", hint: "Real Kariakoo sellers" },
-  { Icon: Headset, title: "24/7 support", hint: "We're here to help" },
+  { Icon: ShieldCheck, title: "Clear order updates", hint: "See each step as it happens" },
+  { Icon: Bike, title: "Doorstep delivery", hint: "A rider brings your order" },
+  { Icon: Store, title: "Approved shops", hint: "Local sellers in one store" },
+  { Icon: Headset, title: "Order support", hint: "Help for your purchase" },
 ];
 
 /** Public splash / welcome screen: the app's front door before choosing a role. */
@@ -30,19 +30,18 @@ export default function LandingPage() {
         <div aria-hidden="true" className="absolute inset-0 opacity-[0.06] [background-image:repeating-linear-gradient(45deg,#fff_0_2px,transparent_2px_22px)]" />
         <div className="relative mx-auto max-w-2xl px-4 pb-12 pt-8 sm:px-6 sm:pt-12">
           <div className="flex items-center justify-between">
-            <Logo tone="light" href="/" />
+            <Logo tone="light" href="/" tagline />
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">Dar es Salaam</span>
           </div>
 
           <p className="mt-10 text-sm font-semibold text-gold-300">Shop · Order · Deliver</p>
           <h1 className="mt-2 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-            Kariakoo, now
+            Shop Kariakoo.
             <br />
-            closer to <span className="text-gold-400">you</span>.
+            Get it <span className="text-gold-400">delivered</span>.
           </h1>
           <p className="mt-4 max-w-lg text-base text-white/75">
-            Shop your favourite Kariakoo goods online — from fashion to electronics, food to home essentials — delivered
-            straight to your door.
+            Explore products from local shops, place an order in one store, and follow its journey to your door.
           </p>
 
           <div className="mt-6">
@@ -96,8 +95,8 @@ export default function LandingPage() {
         </ul>
 
         <div className="mt-8 rounded-3xl bg-brand-50 p-5 text-center">
-          <p className="text-lg font-bold text-brand-900">Real shops. Real people. Kariakoo.</p>
-          <p className="mt-1 text-sm text-brand-800">More than an app — a community, an opportunity and a better future.</p>
+          <p className="text-lg font-bold text-brand-900">Kariakoo, made more accessible.</p>
+          <p className="mt-1 text-sm text-brand-800">Browse local shops, find what you need, and keep your order in view.</p>
           <ButtonLink href="/welcome" variant="primary" size="lg" className="mt-4">
             Get started
           </ButtonLink>

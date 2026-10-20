@@ -57,7 +57,7 @@ async function Directory({ searchParams }: Pick<PageProps<"/customer/shops">, "s
             ariaLabel="Map of KARIAKOO shops"
             heightClass="h-72 sm:h-96"
             locate
-            note="Tap a pin to open the shop. Demo locations are approximate."
+            note="Tap a pin to open the shop. Shop coordinates may be approximate."
             points={shops.flatMap((s) => (s.geo ? [{ id: s.id, kind: "shop" as const, badge: s.name.charAt(0), label: `${s.name} · ${s.address}`, geo: s.geo, href: `/customer/shops/${s.slug}`, linkLabel: "Visit shop" }] : []))}
           />
         </section>

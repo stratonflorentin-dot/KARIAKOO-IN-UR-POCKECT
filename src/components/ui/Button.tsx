@@ -22,7 +22,7 @@ const sizes: Record<Size, string> = {
 };
 
 export function buttonClasses({ variant = "primary", size = "md", full = false }: { variant?: Variant; size?: Size; full?: boolean } = {}) {
-  return `inline-flex items-center justify-center gap-2 rounded-full font-semibold transition disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""}`;
+  return `inline-flex items-center justify-center gap-2 rounded-full font-semibold shadow-sm transition duration-150 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:shadow-none ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""}`;
 }
 
 export function Button({

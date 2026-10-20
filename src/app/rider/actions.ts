@@ -9,7 +9,7 @@ import {
   type DispatchResult,
   type RiderAdvanceTo,
 } from "@/lib/data/dispatch";
-import { verifyDeliveryPin } from "@/lib/delivery-pin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface PinState {
   status: "idle" | "ok" | "error";
@@ -21,25 +21,30 @@ const messages = {
   wrong_status: "This delivery is not in transit on the server, so it cannot be completed yet.",
   invalid_format: "Enter the 4-digit PIN from the customer.",
   incorrect: "That PIN is not correct.",
-  locked: "Too many wrong attempts. Contact dispatch to continue.",
 } as const;
 
-/** Server-side PIN check: only the assigned rider, only while in transit, with attempt limits. */
+/** Server-side PIN check and delivery completion through the database authority. */
 export async function submitDeliveryPin(_prev: PinState, formData: FormData): Promise<PinState> {
   const session = await getSessionWithRole("rider");
   if (!session) return { status: "error", message: "Please sign in as a rider." };
-  const result = verifyDeliveryPin(session, String(formData.get("orderId") ?? ""), String(formData.get("pin") ?? ""));
-  if (result.ok) return { status: "ok", message: "PIN verified by the server. Delivery confirmed." };
-  const left = result.reason === "incorrect" && result.attemptsLeft ? ` ${result.attemptsLeft} attempts left.` : "";
-  return { status: "error", message: messages[result.reason] + left };
+  const orderId = String(formData.get("orderId") ?? "");
+  const pin = String(formData.get("pin") ?? "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) return { status: "error", message: messages.not_found };
+  if (!/^\d{4}$/.test(pin)) return { status: "error", message: messages.invalid_format };
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.rpc("rider_complete_delivery", { p_order: orderId, p_pin: pin });
+  if (!error) return { status: "ok", message: "PIN verified. Delivery confirmed." };
+  const detail = error.message.toLowerCase();
+  if (detail.includes("pin")) return { status: "error", message: messages.incorrect };
+  if (detail.includes("in transit")) return { status: "error", message: messages.wrong_status };
+  if (detail.includes("assigned")) return { status: "error", message: messages.not_found };
+  return { status: "error", message: "Could not confirm delivery. Please try again." };
 }
 
 /* ----------------------------- Dispatch ----------------------------- */
 
-// These call the Phase 6 database functions for a signed-in Supabase rider,
-// and are no-ops (demo: true) for the development role preview. The UI only
-// invokes them when it is in live mode, so the demo preview is untouched.
-const NOT_A_RIDER: DispatchResult = { ok: false, demo: false, message: "Please sign in as a rider." };
+// Dispatch actions operate on the signed-in Supabase rider's records.
+const NOT_A_RIDER: DispatchResult = { ok: false, message: "Please sign in as a rider." };
 
 /** Accept an offered job: the first rider to accept wins. */
 export async function acceptOffer(orderId: string): Promise<DispatchResult> {

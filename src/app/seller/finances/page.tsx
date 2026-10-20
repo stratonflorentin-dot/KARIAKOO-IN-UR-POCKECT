@@ -5,7 +5,7 @@ import { Card, PageHeader, StatCard } from "@/components/ui/Card";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { buttonClasses } from "@/components/ui/Button";
 import { requireRole } from "@/lib/auth/session";
-import { sellerOrders } from "@/lib/data/access";
+import { liveSellerOrders, liveSellerShop } from "@/lib/data/seller-live";
 import { formatDate, formatTzs } from "@/lib/format";
 import { breakdown, formatBps } from "@/lib/money";
 
@@ -15,7 +15,17 @@ const settlementLabel = { not_due: "Not due yet", pending: "Pending settlement",
 const settlementTone = { not_due: "neutral", pending: "warning", settled: "success" } as const;
 
 export default async function SellerFinancesPage() {
-  const orders = sellerOrders(await requireRole("seller"));
+  const session = await requireRole("seller");
+  const shop = await liveSellerShop(session);
+  const live = shop ? await liveSellerOrders(session, shop.id) : [];
+  const orders = live.map((o) => ({
+    orderId: o.orderId,
+    reference: o.reference,
+    placedAt: o.placedAt,
+    paymentStatus: o.paymentStatus,
+    group: { shopId: shop!.id, status: o.fulfillmentStatus, settlement: o.settlementStatus },
+    items: o.items,
+  }));
   const sales = orders.filter((o) => o.paymentStatus === "successful" && !["rejected", "cancelled"].includes(o.group.status));
   const refunded = orders.filter((o) => o.paymentStatus === "refunded");
   const gmv = breakdown(sales.flatMap((o) => o.items));

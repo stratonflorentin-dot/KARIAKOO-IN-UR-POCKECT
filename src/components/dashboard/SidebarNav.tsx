@@ -11,6 +11,7 @@ import {
   LifeBuoy,
   Lock,
   Menu,
+  Megaphone,
   Package,
   Percent,
   Scale,
@@ -33,6 +34,7 @@ const icons = {
   overview: Gauge,
   orders: ClipboardList,
   products: Package,
+  advertising: Megaphone,
   inventory: Boxes,
   finances: Banknote,
   shop: Store,
@@ -65,7 +67,7 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const dark = tone === "dark";
-  const visible = items.filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
+  const visible = items.filter((i) => i.href && i.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   const list = (
     <>
@@ -90,30 +92,17 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
           const Icon = icons[item.icon];
           const active = item.href ? (item.exact ? pathname === item.href : pathname.startsWith(item.href)) : false;
           const base = "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium";
-          if (!item.href) {
-            return (
-              <li key={item.label}>
-                <span className={`${base} cursor-default ${dark ? "text-white/40" : "text-stone-400"}`} aria-disabled="true">
-                  <Icon size={18} aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${dark ? "bg-white/10" : "bg-stone-100"}`}>Phase {item.phase}</span>
-                </span>
-              </li>
-            );
-          }
+          const toneClasses = dark
+            ? (active ? "bg-white text-brand-900 shadow-sm" : "text-white/80 hover:bg-white/10 hover:text-white")
+            : (active ? "bg-brand-50 text-brand-900 ring-1 ring-brand-100" : "text-ink hover:bg-subtle");
+          if (!item.href) return null;
           return (
             <li key={item.label}>
               <Link
                 href={item.href}
                 onClick={() => setOpen(false)}
                 aria-current={active ? "page" : undefined}
-                className={`${base} ${
-                  active
-                    ? "bg-brand-600 text-white"
-                    : dark
-                      ? "text-white/80 hover:bg-white/10 hover:text-white"
-                      : "text-ink hover:bg-subtle"
-                }`}
+                className={`${base} ${toneClasses}`}
               >
                 <Icon size={18} aria-hidden="true" />
                 {item.label}

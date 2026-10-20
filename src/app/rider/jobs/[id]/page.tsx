@@ -1,4 +1,4 @@
-import { Banknote, MapPin, Navigation, Phone, Store } from "lucide-react";
+import { Banknote, MapPin, Navigation, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,10 +8,9 @@ import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
 import { Badge } from "@/components/ui/Badge";
 import { requireRole } from "@/lib/auth/session";
-import { riderJob } from "@/lib/data/access";
+import { riderJob } from "@/lib/data/rider-live";
 import { getZone } from "@/lib/delivery";
 import { formatTzs } from "@/lib/format";
-import { formatTzPhone } from "@/lib/validation/checkout";
 
 export const metadata: Metadata = { title: "Delivery" };
 
@@ -19,18 +18,18 @@ const mapsLink = (address: string) => `https://www.google.com/maps/search/?api=1
 
 export default async function RiderJobPage({ params, searchParams }: PageProps<"/rider/jobs/[id]">) {
   const { id } = await params;
-  // Accepted from the job offer pop-up (demo: not yet sent to dispatch).
+  // The rider must own the assignment before these server actions can change it.
   const acceptedFromOffer = (await searchParams).accepted === "1";
-  const job = riderJob(await requireRole("rider"), id);
+  const job = await riderJob(await requireRole("rider"), id);
   // Not assigned to this rider → same as not existing.
   if (!job) notFound();
   const navLink = "inline-flex h-11 items-center gap-1.5 rounded-full bg-night px-4 text-sm font-semibold text-white";
-  const stops: MapPoint[] = [
-    ...job.pickups.flatMap((p, i) => (p.geo ? [{ id: `pickup-${i}`, kind: "pickup" as const, badge: String(i + 1), label: `Pick up: ${p.shopName}`, geo: p.geo }] : [])),
-    ...(job.dropoffGeo ? [{ id: "dropoff", kind: "dropoff" as const, label: `Deliver: ${job.dropoffAddress}`, geo: job.dropoffGeo }] : []),
-  ];
-  // Before pickup the next stop is the first shop; after pickup it is the customer.
-  const nextStop = ["PICKED_UP", "IN_TRANSIT"].includes(job.status) ? stops.length - 1 : ["DELIVERED", "FAILED", "CANCELLED"].includes(job.status) ? -1 : 0;
+  // We plot the pickup shops; the drop-off is shown by address (no stored geo).
+  const stops: MapPoint[] = job.pickups.flatMap((p, i) =>
+    p.geo ? [{ id: `pickup-${i}`, kind: "pickup" as const, badge: String(i + 1), label: `Pick up: ${p.shopName}`, geo: p.geo }] : [],
+  );
+  // Highlight the first pickup until the rider has collected the goods.
+  const nextStop = ["ASSIGNED", "ACCEPTED"].includes(job.status) ? 0 : -1;
 
   return (
     <div className="space-y-4">
@@ -46,7 +45,7 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
         route
         locate
         nextIndex={nextStop}
-        note="Demo locations are approximate. The dashed line is a guide, not a road route: use Navigate for directions."
+        note="Shop pins may be approximate. The dashed line is a guide, not a road route: use Navigate for directions."
       />
 
       <DeliveryFlow
@@ -81,17 +80,8 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
           <a href={mapsLink(job.dropoffAddress)} target="_blank" rel="noopener noreferrer" className={navLink}>
             <Navigation size={16} aria-hidden="true" /> Navigate
           </a>
-          {job.customer && (
-            <a href={`tel:${job.customer.phone}`} className="inline-flex h-11 items-center gap-1.5 rounded-full border border-line px-4 text-sm font-semibold">
-              <Phone size={16} aria-hidden="true" /> Call {job.customer.name.split(" ")[0]}
-            </a>
-          )}
         </div>
-        {job.customer ? (
-          <p className="mt-2 text-xs text-muted">Customer: {job.customer.name}, {formatTzPhone(job.customer.phone)}</p>
-        ) : (
-          <p className="mt-2 text-xs text-muted">Customer contact details appear only after you accept and while the delivery is active.</p>
-        )}
+        <p className="mt-2 text-xs text-muted">For privacy, the customer&apos;s phone number isn&apos;t shared here. Use the delivery address above, and contact support if you can&apos;t complete the hand-over.</p>
         {job.cashToCollectTzs > 0 && (
           <p className="mt-3 flex items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm font-semibold text-brand-800">
             <Banknote size={16} aria-hidden="true" /> Collect cash: {formatTzs(job.cashToCollectTzs)}

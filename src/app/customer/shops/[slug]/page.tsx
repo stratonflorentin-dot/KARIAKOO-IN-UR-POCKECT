@@ -9,14 +9,12 @@ import { ShopKindBadge, ShopMark } from "@/components/shop/ShopMark";
 import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
-import { shopAreaLabel } from "@/data/demo/shops";
+import { shopAreaLabel } from "@/lib/areas";
 import { getCategory, parseProductFilters } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalog-source";
 
-export async function generateStaticParams() {
-  return (await getCatalog()).getShops().map((s) => ({ slug: s.slug }));
-}
-
+// No generateStaticParams: shops come from live Supabase data (which can be
+// empty), so these pages render on demand rather than being prebuilt.
 export async function generateMetadata({ params }: PageProps<"/customer/shops/[slug]">) {
   const { slug } = await params;
   return { title: (await getCatalog()).getShop(slug)?.name ?? "Shop" };
@@ -113,7 +111,7 @@ async function ShopContent({ params, searchParams }: PageProps<"/customer/shops/
         <section aria-labelledby="reviews-heading" className="mt-12 rounded-2xl border border-line p-5">
           <h2 id="reviews-heading" className="font-semibold">Reviews</h2>
           <p className="mt-1 text-sm text-muted">
-            Rated {shop.rating.toFixed(1)} from {shop.reviewCount} demo reviews. Written reviews from verified buyers arrive with accounts (Phase 2–4).
+            {shop.reviewCount > 0 ? `Rated ${shop.rating.toFixed(1)} from ${shop.reviewCount} customer reviews.` : "Customer reviews have not been added yet."}
           </p>
         </section>
       </div>

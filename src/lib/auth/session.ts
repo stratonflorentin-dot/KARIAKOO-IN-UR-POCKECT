@@ -1,12 +1,7 @@
 import "server-only";
 
 // Server-side identity. Every protected page and action asks this module
-// "who is calling?". The browser never decides its own role.
-//
-// Phase 1: identity comes only from the development role-preview cookie
-// (an httpOnly cookie set by a server action, ignored in production).
-// Phase 2: identity will come from Supabase Auth, and roles from the
-// `user_roles` table, which only admins can write.
+// "who is calling?". Identity and roles come from Supabase Auth and user_roles.
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -14,7 +9,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 import { ACTIVE_ROLE_COOKIE, pickActiveRole } from "./active-role";
-import { DEMO_ROLE_COOKIE, DEMO_ROLE_PREVIEW_ENABLED } from "./demo-mode";
 
 export interface Session {
   userId: string;
@@ -26,7 +20,6 @@ export interface Session {
   shopId?: string;
   /** Set for riders. */
   riderId?: string;
-  isDemo: boolean;
   /** Every role the real signed-in user holds (for the role switcher). */
   roles?: Role[];
 }
@@ -37,29 +30,13 @@ export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as string[]).includes(value);
 }
 
-/** Fixed demo identities used by the development role preview. */
-export const demoIdentities: Record<Role, Session> = {
-  customer: { userId: "demo-user-customer", role: "customer", displayName: "Asha Mohamed", customerId: "cust-001", isDemo: true },
-  seller: { userId: "demo-user-seller", role: "seller", displayName: "Msimbazi Mobile Hub", shopId: "shop-001", isDemo: true },
-  rider: { userId: "demo-user-rider", role: "rider", displayName: "Hamisi Ally", riderId: "rider-001", isDemo: true },
-  admin: { userId: "demo-user-admin", role: "admin", displayName: "Founder (demo)", isDemo: true },
-};
-
 /** Returns the caller's session, or null if not signed in. Cached per request. */
 export const getSession = cache(async (): Promise<Session | null> => {
   // Always read the request's cookies, so pages that depend on the session
   // are rendered per request and never pre-generated at build time.
   const store = await cookies();
 
-  // Real Supabase Auth takes priority over the development role preview.
-  const real = await supabaseSession(store.get(ACTIVE_ROLE_COOKIE)?.value);
-  if (real) return real;
-
-  if (DEMO_ROLE_PREVIEW_ENABLED) {
-    const value = store.get(DEMO_ROLE_COOKIE)?.value;
-    if (isRole(value)) return demoIdentities[value];
-  }
-  return null;
+  return supabaseSession(store.get(ACTIVE_ROLE_COOKIE)?.value);
 });
 
 /**
@@ -96,7 +73,6 @@ async function supabaseSession(preferredRole: string | undefined): Promise<Sessi
       customerId: roles.includes("customer") ? user.id : undefined,
       shopId,
       riderId,
-      isDemo: false,
       roles,
     };
   } catch {

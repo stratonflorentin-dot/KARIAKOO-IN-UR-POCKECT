@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { demoCatalog, parseProductFilters } from "./catalog";
+import { parseProductFilters } from "./catalog";
+import { demoCatalog } from "@/data/demo/catalog";
 
 const { getProduct, getProducts, getShop, searchProducts, searchShops } = demoCatalog;
 

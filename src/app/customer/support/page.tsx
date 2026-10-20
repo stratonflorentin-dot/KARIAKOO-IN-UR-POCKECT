@@ -1,8 +1,7 @@
-import { Bike, CreditCard, LifeBuoy, MessageCircle, PackageOpen, RotateCcw } from "lucide-react";
+import { Bike, CreditCard, MessageCircle, PackageOpen, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
-import { Notice } from "@/components/ui/States";
 
 export const metadata: Metadata = { title: "Help centre" };
 
@@ -19,7 +18,7 @@ export default function SupportPage() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <Link href="/customer" className="text-sm font-medium text-brand-700 hover:underline">← Home</Link>
       <div className="mt-4">
-        <PageHeader title="How can we help?" description="Answers to common questions, and a way to report a problem with an order." />
+      <PageHeader title="How can we help?" description="Answers to common questions and help with an existing order." />
       </div>
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -50,17 +49,8 @@ export default function SupportPage() {
         <CardHeader id="contact-heading" title="Contact us" />
         <p className="flex gap-2 text-sm text-muted">
           <MessageCircle size={16} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
-          Live chat and phone support arrive with customer accounts. In the meantime, report an order problem above and
-          we&apos;ll follow up.
+          {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? <a className="font-semibold text-brand-700 hover:underline" href={`tel:${process.env.NEXT_PUBLIC_SUPPORT_PHONE}`}>Call KARIAKOO support</a> : "Support contact details have not been configured yet."}
         </p>
-        <div className="mt-3">
-          <Notice tone="info">
-            <span className="inline-flex items-center gap-2">
-              <LifeBuoy size={15} aria-hidden="true" /> Demo: support replies are not sent yet — this is a preview of the
-              help centre.
-            </span>
-          </Notice>
-        </div>
       </Card>
     </div>
   );

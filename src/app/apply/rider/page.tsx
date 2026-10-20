@@ -23,7 +23,7 @@ const STATUS_COPY: Record<string, { tone: "info" | "warning" | "success"; text: 
 
 export default async function RiderApplyPage() {
   const session = await getSession();
-  const signedIn = Boolean(session) && !session!.isDemo;
+  const signedIn = Boolean(session);
 
   let existing: { status: string } | null = null;
   if (signedIn) {

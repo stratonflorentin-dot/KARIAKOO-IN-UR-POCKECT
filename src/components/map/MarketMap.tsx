@@ -316,7 +316,7 @@ export default function MarketMap({
         </div>
       )}
       <p className="px-3 pb-3 pt-2 text-xs text-muted">
-        {geoError || note || "Demo locations are approximate."}
+        {geoError || note || "Map locations may be approximate."}
         {locate && !geoError && " Your location stays on this device."}
       </p>
     </div>

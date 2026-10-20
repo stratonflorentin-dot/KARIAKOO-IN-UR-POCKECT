@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { DevRoleBar } from "@/components/auth/DevRoleBar";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
@@ -18,8 +17,8 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
 }) {
   const dark = tone === "dark";
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-subtle lg:flex-row">
-      <aside className={`lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col ${dark ? "bg-night text-white" : "border-b border-line bg-white lg:border-b-0 lg:border-r"}`}>
+    <div className="flex min-h-full flex-1 flex-col bg-stone-50 lg:flex-row">
+      <aside className={`lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col ${dark ? "border-b border-white/10 bg-gradient-to-b from-night to-[#102d23] text-white lg:border-b-0 lg:border-r" : "border-b border-stone-200 bg-white lg:border-b-0 lg:border-r"}`}>
         <div className="flex items-center justify-between gap-3 px-4 py-4 lg:block lg:px-5 lg:py-6">
           <div>
             <Logo tone={dark ? "light" : "dark"} href={`/${role}`} />
@@ -38,10 +37,7 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        <Suspense fallback={null}>
-          <DevRoleBar />
-        </Suspense>
-        <main id="main" className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
+        <main id="main" className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-9">
           <Suspense fallback={<PageSkeleton />}>
             <RoleGate role={role}>{children}</RoleGate>
           </Suspense>

@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 
 export function EmptyState({ title, body, action, icon }: { title: string; body?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="rounded-3xl border border-dashed border-line bg-white px-6 py-10 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-subtle text-muted" aria-hidden="true">
+    <div className="rounded-3xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center shadow-sm shadow-stone-950/[0.02]">
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-700" aria-hidden="true">
         {icon ?? <Inbox size={22} />}
       </div>
-      <p className="mt-4 text-lg font-semibold text-ink">{title}</p>
-      {body && <p className="mx-auto mt-1 max-w-md text-sm text-muted">{body}</p>}
+      <p className="mt-4 text-lg font-semibold tracking-tight text-ink">{title}</p>
+      {body && <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted">{body}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   );

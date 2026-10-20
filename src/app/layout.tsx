@@ -26,9 +26,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <p className="bg-amber-50 px-4 py-1.5 text-center text-xs font-medium text-amber-900">
-          Demo mode: all shops, products, people, orders and payments are sample data. No real money moves.
-        </p>
         {children}
       </body>
     </html>

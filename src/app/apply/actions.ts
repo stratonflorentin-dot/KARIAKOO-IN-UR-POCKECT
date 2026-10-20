@@ -33,10 +33,10 @@ function friendlyRpcError(code: string | undefined, message: string): string {
   return "Something went wrong submitting your application. Please try again.";
 }
 
-/** The current user must be signed in for real (not the dev role preview). */
+/** The current user must have an authenticated Supabase session. */
 async function requireRealUser(): Promise<string | null> {
   const session = await getSession();
-  if (!session || session.isDemo) return null;
+  if (!session) return null;
   return session.userId;
 }
 

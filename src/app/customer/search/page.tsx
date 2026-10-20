@@ -7,7 +7,7 @@ import { ShopCard } from "@/components/shop/ShopCard";
 import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
-import { shopAreaLabel } from "@/data/demo/shops";
+import { shopAreaLabel } from "@/lib/areas";
 import { getCategories, parseProductFilters, type ProductFilters } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalog-source";
 import { departments, productTypes } from "@/lib/departments";

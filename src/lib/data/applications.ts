@@ -1,15 +1,14 @@
 import "server-only";
 
-// Live seller/rider applications for the admin area. Unlike src/lib/data/access.ts
-// (demo data) and src/lib/catalog-source.ts (which rewrites live product/shop
-// UUIDs to demo ids by slug), this reads the REAL application rows straight
+// Live seller/rider applications for the admin area. This reads the
+// application rows straight from Supabase and keeps their true UUIDs
 // from Supabase and keeps their true UUIDs, because the admin moderation RPCs
 // (admin_set_shop_status / admin_set_rider_status) key off those UUIDs.
 //
 // Access is as the signed-in admin, so the "admin reads all" RLS policies on
 // shops / riders / profiles are what actually authorise these reads. Real
 // applications are shops with is_demo = false (the apply_as_seller RPC inserts
-// them so) and any row in riders (demo riders are not stored in the database).
+// them so) and the authenticated applicant's rider row.
 import { assertRole, type Session } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -36,7 +35,7 @@ export interface RiderApplication {
   appliedAt: string;
 }
 
-/** Real seller applications (is_demo = false), newest first. Empty on any error. */
+/** Seller applications (is_demo = false), newest first. */
 export async function liveShopApplications(session: Session | null): Promise<ShopApplication[]> {
   assertRole(session, "admin");
   try {

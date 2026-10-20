@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
 export const inputClass =
-  "mt-1 block min-h-12 w-full rounded-xl border border-line bg-white px-4 text-base text-ink outline-none transition placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 aria-[invalid=true]:border-red-600";
+  "mt-1 block min-h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-base text-ink shadow-sm shadow-stone-950/[0.02] outline-none transition placeholder:text-stone-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-600/10 aria-[invalid=true]:border-red-600 aria-[invalid=true]:focus:ring-red-600/10";
 
 export const compactInputClass =
-  "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+  "h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm shadow-sm shadow-stone-950/[0.02] outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-600/10";
 
 /** Label + control + hint/error, wired up for screen readers via ids. */
 export function Field({

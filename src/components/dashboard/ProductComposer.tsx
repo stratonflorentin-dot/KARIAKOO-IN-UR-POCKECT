@@ -1,10 +1,7 @@
 "use client";
 
-// "Add a product" form with photo upload, description and a live preview of
-// exactly what customers will see. Demo mode: the photo stays in this
-// browser (an object URL) and nothing is uploaded or saved. With sign-in
-// (Phase 3) the same validated draft goes to a Server Action that uploads the
-// photo to Supabase Storage and inserts the product under RLS.
+// "Add a product" form with a customer-facing preview. Product details save
+// to Supabase; photo upload is explicitly unavailable until storage is wired.
 import { ImagePlus, Store, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Price } from "@/components/product/Price";
@@ -121,7 +118,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
   return (
     <section aria-labelledby={`${id}-title`} className="rounded-2xl border border-line bg-white p-5">
       <h2 id={`${id}-title`} className="font-semibold">Add a product</h2>
-      <p className="text-sm text-muted">Customers see the photo, name, price and description exactly as previewed.</p>
+      <p className="text-sm text-muted">Preview how the name, price, stock and description will appear in the store.</p>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_20rem]">
         <form noValidate onSubmit={(e) => { e.preventDefault(); publish(); }} className="space-y-4">

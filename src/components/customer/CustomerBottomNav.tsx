@@ -33,8 +33,8 @@ export function CustomerBottomNav() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium ${
-                  active ? "text-brand-400" : "text-white/70 hover:text-white"
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold transition-colors ${
+                  active ? "bg-white/10 text-brand-300" : "text-white/65 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon size={21} aria-hidden="true" />

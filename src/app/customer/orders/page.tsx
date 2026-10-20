@@ -7,7 +7,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/Status
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import { getSessionWithRole } from "@/lib/auth/session";
-import { customerOrders } from "@/lib/data/access";
+import { liveCustomerOrders } from "@/lib/data/customer-live";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { orderTotals } from "@/lib/money";
 
@@ -32,7 +32,7 @@ export default function OrdersPage() {
 }
 
 async function OrderList() {
-  const orders = customerOrders(await getSessionWithRole("customer"));
+  const orders = await liveCustomerOrders(await getSessionWithRole("customer"));
   if (orders.length === 0) {
     return <div className="mt-6"><EmptyState icon={<Package size={22} />} title="No orders yet" action={<ButtonLink href="/customer">Start shopping</ButtonLink>} /></div>;
   }

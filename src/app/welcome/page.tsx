@@ -1,56 +1,36 @@
-import { Bike, ShieldCheck, ShoppingBag, Store } from "lucide-react";
+import { Bike, ShoppingBag, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { Notice } from "@/components/ui/States";
-import { setDemoRole } from "@/app/dev/actions";
-import { DEMO_ROLE_PREVIEW_ENABLED } from "@/lib/auth/demo-mode";
 
 export const metadata: Metadata = { title: "Choose how you'll use KARIAKOO" };
 
-// `href` is where a real signed-in user goes: sellers and riders apply first
-// (an admin reviews the application); customers go straight in. The dev role
-// preview ignores href and sets the demo identity instead.
+// Customers browse directly; sellers and riders apply for access. Admin is
+// staff-only and has a separate sign-in entrance.
 const roles = [
   { role: "customer", title: "Customer", body: "Discover shops, order and pay securely, and track delivery.", Icon: ShoppingBag, accent: "bg-brand-600", href: "/customer" },
   { role: "seller", title: "Business / Seller", body: "List products, manage stock, confirm orders and see your earnings.", Icon: Store, accent: "bg-brand-800", href: "/apply/seller" },
   { role: "rider", title: "Rider", body: "Accept delivery jobs, follow pickup and drop-off, and earn.", Icon: Bike, accent: "bg-gold-500", href: "/apply/rider" },
-  { role: "admin", title: "Admin / Founder", body: "Oversee orders, shops, riders and commission across the market.", Icon: ShieldCheck, accent: "bg-night", href: "/admin" },
 ] as const;
 
 /**
- * Role chooser / onboarding. Real accounts are a later phase, so in local
- * development this previews each role through the demo identity; in production
- * it explains that secure sign-in is on the way and lets people browse as a guest.
+ * Role chooser / onboarding for customer, seller, and rider entry points.
  */
 export default function WelcomePage() {
   return (
     <main id="main" className="min-h-full flex-1 bg-subtle px-4 py-10">
       <div className="mx-auto max-w-3xl">
-        <Logo href="/" />
+        <Logo href="/" tagline size="lg" />
         <h1 className="mt-6 text-3xl font-bold tracking-tight">How do you want to use KARIAKOO?</h1>
         <p className="mt-2 max-w-2xl text-muted">
           Join Tanzania&apos;s trusted marketplace. Pick the experience that fits you — each role has its own tailored
           screens.
         </p>
 
-        {!DEMO_ROLE_PREVIEW_ENABLED && (
-          <div className="mt-5">
-            <Notice tone="info">
-              Secure accounts and login are being built. For now you can browse the marketplace as a guest; choosing a
-              role will open its preview once accounts are live.
-            </Notice>
-          </div>
-        )}
-
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {/* Admin is never a public, self-serve choice: staff sign in through
-              their own entrance (/staff). The demo preview still lists it. */}
-          {roles
-            .filter(({ role }) => DEMO_ROLE_PREVIEW_ENABLED || role !== "admin")
-            .map(({ role, title, body, Icon, accent, href }) => (
+          {roles.map(({ role, title, body, Icon, accent, href }) => (
               <li key={role}>
-                <RoleCard role={role} href={href} title={title} body={body} Icon={Icon} accent={accent} />
+              <RoleCard href={href} title={title} body={body} Icon={Icon} accent={accent} />
               </li>
             ))}
         </ul>
@@ -75,14 +55,12 @@ export default function WelcomePage() {
 }
 
 function RoleCard({
-  role,
   href,
   title,
   body,
   Icon,
   accent,
 }: {
-  role: string;
   href: string;
   title: string;
   body: string;
@@ -103,18 +81,6 @@ function RoleCard({
   const cardClass =
     "flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-line bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg";
 
-  // In development, selecting a role sets the demo identity and opens that area.
-  if (DEMO_ROLE_PREVIEW_ENABLED) {
-    return (
-      <form action={setDemoRole} className="h-full">
-        <input type="hidden" name="role" value={role} />
-        <button type="submit" className={cardClass}>
-          {inner}
-        </button>
-      </form>
-    );
-  }
-  // Real users: customers go straight in; sellers and riders apply first.
   return (
     <Link href={href} className={cardClass}>
       {inner}

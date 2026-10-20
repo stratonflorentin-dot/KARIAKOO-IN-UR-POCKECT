@@ -6,15 +6,15 @@ import "server-only";
 //
 // Server-only: importing this file from a Client Component fails the build,
 // so the browser can never supply or override prices, fees or commission.
-import { demoCommissionRules } from "@/data/demo/commission-rules";
-import { demoCatalog, type Catalog } from "@/lib/catalog";
+import { createCatalog, getCategories, type Catalog } from "@/lib/catalog";
 import { resolveCommissionBps } from "@/lib/commission";
 import { deliveryFeeFor } from "@/lib/delivery";
 import { breakdown, lineTotal } from "@/lib/money";
-import type { CartLine, DeliveryZoneId } from "@/lib/types";
+import type { CartLine, CommissionRule, DeliveryZoneId } from "@/lib/types";
 
 export const MAX_QUANTITY_PER_LINE = 20;
 export const MAX_LINES_PER_ORDER = 30;
+const emptyCatalog = createCatalog({ categories: getCategories(), shops: [], products: [] });
 
 /** Rider payout per job by zone (internal cost, not shown to customers). */
 const RIDER_PAYOUT_TZS: Record<DeliveryZoneId, number> = {
@@ -68,14 +68,15 @@ export interface Quote {
 /**
  * Builds a quote from untrusted cart input. Only product ids and quantities
  * are read; every price, fee and commission rate is looked up here.
- * `at` is the pricing time (used to pick the commission rule in force) and
- * `catalog` is the live catalog (Supabase or demo) to price against.
+ * `catalog` is the live Supabase catalog. Final pricing and commission are
+ * independently recomputed by the place_order database function.
  */
 export function buildQuote(
   rawLines: unknown,
   zone: DeliveryZoneId,
-  at: string = new Date().toISOString(),
-  catalog: Catalog = demoCatalog,
+  _at: string,
+  catalog: Catalog = emptyCatalog,
+  commissionRules: CommissionRule[] = [],
 ): Quote {
   const issues: QuoteIssue[] = [];
   const byShop = new Map<string, ShopGroup>();
@@ -112,7 +113,9 @@ export function buildQuote(
       issues.push({ productId, message: `Only ${quantity} × ${product.name} can be ordered right now.` });
     }
 
-    const { rateBps } = resolveCommissionBps(demoCommissionRules, { shopId: shop.id, category: product.category, at });
+    // Commission is private platform configuration and is not shown to the
+    // customer. The place_order RPC applies the real rate authoritatively.
+    const { rateBps } = resolveCommissionBps(commissionRules, { shopId: shop.id, category: product.category, at: _at });
     const group =
       byShop.get(shop.id) ??
       ({ shopId: shop.id, shopName: shop.name, lines: [], merchandiseTzs: 0, commissionTzs: 0, sellerProceedsTzs: 0 } satisfies ShopGroup);

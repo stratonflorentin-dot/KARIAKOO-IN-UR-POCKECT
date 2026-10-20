@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DevRoleBar } from "@/components/auth/DevRoleBar";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { AvailabilityToggle } from "@/components/rider/AvailabilityToggle";
 import { RiderNav } from "@/components/rider/RiderNav";
 import { SafetyButton } from "@/components/rider/SafetyButton";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
+import { requireRole } from "@/lib/auth/session";
+import { riderPresenceFor } from "@/lib/data/dispatch";
 
 export const metadata: Metadata = {
   title: { default: "Rider", template: "%s · Rider · KARIAKOO" },
@@ -18,12 +19,10 @@ export const metadata: Metadata = {
 // without a session (and would just see the access check's 404).
 export const instant = false;
 
-export default function RiderLayout({ children }: LayoutProps<"/rider">) {
+export default async function RiderLayout({ children }: LayoutProps<"/rider">) {
+  const online = await riderPresenceFor(await requireRole("rider"));
   return (
     <div className="flex min-h-full flex-1 flex-col bg-stone-100">
-      <Suspense fallback={null}>
-        <DevRoleBar />
-      </Suspense>
       <header className="sticky top-0 z-30 bg-night text-white">
         <div className="mx-auto flex h-16 max-w-md items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -32,7 +31,7 @@ export default function RiderLayout({ children }: LayoutProps<"/rider">) {
           </div>
           <div className="flex items-center gap-2">
             <SafetyButton />
-            <AvailabilityToggle />
+            <AvailabilityToggle initialOnline={online} />
           </div>
         </div>
       </header>

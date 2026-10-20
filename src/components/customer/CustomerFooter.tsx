@@ -9,8 +9,7 @@ export function CustomerFooter() {
         <div className="md:col-span-2">
           <Logo tone="light" />
           <p className="mt-3 max-w-md text-sm leading-6">
-            Kariakoo&apos;s shops, online. You pay KARIAKOO, we confirm your order with each shop, a rider delivers it,
-            and the shop is paid after delivery.
+            Kariakoo&apos;s shops, online. Explore local products, place an order, and follow fulfilment and delivery in one place.
           </p>
         </div>
         <div>
@@ -33,7 +32,6 @@ export function CustomerFooter() {
         </div>
       </div>
       <div className="mx-auto mt-10 max-w-7xl space-y-1 px-4 sm:px-6">
-        <p className="text-xs text-white/50">Development build. All products, shops, prices, people and orders shown are demo data.</p>
         <CatalogSourceNote />
       </div>
     </footer>

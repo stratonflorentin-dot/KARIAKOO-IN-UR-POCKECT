@@ -24,7 +24,7 @@ export function RiderNav() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-semibold ${active ? "text-brand-400" : "text-white/70"}`}
+                className={`mx-1 my-1 flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-semibold transition-colors ${active ? "bg-white/10 text-brand-300" : "text-white/70 hover:bg-white/5"}`}
               >
                 <Icon size={24} aria-hidden="true" />
                 {label}

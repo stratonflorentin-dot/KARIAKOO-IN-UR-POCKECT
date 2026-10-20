@@ -5,21 +5,15 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
-import { MapLoader } from "@/components/map/MapLoader";
-import type { MapPoint } from "@/components/map/MarketMap";
 import { Timeline } from "@/components/orders/Timeline";
 import { TrackSteps } from "@/components/orders/TrackSteps";
-import { dropoffGeo, shopGeo } from "@/data/demo/geo";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice, Skeleton } from "@/components/ui/States";
-import { demoRiders } from "@/data/demo/people";
 import { getSessionWithRole } from "@/lib/auth/session";
-import { customerOrder } from "@/lib/data/access";
+import { liveCustomerOrder } from "@/lib/data/customer-live";
 import { getZone } from "@/lib/delivery";
-import { deliveryPinForCustomer } from "@/lib/delivery-pin";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { orderTotals } from "@/lib/money";
-import { demoCatalog } from "@/lib/catalog";
 import { isCustomerCancellable } from "@/lib/status";
 import type { Order } from "@/lib/types";
 
@@ -58,20 +52,13 @@ function upcomingSteps(o: Order): string[] {
 async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, "params">) {
   const { id } = await params;
   const session = await getSessionWithRole("customer");
-  const order = customerOrder(session, id);
+  const detail = await liveCustomerOrder(session, id);
   // Someone else's order looks exactly like a missing one.
-  if (!order) notFound();
+  if (!detail) notFound();
+  const { order, shopNames, pin, riderName } = detail;
+  const shopName = (shopId: string) => shopNames[shopId] ?? "Shop";
 
   const totals = orderTotals(order.items, order.deliveryFeeTzs);
-  const pin = deliveryPinForCustomer(session, order.id);
-  const rider = demoRiders.find((r) => r.id === order.delivery.riderId);
-  const mapPoints: MapPoint[] = [
-    ...order.groups.flatMap((g, i) => {
-      const geo = shopGeo[g.shopId];
-      return geo ? [{ id: g.shopId, kind: "pickup" as const, badge: String(i + 1), label: `Collected from ${demoCatalog.getShopName(g.shopId)}`, geo }] : [];
-    }),
-    ...(dropoffGeo[order.id] ? [{ id: "dropoff", kind: "dropoff" as const, label: `Delivered to ${order.address}`, geo: dropoffGeo[order.id] }] : []),
-  ];
 
   return (
     <div className="mt-4 space-y-5">
@@ -106,26 +93,13 @@ async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, 
             </div>
           </Card>
 
-          {mapPoints.length > 0 && (
-            <section aria-labelledby="route-heading">
-              <h2 id="route-heading" className="mb-2 font-semibold">Delivery route</h2>
-              <MapLoader
-                ariaLabel="Map of where your order is collected and delivered"
-                points={mapPoints}
-                route
-                heightClass="h-64 sm:h-72"
-                note="Shows the shops and your delivery address. The rider's live position is not tracked yet; follow progress in the timeline."
-              />
-            </section>
-          )}
-
           <Card aria-labelledby="items-heading">
             <CardHeader id="items-heading" title="Items" />
             <div className="space-y-4">
               {order.groups.map((g) => (
                 <div key={g.shopId}>
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                    <Store size={15} className="text-brand-600" aria-hidden="true" /> {demoCatalog.getShopName(g.shopId)} <FulfillmentBadge status={g.status} />
+                    <Store size={15} className="text-brand-600" aria-hidden="true" /> {shopName(g.shopId)} <FulfillmentBadge status={g.status} />
                   </p>
                   {g.rejectionReason && <p className="mt-1 text-sm text-red-700">Reason: {g.rejectionReason}</p>}
                   <ul className="mt-2 divide-y divide-line text-sm">
@@ -154,7 +128,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/customer/orders/[id]">, 
             {order.instructions && <p className="mt-2 text-sm text-muted">“{order.instructions}”</p>}
             <p className="mt-3 flex gap-2 text-sm">
               <Bike size={16} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" />
-              {rider ? <>Rider: {rider.name} · {rider.vehicle}</> : "A rider will be assigned when the shop is ready."}
+              {riderName ? <>Rider: {riderName}</> : "A rider will be assigned when the shop is ready."}
             </p>
           </Card>
 

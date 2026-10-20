@@ -25,7 +25,7 @@ export async function moderateApplication(_prev: ModerationResult, formData: For
   const status = String(formData.get("status") ?? "");
 
   const admin = await getSessionWithRole("admin");
-  if (!admin || admin.isDemo) return { status: "error", message: "Only a signed-in admin can moderate applications." };
+  if (!admin) return { status: "error", message: "Only a signed-in admin can moderate applications." };
   if (!UUID.test(id)) return { status: "error", message: "That application id is not valid." };
 
   const sb = await createSupabaseServerClient();

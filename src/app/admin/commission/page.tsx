@@ -3,10 +3,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, PageHeader, StatCard } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
-import { demoCommissionRules } from "@/data/demo/commission-rules";
 import { requireRole } from "@/lib/auth/session";
 import { getCategory } from "@/lib/catalog";
-import { adminData } from "@/lib/data/access";
+import { liveAdminCommissionRules } from "@/lib/data/admin-live";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { formatBps } from "@/lib/money";
 import { nowMs } from "@/lib/time";
@@ -14,9 +14,15 @@ import { nowMs } from "@/lib/time";
 export const metadata: Metadata = { title: "Commission" };
 
 export default async function AdminCommissionPage() {
-  const { shops } = adminData(await requireRole("admin"));
+  const session = await requireRole("admin");
+  const sb = await createSupabaseServerClient();
+  const [rules, shopsResult] = await Promise.all([
+    liveAdminCommissionRules(session),
+    sb.from("shops").select("id,name"),
+  ]);
+  if (shopsResult.error) throw new Error(`Could not load shops: ${shopsResult.error.message}`);
+  const shops = (shopsResult.data ?? []) as { id: string; name: string }[];
   const now = await nowMs();
-  const rules = [...demoCommissionRules].sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
   const currentDefault = rules.find((r) => r.scope === "default" && Date.parse(r.effectiveFrom) <= now);
   const target = (scope: string, t?: string) =>
     scope === "default" ? "All shops & categories" : scope === "shop" ? shops.find((s) => s.id === t)?.name ?? t : getCategory(t ?? "")?.name ?? t;
@@ -25,7 +31,7 @@ export default async function AdminCommissionPage() {
     <>
       <PageHeader title="Commission settings" description="Commission is a percentage of the merchandise subtotal, excluding delivery. Rules are never edited in place: a new rate is a new rule with a future effective date." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="Current default rate" value={currentDefault ? formatBps(currentDefault.rateBps) : "10%"} hint={currentDefault ? `Since ${formatDate(currentDefault.effectiveFrom)}` : undefined} />
+        <StatCard label="Current default rate" value={currentDefault ? formatBps(currentDefault.rateBps) : "Not configured"} hint={currentDefault ? `Since ${formatDate(currentDefault.effectiveFrom)}` : undefined} />
         <StatCard label="Special rules" value={String(rules.filter((r) => r.scope !== "default").length)} hint="Shop or category rates" />
         <StatCard label="Precedence" value="Shop → Category → Default" />
       </div>
@@ -59,9 +65,7 @@ export default async function AdminCommissionPage() {
           <li>All rates are validated and applied on the server, never accepted from the browser.</li>
         </ul>
       </Card>
-      <div className="mt-4">
-        <Notice tone="warning">Creating new rules becomes an admin-only, audit-logged server action in Phase 5.</Notice>
-      </div>
+      {!rules.length && <div className="mt-4"><Notice tone="warning">No commission rules have been configured in the live database.</Notice></div>}
     </>
   );
 }

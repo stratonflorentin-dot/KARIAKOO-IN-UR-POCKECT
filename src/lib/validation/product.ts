@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { demoCategories } from "@/data/demo/categories";
+import { categories } from "@/data/categories";
 import { audiences, productTypes } from "@/lib/departments";
 
 // Shared rules for a seller's product. Used by the browser form now and by
@@ -15,7 +15,7 @@ export function validateImageFile(file: { type: string; size: number }): string 
   return null;
 }
 
-const categoryIds = demoCategories.map((c) => c.slug) as [string, ...string[]];
+const categoryIds = categories.map((c) => c.slug) as [string, ...string[]];
 const audienceIds = audiences.map((a) => a.id) as [string, ...string[]];
 const typeIds = productTypes.map((t) => t.id) as [string, ...string[]];
 

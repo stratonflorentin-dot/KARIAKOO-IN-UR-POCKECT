@@ -1,32 +1,25 @@
 import "server-only";
 
-// Loads the public catalog from Supabase, falling back to the demo files if
-// Supabase is not configured or can't be reached.
+// Loads the public catalog from Supabase. An empty or unavailable database
+// stays empty; production pages never substitute sample listings.
 //
 // It uses the publishable key with no user session, so Row Level Security
 // decides what is returned: only approved shops and their active products.
 // Results are cached ("use cache") and refreshed about once a minute.
 import { createClient } from "@supabase/supabase-js";
 import { cacheLife } from "next/cache";
-import { demoProducts } from "@/data/demo/products";
-import { demoShops } from "@/data/demo/shops";
-import { createCatalog, demoCatalog, getCategories, type Catalog, type CatalogData } from "@/lib/catalog";
+import { createCatalog, getCategories, type Catalog, type CatalogData } from "@/lib/catalog";
 import { isAudience, isProductType } from "@/lib/departments";
 import type { CategorySlug, Product, Shop, ShopArea } from "@/lib/types";
 
 export type CatalogSource =
   | { kind: "supabase"; shops: number; products: number }
-  | { kind: "demo"; reason: string };
+  | { kind: "unavailable"; reason: string };
 
 interface LoadResult {
   data: CatalogData | null;
   source: CatalogSource;
 }
-
-// Demo rows keep their demo ids and dates (matched by slug), so the demo
-// orders and dashboards stay consistent with the catalog in the database.
-const legacyShop = new Map(demoShops.map((s) => [s.slug, s]));
-const legacyProduct = new Map(demoProducts.map((p) => [p.slug, p]));
 
 const AREAS: ShopArea[] = ["kariakoo", "posta", "sinza", "mwenge"];
 
@@ -46,6 +39,7 @@ interface ShopRow {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  is_demo: boolean;
 }
 
 interface ProductRow {
@@ -66,6 +60,7 @@ interface ProductRow {
   product_type: string | null;
   image_url: string | null;
   created_at: string;
+  is_demo: boolean;
 }
 
 async function loadFromSupabase(): Promise<LoadResult> {
@@ -74,18 +69,16 @@ async function loadFromSupabase(): Promise<LoadResult> {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return { data: null, source: { kind: "demo", reason: "Supabase is not configured" } };
+  if (!url || !key) return { data: null, source: { kind: "unavailable", reason: "Marketplace data is not configured." } };
 
   try {
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const [shopsRes, productsRes] = await Promise.all([
-      db.from("shops").select("id,slug,name,primary_category,area,address,description,opening_hours,status,verified,rating,review_count,lat,lng,created_at").returns<ShopRow[]>(),
-      db.from("products").select("id,shop_id,slug,name,category,price_tzs,compare_at_tzs,stock,unit,description,highlights,status,sold_count,audience,product_type,image_url,created_at").returns<ProductRow[]>(),
+      db.from("shops").select("id,slug,name,primary_category,area,address,description,opening_hours,status,verified,rating,review_count,lat,lng,created_at,is_demo").eq("is_demo", false).returns<ShopRow[]>(),
+      db.from("products").select("id,shop_id,slug,name,category,price_tzs,compare_at_tzs,stock,unit,description,highlights,status,sold_count,audience,product_type,image_url,created_at,is_demo").eq("is_demo", false).returns<ProductRow[]>(),
     ]);
     if (shopsRes.error) throw new Error(shopsRes.error.message);
     if (productsRes.error) throw new Error(productsRes.error.message);
-    if (!shopsRes.data.length) return { data: null, source: { kind: "demo", reason: "The database has no shops yet" } };
-
     const validCategory = new Set<string>(getCategories().map((c) => c.slug));
     const shopIdByUuid = new Map<string, string>();
 
@@ -99,14 +92,12 @@ async function loadFromSupabase(): Promise<LoadResult> {
     }
 
     const shops: Shop[] = shopsRes.data
-      .filter((r) => validCategory.has(r.primary_category))
+      .filter((r) => !r.is_demo && validCategory.has(r.primary_category))
       .map((r) => {
-        const legacy = legacyShop.get(r.slug);
-        const id = legacy?.id ?? r.id;
-        shopIdByUuid.set(r.id, id);
+        shopIdByUuid.set(r.id, r.id);
         const primary = r.primary_category as CategorySlug;
         return {
-          id,
+          id: r.id,
           slug: r.slug,
           name: r.name,
           area: AREAS.includes(r.area as ShopArea) ? (r.area as ShopArea) : "kariakoo",
@@ -118,18 +109,16 @@ async function loadFromSupabase(): Promise<LoadResult> {
           verified: r.verified,
           status: r.status,
           openingHours: r.opening_hours,
-          joinedYear: legacy?.joinedYear ?? new Date(r.created_at).getUTCFullYear(),
+          joinedYear: new Date(r.created_at).getUTCFullYear(),
           geo: r.lat !== null && r.lng !== null ? [r.lng, r.lat] : undefined,
-          isDemo: true,
         } satisfies Shop;
       });
 
     const products: Product[] = productsRes.data
-      .filter((r) => shopIdByUuid.has(r.shop_id) && validCategory.has(r.category))
+      .filter((r) => !r.is_demo && shopIdByUuid.has(r.shop_id) && validCategory.has(r.category))
       .map((r) => {
-        const legacy = legacyProduct.get(r.slug);
         return {
-          id: legacy?.id ?? r.id,
+          id: r.id,
           slug: r.slug,
           name: r.name,
           shopId: shopIdByUuid.get(r.shop_id)!,
@@ -142,11 +131,10 @@ async function loadFromSupabase(): Promise<LoadResult> {
           highlights: r.highlights,
           status: r.status,
           soldCount: r.sold_count,
-          listedAt: legacy?.listedAt ?? r.created_at.slice(0, 10),
+          listedAt: r.created_at.slice(0, 10),
           audience: isAudience(r.audience) ? r.audience : undefined,
           productType: isProductType(r.product_type) ? r.product_type : undefined,
           imageUrl: r.image_url ?? undefined,
-          isDemo: true,
         } satisfies Product;
       });
 
@@ -154,15 +142,15 @@ async function loadFromSupabase(): Promise<LoadResult> {
       data: { categories: getCategories(), shops, products },
       source: { kind: "supabase", shops: shops.length, products: products.length },
     };
-  } catch (err) {
-    return { data: null, source: { kind: "demo", reason: `Supabase unavailable: ${err instanceof Error ? err.message : "unknown error"}` } };
+  } catch {
+    return { data: null, source: { kind: "unavailable", reason: "Marketplace listings could not be loaded." } };
   }
 }
 
-/** The active public catalog: Supabase when available, otherwise demo files. */
+/** The active public catalog. Missing live data produces an empty catalog. */
 export async function getCatalog(): Promise<Catalog> {
   const { data } = await loadFromSupabase();
-  return data ? createCatalog(data) : demoCatalog;
+  return createCatalog(data ?? { categories: getCategories(), shops: [], products: [] });
 }
 
 export async function getCatalogSource(): Promise<CatalogSource> {

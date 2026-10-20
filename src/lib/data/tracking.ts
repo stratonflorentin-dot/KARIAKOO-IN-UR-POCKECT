@@ -3,7 +3,7 @@ import "server-only";
 // Live delivery tracking for the customer's order page.
 //
 // The honest state today: a customer cannot yet see their rider's live
-// position. Rider GPS is stored in `rider_presence` (the Phase 6 dispatch
+// position. Rider GPS is stored in `rider_presence` (the dispatch
 // migration), but its Row Level Security lets only the rider themselves and
 // admins read it — by design. Showing it to the order's customer needs a
 // dedicated, minimal SECURITY DEFINER function (e.g. order_rider_position)

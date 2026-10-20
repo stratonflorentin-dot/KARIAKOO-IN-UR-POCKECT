@@ -7,7 +7,8 @@ import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { requireRole } from "@/lib/auth/session";
-import { adminData } from "@/lib/data/access";
+import { liveAdminOrders } from "@/lib/data/admin-live";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { orderTotals } from "@/lib/money";
 import { orderStatusLabel } from "@/lib/status";
@@ -16,13 +17,24 @@ import type { OrderStatus } from "@/lib/types";
 export const metadata: Metadata = { title: "Orders" };
 
 export default async function AdminOrdersPage({ searchParams }: PageProps<"/admin/orders">) {
-  const { orders, customers, shops, riders } = adminData(await requireRole("admin"));
+  const session = await requireRole("admin");
+  const orders = await liveAdminOrders(session);
+  const sb = await createSupabaseServerClient();
+  const customerIds = [...new Set(orders.map((order) => order.customerId))];
+  const shopIds = [...new Set(orders.flatMap((order) => order.groups.map((group) => group.shopId)))];
+  const [{ data: profileRows, error: profileError }, { data: shopRows, error: shopError }] = await Promise.all([
+    sb.from("profiles").select("id,full_name").in("id", customerIds),
+    sb.from("shops").select("id,name").in("id", shopIds),
+  ]);
+  if (profileError || shopError) throw new Error(`Could not load order details: ${profileError?.message ?? shopError?.message}`);
+  const customers = new Map(((profileRows ?? []) as { id: string; full_name: string }[]).map((r) => [r.id, r.full_name]));
+  const shops = new Map(((shopRows ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
   const params = await searchParams;
   const q = (typeof params.q === "string" ? params.q : "").trim().toLowerCase().slice(0, 80);
   const status = typeof params.status === "string" && params.status in orderStatusLabel ? (params.status as OrderStatus) : undefined;
 
-  const customerName = (id: string) => customers.find((c) => c.id === id)?.name ?? id;
-  const shopNames = (ids: string[]) => ids.map((id) => shops.find((s) => s.id === id)?.name ?? id);
+  const customerName = (id: string) => customers.get(id) || "Customer";
+  const shopNames = (ids: string[]) => ids.map((id) => shops.get(id) ?? "Shop");
 
   const rows = orders
     .filter((o) => !status || o.status === status)
@@ -71,7 +83,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
                   <td className={tdClass}><PaymentStatusBadge status={o.paymentStatus} /></td>
                   <td className={tdClass}>
                     <DeliveryStatusBadge status={o.delivery.status} />
-                    <span className="mt-1 block text-xs text-muted">{riders.find((r) => r.id === o.delivery.riderId)?.name ?? "No rider"}</span>
+                    <span className="mt-1 block text-xs text-muted">{o.delivery.riderId ? "Rider assigned" : "No rider"}</span>
                   </td>
                   <td className={`${tdClass} text-right tabular-nums`}>{formatTzs(t.customerTotalTzs)}</td>
                   <td className={`${tdClass} text-right tabular-nums`}>{o.paymentStatus === "successful" && o.status !== "cancelled" ? formatTzs(t.commissionTzs) : "—"}</td>

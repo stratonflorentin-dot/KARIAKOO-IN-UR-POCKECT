@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import { LiveModerationActions } from "@/components/dashboard/LiveModerationActions";
-import { ModerationActions } from "@/components/dashboard/ModerationActions";
-import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { PageHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { requireRole } from "@/lib/auth/session";
-import { adminData } from "@/lib/data/access";
 import { liveRiderApplications } from "@/lib/data/applications";
 import { getZone, isDeliveryZoneId } from "@/lib/delivery";
-import { formatTzs } from "@/lib/format";
 import { formatTzPhone } from "@/lib/validation/checkout";
 
 export const metadata: Metadata = { title: "Riders" };
@@ -24,7 +20,6 @@ const options = {
 
 export default async function AdminRidersPage() {
   const session = await requireRole("admin");
-  const { riders, orders } = adminData(session);
   const applications = await liveRiderApplications(session);
 
   return (
@@ -57,30 +52,7 @@ export default async function AdminRidersPage() {
         )}
       </section>
 
-      <TableCard label="Riders" minWidth="60rem">
-        <THead><Th>Rider</Th><Th>Vehicle</Th><Th>Current job</Th><Th align="right">Delivered</Th><Th align="right">Failed</Th><Th align="right">Payouts</Th><Th>Status & actions</Th></THead>
-        <tbody className={tbodyClass}>
-          {riders.map((r) => {
-            const jobs = orders.filter((o) => o.delivery.riderId === r.id);
-            const active = jobs.find((o) => ["ASSIGNED", "ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(o.delivery.status));
-            const delivered = jobs.filter((o) => o.delivery.status === "DELIVERED");
-            return (
-              <tr key={r.id}>
-                <th scope="row" className={`${tdClass} font-medium`}>
-                  {r.name}
-                  <span className="block text-xs font-normal text-muted">{formatTzPhone(r.phone)} · {getZone(r.baseZone).name.split(" (")[0]}</span>
-                </th>
-                <td className={tdClass}>{r.vehicle}<span className="block text-xs text-muted">{r.plate}</span></td>
-                <td className={tdClass}>{active ? <>{active.reference} <DeliveryStatusBadge status={active.delivery.status} /></> : <span className="text-muted">None</span>}</td>
-                <td className={`${tdClass} text-right tabular-nums`}>{delivered.length}</td>
-                <td className={`${tdClass} text-right tabular-nums`}>{jobs.filter((o) => o.delivery.status === "FAILED").length}</td>
-                <td className={`${tdClass} text-right tabular-nums`}>{formatTzs(delivered.reduce((s, o) => s + o.delivery.riderPayoutTzs, 0))}</td>
-                <td className={tdClass}><ModerationActions subject={r.name} initialStatus={r.status} statusTones={tones} options={options} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </TableCard>
+      <p className="text-sm text-muted">Live rider accounts and delivery performance will appear here once approved rider operations are connected.</p>
     </>
   );
 }

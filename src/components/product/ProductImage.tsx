@@ -52,7 +52,7 @@ export function ProductImage({ category, name, imageUrl, size = "md" }: {
       <CategoryIcon slug={category} size={iconSize} strokeWidth={1.4} />
       {size !== "sm" && (
         <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stone-600">
-          Photo coming soon
+          Illustration
         </span>
       )}
     </div>

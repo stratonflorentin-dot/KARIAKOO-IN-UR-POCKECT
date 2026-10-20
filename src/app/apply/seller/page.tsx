@@ -23,7 +23,7 @@ const STATUS_COPY: Record<string, { tone: "info" | "warning" | "success"; text: 
 
 export default async function SellerApplyPage() {
   const session = await getSession();
-  const signedIn = Boolean(session) && !session!.isDemo;
+  const signedIn = Boolean(session);
 
   // Already applied? Show the current status instead of the form.
   let existing: { name: string; status: string } | null = null;

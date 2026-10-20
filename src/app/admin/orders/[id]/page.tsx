@@ -8,7 +8,8 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { requireRole } from "@/lib/auth/session";
-import { adminData } from "@/lib/data/access";
+import { liveAdminOrders } from "@/lib/data/admin-live";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getZone } from "@/lib/delivery";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { commissionFor, formatBps, orderTotals } from "@/lib/money";
@@ -18,13 +19,24 @@ export const metadata: Metadata = { title: "Order" };
 
 export default async function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]">) {
   const { id } = await params;
-  const { orders, customers, shops, riders } = adminData(await requireRole("admin"));
-  const order = orders.find((o) => o.id === id);
+  const session = await requireRole("admin");
+  const order = (await liveAdminOrders(session)).find((o) => o.id === id);
   if (!order) notFound();
+  const sb = await createSupabaseServerClient();
+  const shopIds = [...new Set(order.groups.map((group) => group.shopId))];
+  const { data: profileRows, error: profileError } = await sb.from("profiles").select("id,full_name,phone").in("id", [order.customerId, ...(order.delivery.riderId ? [order.delivery.riderId] : [])]);
+  const { data: shopRows, error: shopError } = await sb.from("shops").select("id,name").in("id", shopIds);
+  const { data: riderRows, error: riderError } = order.delivery.riderId
+    ? await sb.from("riders").select("id,plate").eq("id", order.delivery.riderId).limit(1)
+    : { data: [], error: null };
+  if (profileError || shopError || riderError) throw new Error(`Could not load order contacts: ${profileError?.message ?? shopError?.message ?? riderError?.message}`);
+  const profiles = new Map(((profileRows ?? []) as { id: string; full_name: string; phone: string | null }[]).map((p) => [p.id, p]));
+  const shops = new Map(((shopRows ?? []) as { id: string; name: string }[]).map((shop) => [shop.id, shop.name]));
+  const riderInfo = (riderRows?.[0] ?? null) as { id: string; plate: string } | null;
   const t = orderTotals(order.items, order.deliveryFeeTzs);
-  const customer = customers.find((c) => c.id === order.customerId);
-  const rider = riders.find((r) => r.id === order.delivery.riderId);
-  const shopName = (sid: string) => shops.find((s) => s.id === sid)?.name ?? sid;
+  const customer = profiles.get(order.customerId);
+  const rider = riderInfo ? profiles.get(riderInfo.id) : undefined;
+  const shopName = (sid: string) => shops.get(sid) ?? "Shop";
   const finalised = order.status === "delivered" || order.status === "cancelled";
 
   return (
@@ -41,7 +53,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
       {finalised && (
         <Notice>
           <span className="flex gap-2"><Lock size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-            This order is finalised. Its financial records are read-only; corrections are made with recorded adjustments (Phase 5).</span>
+            This order is finalised. Its financial records are read-only; corrections must use a recorded adjustment.</span>
         </Notice>
       )}
 
@@ -81,11 +93,11 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
         </Card>
         <Card aria-labelledby="people-heading">
           <CardHeader id="people-heading" title="Customer & delivery" />
-          <p className="text-sm font-medium">{customer?.name}</p>
-          {customer && <p className="text-sm text-muted">{formatTzPhone(customer.phone)}</p>}
+          <p className="text-sm font-medium">{customer?.full_name ?? "Customer"}</p>
+          {customer?.phone && <p className="text-sm text-muted">{formatTzPhone(customer.phone)}</p>}
           <p className="mt-2 text-sm">{order.address}, {getZone(order.zone).name}</p>
-          <p className="mt-2 text-sm">Rider: {rider ? `${rider.name} (${rider.plate})` : "Not assigned"}</p>
-          <p className="mt-2 text-xs text-muted">Assigning riders, cancellations and refunds become audited actions in Phases 5–6.</p>
+          <p className="mt-2 text-sm">Rider: {rider ? `${rider.full_name || "Rider"}${riderInfo?.plate ? ` (${riderInfo.plate})` : ""}` : "Not assigned"}</p>
+          <p className="mt-2 text-xs text-muted">Rider assignment, cancellations and refunds are not available from this screen.</p>
         </Card>
         <Card aria-labelledby="hist-heading">
           <CardHeader id="hist-heading" title="Status history" />

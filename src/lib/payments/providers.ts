@@ -1,9 +1,8 @@
 import "server-only";
 
-// Payment provider registry. A provider is offered to customers only when
-// its credentials are configured on the server. Provider selection (fees,
-// settlement, marketplace/split-payment support, licensing) must be verified
-// with each provider before integration. See README → Payments checklist.
+// Mobile-money methods stay unavailable until the server has a real provider
+// adapter, webhook verification and settlement handling. Keys alone do not
+// activate a payment flow.
 export interface PaymentProviderStatus {
   id: "mpesa" | "mixx" | "airtelmoney" | "halopesa" | "cod";
   label: string;
@@ -12,12 +11,11 @@ export interface PaymentProviderStatus {
 }
 
 export function getPaymentProviders(): PaymentProviderStatus[] {
-  const has = (name: string) => Boolean(process.env[name]);
   return [
-    { id: "mpesa", label: "M-Pesa", configured: has("MPESA_API_KEY"), note: "Mobile money" },
-    { id: "mixx", label: "Mixx by Yas", configured: has("MIXX_API_KEY"), note: "Mobile money (formerly Tigo Pesa)" },
-    { id: "airtelmoney", label: "Airtel Money", configured: has("AIRTEL_MONEY_API_KEY"), note: "Mobile money" },
-    { id: "halopesa", label: "HaloPesa", configured: has("HALOPESA_API_KEY"), note: "Mobile money" },
+    { id: "mpesa", label: "M-Pesa", configured: false, note: "Payment integration unavailable" },
+    { id: "mixx", label: "Mixx by Yas", configured: false, note: "Payment integration unavailable" },
+    { id: "airtelmoney", label: "Airtel Money", configured: false, note: "Payment integration unavailable" },
+    { id: "halopesa", label: "HaloPesa", configured: false, note: "Payment integration unavailable" },
     { id: "cod", label: "Cash on delivery", configured: true, note: "Pay the rider on arrival" },
   ];
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { EmptyState } from "@/components/ui/States";
 import { requireRole } from "@/lib/auth/session";
-import { riderJobs } from "@/lib/data/access";
+import { riderJobs } from "@/lib/data/rider-live";
 import { formatDate, formatTzs } from "@/lib/format";
 
 export const metadata: Metadata = { title: "History" };
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "History" };
 const DONE = ["DELIVERED", "FAILED", "CANCELLED"];
 
 export default async function RiderHistoryPage() {
-  const jobs = riderJobs(await requireRole("rider")).filter((j) => DONE.includes(j.status));
+  const jobs = (await riderJobs(await requireRole("rider"))).filter((j) => DONE.includes(j.status));
   const earned = jobs.filter((j) => j.status === "DELIVERED").reduce((s, j) => s + j.payoutTzs, 0);
 
   return (
@@ -20,7 +20,7 @@ export default async function RiderHistoryPage() {
       <div className="rounded-3xl bg-night p-5 text-white">
         <p className="text-sm text-white/70">Earnings from completed deliveries</p>
         <p className="text-3xl font-bold">{formatTzs(earned)}</p>
-        <p className="mt-1 text-xs text-white/60">Demo figures. Payout settlement arrives in Phase 6.</p>
+        <p className="mt-1 text-xs text-white/60">Based on completed deliveries recorded for your account.</p>
       </div>
       {jobs.length === 0 ? (
         <EmptyState title="No completed deliveries yet" />

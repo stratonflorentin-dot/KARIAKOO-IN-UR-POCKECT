@@ -37,7 +37,7 @@ async function uniqueProductSlug(sb: SupabaseClient, name: string): Promise<stri
 /** The signed-in seller plus their shop id, or an error result. */
 async function sellerShopId(sb: SupabaseClient): Promise<{ shopId: string } | { error: string }> {
   const session = await getSessionWithRole("seller");
-  if (!session || session.isDemo) return { error: "Please sign in as a seller." };
+  if (!session) return { error: "Please sign in as a seller." };
   const { data } = await sb.from("shops").select("id").eq("owner_id", session.userId).limit(1);
   const shopId = (data?.[0] as { id?: string } | undefined)?.id;
   if (!shopId) return { error: "You don't have a shop yet. Apply to sell first." };

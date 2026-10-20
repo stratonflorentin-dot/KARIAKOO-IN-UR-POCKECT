@@ -1,116 +1,27 @@
-import { CircleAlert, Database } from "lucide-react";
+import { AlertTriangle, Banknote, Bike, ClipboardList, Store, Truck, User } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
-import { TrendBars, lastSevenDays } from "@/components/dashboard/TrendBars";
-import { OrderStatusBadge } from "@/components/orders/StatusBadges";
-import { Badge, DemoTag } from "@/components/ui/Badge";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/States";
-import { DEMO_TODAY } from "@/data/demo/meta";
-import { platformMetrics } from "@/lib/admin-metrics";
 import { requireRole } from "@/lib/auth/session";
+import { liveAdminOverview } from "@/lib/data/admin-live";
 import { formatDateTime, formatTzs } from "@/lib/format";
-import { breakdown } from "@/lib/money";
-import { getCatalogSource } from "@/lib/catalog-source";
-import { getSupabaseStatus } from "@/lib/supabase/status";
 
 export default async function AdminOverviewPage() {
-  const m = platformMetrics(await requireRole("admin"));
-  const trend = lastSevenDays(m.sales.map((o) => ({ at: o.placedAt, amountTzs: breakdown(o.items).merchandiseTzs })), DEMO_TODAY);
-  const attentionCount = Object.values(m.attention).reduce((s, list) => s + list.length, 0);
-
-  return (
-    <>
-      <PageHeader title="Marketplace overview" description="All figures are calculated from demo data." actions={<DemoTag />} />
-
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">Sales volume</h2>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total orders" value={String(m.totalOrders)} />
-        <StatCard label="Gross merchandise value (GMV)" value={formatTzs(m.gmvTzs)} hint="Goods sold through KARIAKOO. Not revenue." />
-        <StatCard label="Refunds" value={formatTzs(m.refundsTzs)} />
-        <StatCard label="Pending payments" value={formatTzs(m.pendingPaymentsTzs)} hint={`${m.pendingPaymentsCount} order(s) awaiting provider confirmation`} />
-      </div>
-
-      <h2 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-muted">KARIAKOO revenue</h2>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Commission revenue" value={formatTzs(m.commissionTzs)} hint="From paid sales" />
-        <StatCard label="Delivery fees collected" value={formatTzs(m.deliveryFeesTzs)} />
-        <StatCard label="Rider payouts" value={formatTzs(m.riderPayoutsTzs)} hint="Delivery cost" />
-        <StatCard label="Delivery contribution" value={formatTzs(m.deliveryContributionTzs)} hint="Fees minus rider payouts" />
-        <StatCard label="Estimated operating costs" value="Not tracked" hint="Add cost data to see net contribution" />
-        <StatCard label="Pending seller settlements" value={formatTzs(m.pendingSettlementTzs)} />
-        <StatCard label="Active shops / riders" value={`${m.activeShops} / ${m.activeRiders}`} />
-        <StatCard label="Active customers" value={String(m.activeCustomers)} />
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Card aria-labelledby="gmv-trend">
-          <TrendBars title="GMV, last 7 days" caption="Paid, non-cancelled orders (demo data)" points={trend} />
-        </Card>
-
-        <Card aria-labelledby="attention-heading">
-          <CardHeader id="attention-heading" title={`Needs attention (${attentionCount})`} />
-          <ul className="space-y-2 text-sm">
-            {m.attention.awaitingRider.map((o) => (
-              <li key={`r-${o.id}`} className="flex items-center justify-between gap-2"><Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.reference}</Link><Badge tone="warning">Waiting for rider</Badge></li>
-            ))}
-            {m.attention.failedDeliveries.map((o) => (
-              <li key={`f-${o.id}`} className="flex items-center justify-between gap-2"><Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.reference}</Link><Badge tone="danger">Delivery failed</Badge></li>
-            ))}
-            {m.attention.awaitingSeller.map((o) => (
-              <li key={`s-${o.id}`} className="flex items-center justify-between gap-2"><Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.reference}</Link><Badge tone="info">Awaiting seller</Badge></li>
-            ))}
-            {m.attention.pendingShops.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2"><Link href="/admin/shops" className="font-medium hover:underline">{s.name}</Link><Badge>Shop application</Badge></li>
-            ))}
-            {m.attention.pendingRiders.map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-2"><Link href="/admin/riders" className="font-medium hover:underline">{r.name}</Link><Badge>Rider application</Badge></li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Card aria-labelledby="recent-heading">
-          <CardHeader id="recent-heading" title="Recent activity" action={<Link href="/admin/orders" className="text-sm font-medium text-brand-700 hover:underline">All orders</Link>} />
-          <ul className="divide-y divide-line text-sm">
-            {[...m.sales].sort((a, b) => b.placedAt.localeCompare(a.placedAt)).slice(0, 5).map((o) => (
-              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                <Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.reference}</Link>
-                <span className="text-xs text-muted">{formatDateTime(o.placedAt)}</span>
-                <OrderStatusBadge status={o.status} />
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card aria-labelledby="systems-heading">
-          <CardHeader id="systems-heading" title="Systems" />
-          <Suspense fallback={<Skeleton className="h-10" />}>
-            <SupabaseStatusRow />
-          </Suspense>
-          <p className="mt-3 flex items-start gap-2 text-sm text-muted">
-            <CircleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-            Payments: no provider connected. Orders cannot be paid online yet.
-          </p>
-        </Card>
-      </div>
-    </>
-  );
-}
-
-async function SupabaseStatusRow() {
-  const [s, source] = await Promise.all([getSupabaseStatus(), getCatalogSource()]);
-  return (
-    <p className="flex items-start gap-2 text-sm">
-      <Database size={16} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" />
-      <span>
-        Supabase:{" "}
-        {s.state === "reachable" ? <Badge tone="success">Connected</Badge> : s.state === "unreachable" ? <Badge tone="danger">Unreachable ({s.detail})</Badge> : <Badge>Not configured</Badge>}
-        <span className="mt-1 block text-xs text-muted">
-          Store catalog: {source.kind === "supabase" ? `read from Supabase (${source.shops} shops, ${source.products} products)` : `demo files (${source.reason})`}.
-          Orders, riders and dashboards stay on demo data until sign-in arrives.
-        </span>
-      </span>
-    </p>
-  );
+  const session = await requireRole("admin");
+  const live = await liveAdminOverview(session);
+  return <>
+    <PageHeader title="KARIAKOO" description="Live marketplace overview from Supabase." />
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatCard label="Orders" value={String(live.orders)} icon={<ClipboardList size={18} />} hint="All time" />
+      <StatCard label="Paid GMV" value={formatTzs(live.paidGmvTzs)} icon={<Banknote size={18} />} hint="Most recent six orders" />
+      <StatCard label="Shops" value={String(live.shops)} icon={<Store size={18} />} hint={`${live.pendingShops} awaiting approval`} />
+      <StatCard label="Pending fulfilment" value={String(live.pendingOrders)} icon={<AlertTriangle size={18} />} hint="Awaiting seller action" />
+      <StatCard label="Customers" value={String(live.customers)} icon={<User size={18} />} hint="Registered customer roles" />
+      <StatCard label="Approved riders" value={String(live.riders)} icon={<Bike size={18} />} hint="Delivery partners" />
+      <StatCard label="Active products" value={String(live.products)} icon={<Truck size={18} />} hint="Currently listed" />
+    </div>
+    <Card aria-labelledby="recent-orders" className="mt-6">
+      <CardHeader id="recent-orders" title="Recent orders" subtitle="Latest orders and merchandise totals." action={<Link href="/admin/orders" className="text-sm font-medium text-brand-700 hover:underline">All orders</Link>} />
+      {live.recent.length === 0 ? <p className="text-sm text-muted">No live orders yet.</p> : <ul className="divide-y divide-line text-sm">{live.recent.map((o) => <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-3"><div><p className="font-medium">{o.reference}</p><p className="text-xs text-muted">{formatDateTime(o.createdAt)}</p></div><span className="capitalize text-muted">{o.paymentStatus}</span><span className="font-semibold tabular-nums">{formatTzs(o.totalTzs)}</span></li>)}</ul>}
+    </Card>
+  </>;
 }

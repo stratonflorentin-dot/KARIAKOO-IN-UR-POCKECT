@@ -1,111 +1,88 @@
-import { AlertTriangle, Banknote, ClipboardList, Package, Percent, ShoppingBag, Timer, Wallet } from "lucide-react";
+import { AlertTriangle, BadgeCheck, ClipboardList, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
 import Link from "next/link";
-import { MapLoader } from "@/components/map/MapLoader";
-import { FulfillmentBadge } from "@/components/orders/StatusBadges";
-import { shopGeo } from "@/data/demo/geo";
-import { directionsUrl } from "@/lib/maps";
-import { ShopKindBadge } from "@/components/shop/ShopMark";
-import { DemoTag } from "@/components/ui/Badge";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
-import { TrendBars, lastSevenDays } from "@/components/dashboard/TrendBars";
-import { DEMO_TODAY } from "@/data/demo/meta";
 import { requireRole } from "@/lib/auth/session";
-import { sellerOrders, sellerProducts, sellerShop } from "@/lib/data/access";
-import { formatDateTime, formatTzs } from "@/lib/format";
-import { breakdown } from "@/lib/money";
-
-/** Orders count as sales once paid and not cancelled/rejected. */
-const isSale = (v: { paymentStatus: string; group: { status: string } }) =>
-  v.paymentStatus === "successful" && !["rejected", "cancelled"].includes(v.group.status);
+import { liveSellerProducts, liveSellerShop, liveSellerSummary } from "@/lib/data/seller-live";
 
 export default async function SellerDashboardPage() {
   const session = await requireRole("seller");
-  const shop = sellerShop(session);
-  const orders = sellerOrders(session);
-  const products = sellerProducts(session).filter((p) => p.status === "active");
-  if (!shop) return null;
+  const shop = await liveSellerShop(session);
+  if (!shop) {
+    return (
+      <>
+        <PageHeader title="Seller dashboard" description="Your account does not have a shop yet." />
+        <Link className="text-sm font-medium text-brand-700 hover:underline" href="/apply/seller">Set up your shop</Link>
+      </>
+    );
+  }
+  const [summary, products] = await Promise.all([liveSellerSummary(session, shop.id), liveSellerProducts(session, shop.id)]);
+  const verified = shop.status === "approved";
 
-  const sales = orders.filter(isSale);
-  const totals = breakdown(sales.flatMap((o) => o.items));
-  const today = breakdown(sales.filter((o) => o.placedAt.startsWith(DEMO_TODAY)).flatMap((o) => o.items));
-  const pending = orders.filter((o) => ["awaiting_seller", "accepted", "preparing"].includes(o.group.status));
-  const settled = breakdown(sales.filter((o) => o.group.settlement === "settled").flatMap((o) => o.items));
-  const due = totals.sellerProceedsTzs - settled.sellerProceedsTzs;
-  const lowStock = products.filter((p) => p.stock <= 5);
-  const trend = lastSevenDays(sales.map((o) => ({ at: o.placedAt, amountTzs: breakdown(o.items).merchandiseTzs })), DEMO_TODAY);
+  const actions = [
+    { href: "/seller/products", Icon: Package, title: "My products", sub: `${summary.productCount} listed` },
+    { href: "/seller/products", Icon: Plus, title: "Add product", sub: "Create a new listing" },
+    { href: "/seller/orders", Icon: ClipboardList, title: "Orders", sub: summary.pendingOrders ? `${summary.pendingOrders} need action` : "Manage orders" },
+    { href: "/seller/advertising", Icon: Megaphone, title: "Advertise", sub: "Promote your shop" },
+    { href: "/seller/finances", Icon: Receipt, title: "Finances", sub: "Proceeds & commission" },
+  ];
 
   return (
     <>
-      <PageHeader
-        title={`Karibu, ${shop.name}`}
-        description={`${shop.address} · figures from demo orders, “today” = ${DEMO_TODAY}`}
-        actions={<><ShopKindBadge shop={shop} /><DemoTag /></>}
-      />
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Today's sales" value={formatTzs(today.merchandiseTzs)} icon={<ShoppingBag size={18} />} hint="Paid orders today" />
-        <StatCard label="Total sales" value={formatTzs(totals.merchandiseTzs)} icon={<Banknote size={18} />} hint={`${sales.length} paid orders`} />
-        <StatCard label="Orders" value={String(orders.length)} icon={<ClipboardList size={18} />} hint="All time, including cancelled" />
-        <StatCard label="Pending orders" value={String(pending.length)} icon={<Timer size={18} />} hint="Need your action" />
-        <StatCard label="Products in stock" value={`${products.filter((p) => p.stock > 0).length} / ${products.length}`} icon={<Package size={18} />} hint="Active listings" />
-        <StatCard label="Low-stock alerts" value={String(lowStock.length)} icon={<AlertTriangle size={18} />} hint="5 or fewer left" />
-        <StatCard label="Commission charged" value={formatTzs(totals.commissionTzs)} icon={<Percent size={18} />} hint="By KARIAKOO, on paid sales" />
-        <StatCard label="Amount due to you" value={formatTzs(due)} icon={<Wallet size={18} />} hint="Not yet settled" />
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <Card aria-labelledby="trend">
-          <TrendBars title="Sales, last 7 days" caption="Merchandise value of paid orders (demo data)" points={trend} />
-        </Card>
-
-        <Card aria-labelledby="stock-alerts">
-          <CardHeader id="stock-alerts" title="Low-stock alerts" action={<Link href="/seller/products" className="text-sm font-medium text-brand-700 hover:underline">Manage</Link>} />
-          {lowStock.length === 0 ? (
-            <p className="text-sm text-muted">All products are well stocked.</p>
+      {/* Greeting + verification status (reference: "Hello, …" + Verified Seller). */}
+      <div className="flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-600 text-lg font-bold text-white" aria-hidden="true">
+          {shop.name.charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">Hello, {shop.name}</h1>
+          {verified ? (
+            <span className="mt-0.5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
+              <BadgeCheck size={15} aria-hidden="true" /> Verified seller
+            </span>
           ) : (
-            <ul className="divide-y divide-line text-sm">
-              {lowStock.map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="font-medium">{p.name}</span>
-                  <span className={p.stock === 0 ? "font-semibold text-red-700" : "font-semibold text-amber-800"}>{p.stock === 0 ? "Out of stock" : `${p.stock} left`}</span>
-                </li>
-              ))}
-            </ul>
+            <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              Shop {shop.status} — awaiting approval
+            </span>
           )}
-        </Card>
+        </div>
       </div>
 
-      {shopGeo[shop.id] && (
-        <Card aria-labelledby="shop-map" className="mt-6">
-          <CardHeader
-            id="shop-map"
-            title="Your shop on the map"
-            subtitle={`Riders collect here: ${shop.address}. ${orders.filter((o) => o.group.status === "ready_for_pickup").length} order(s) ready for pickup.`}
-            action={<a href={directionsUrl(shopGeo[shop.id])} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-brand-700 hover:underline">Directions</a>}
-          />
-          <MapLoader
-            ariaLabel={`Map showing ${shop.name}`}
-            heightClass="h-56 sm:h-64"
-            points={[{ id: shop.id, kind: "shop", badge: shop.name.charAt(0), label: `${shop.name} · ${shop.address}`, geo: shopGeo[shop.id] }]}
-            note="This pin is what customers and riders see. Changing your shop location arrives with shop profile editing (Phase 3)."
-          />
-        </Card>
-      )}
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Products" value={String(summary.productCount)} hint={`${summary.activeProducts} active`} icon={<Package size={18} />} />
+        <StatCard label="Pending orders" value={String(summary.pendingOrders)} hint="Awaiting fulfilment" icon={<Timer size={18} />} />
+        <StatCard label="All orders" value={String(summary.orderCount)} hint="Containing your products" icon={<ClipboardList size={18} />} />
+        <StatCard label="Low stock" value={String(summary.lowStock)} hint="5 or fewer in stock" icon={<AlertTriangle size={18} />} />
+      </div>
 
-      <Card aria-labelledby="recent-orders" className="mt-6">
-        <CardHeader id="recent-orders" title="Recent orders" action={<Link href="/seller/orders" className="text-sm font-medium text-brand-700 hover:underline">All orders</Link>} />
-        <ul className="divide-y divide-line">
-          {orders.slice(0, 5).map((o) => (
-            <li key={o.orderId} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-              <div>
-                <p className="font-medium">{o.reference} · {o.customerFirstName}</p>
-                <p className="text-xs text-muted">{formatDateTime(o.placedAt)}</p>
-              </div>
-              <FulfillmentBadge status={o.group.status} />
-              <p className="font-semibold tabular-nums">{formatTzs(breakdown(o.items).merchandiseTzs)}</p>
-            </li>
-          ))}
-        </ul>
+      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Quick actions</h2>
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {actions.map(({ href, Icon, title, sub }) => (
+          <li key={title}>
+            <Link href={href} className="flex h-full items-start gap-3 rounded-2xl border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700"><Icon size={18} aria-hidden="true" /></span>
+              <span className="min-w-0">
+                <span className="block font-semibold">{title}</span>
+                <span className="block text-xs text-muted">{sub}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <Card className="mt-8" aria-labelledby="inventory">
+        <CardHeader id="inventory" title="Inventory" action={<Link href="/seller/products" className="text-sm font-medium text-brand-700 hover:underline">Manage products</Link>} />
+        {products.length === 0 ? (
+          <p className="text-sm text-muted">No products listed yet. Use “Add product” above to create your first listing.</p>
+        ) : (
+          <ul className="divide-y divide-line text-sm">
+            {products.slice(0, 8).map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 py-3">
+                <span className="font-medium">{p.name}</span>
+                <span className="text-muted">{p.stock} in stock · {p.status}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </>
   );

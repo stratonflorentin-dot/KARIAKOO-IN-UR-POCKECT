@@ -1,7 +1,6 @@
 "use client";
 
-// Moderation controls for REAL seller/rider applications. Unlike the demo
-// ModerationActions (whose changes stay in the tab), each action here runs the
+// Moderation controls for seller/rider applications. Each action runs the
 // moderateApplication server action, which calls the admin_set_* RPCs and
 // re-renders the page with the new status. The RPC audit-logs the actor and
 // the new status in the database.

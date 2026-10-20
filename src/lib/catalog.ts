@@ -1,11 +1,6 @@
-// The public catalog. `createCatalog` builds a read-only view over catalog
-// data from either source: Supabase (src/lib/catalog-source.ts) or the demo
-// files. Pages get the active one with `await getCatalog()`; tests and the
-// demo dashboards use `demoCatalog`.
-import { demoCategories } from "@/data/demo/categories";
-import { demoProducts } from "@/data/demo/products";
-import { shopGeo } from "@/data/demo/geo";
-import { demoShops } from "@/data/demo/shops";
+// The public catalog. createCatalog builds a read-only view over live
+// Supabase rows; fixtures belong in tests, never in user-facing reads.
+import { categories } from "@/data/categories";
 import { inDepartment, isAudience, isProductType } from "@/lib/departments";
 import type { Audience, Category, CategorySlug, Product, ProductType, Shop, ShopArea } from "@/lib/types";
 
@@ -19,11 +14,11 @@ export interface CatalogData {
 
 /** Categories are fixed reference data (the database is seeded from this list). */
 export function getCategories(): Category[] {
-  return demoCategories;
+  return categories;
 }
 
 export function getCategory(slug: string): Category | undefined {
-  return demoCategories.find((c) => c.slug === slug);
+  return categories.find((c) => c.slug === slug);
 }
 
 export type SortOption = "relevance" | "price-asc" | "price-desc" | "popular" | "newest";
@@ -145,12 +140,6 @@ export function createCatalog(data: CatalogData) {
 }
 
 export type Catalog = ReturnType<typeof createCatalog>;
-
-export const demoCatalog = createCatalog({
-  categories: demoCategories,
-  shops: demoShops.map((s) => ({ ...s, geo: shopGeo[s.id] })),
-  products: demoProducts,
-});
 
 const SORTS: SortOption[] = ["relevance", "price-asc", "price-desc", "popular", "newest"];
 const AREAS: ShopArea[] = ["kariakoo", "posta", "sinza", "mwenge"];

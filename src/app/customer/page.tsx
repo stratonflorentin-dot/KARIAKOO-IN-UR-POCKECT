@@ -2,6 +2,7 @@ import { Bike, Headset, ShieldCheck, Store, Wallet } from "lucide-react";
 import Link from "next/link";
 import { LocationSelector } from "@/components/customer/LocationSelector";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
+import { ShopPromotions } from "@/components/customer/ShopPromotions";
 import { SectionHeading } from "@/components/customer/SectionHeading";
 import { ProductCard, ProductGrid } from "@/components/product/ProductCard";
 import { ShopCard } from "@/components/shop/ShopCard";
@@ -10,20 +11,25 @@ import { SearchBar } from "@/components/ui/SearchBar";
 import { getCategories } from "@/lib/catalog";
 import { isOnOffer } from "@/lib/product-utils";
 import { getCatalog } from "@/lib/catalog-source";
+import { customerPromotions } from "@/lib/data/promotions";
 import { departments } from "@/lib/departments";
+
+// Reads live catalog and promotions, which can change, so render on demand.
+export const instant = false;
 
 export default async function CustomerHomePage() {
   const catalog = await getCatalog();
+  const promotions = await customerPromotions();
   const categories = getCategories();
   const featured = catalog.searchProducts({ sort: "popular", inStockOnly: true, pageSize: 8 }).items;
-  const newest = catalog.searchProducts({ sort: "newest", inStockOnly: true, pageSize: 4 }).items;
+  const newest = catalog.searchProducts({ sort: "newest", inStockOnly: true, pageSize: 8 }).items;
   const offers = catalog.getProducts().filter(isOnOffer);
   const shops = [...catalog.getShops()].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 6);
   const recentInfo = catalog.getProducts().map((p) => ({ id: p.id, slug: p.slug, name: p.name, priceTzs: p.priceTzs, shopName: catalog.getShopName(p.shopId) }));
 
   return (
     <>
-      {/* Hero: dark, warm and premium, after the reference design. */}
+      {/* Hero: dark, warm and premium. */}
       <section className="relative overflow-hidden bg-night text-white">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(16,185,129,0.5),transparent_60%),radial-gradient(40rem_25rem_at_-10%_110%,rgba(4,120,87,0.35),transparent_60%)]" />
         <div aria-hidden="true" className="absolute inset-0 opacity-[0.06] [background-image:repeating-linear-gradient(45deg,#fff_0_2px,transparent_2px_22px)]" />
@@ -31,12 +37,12 @@ export default async function CustomerHomePage() {
           <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur md:hidden">
             <LocationSelector tone="dark" />
           </div>
-          <p className="mt-5 text-sm font-medium text-brand-200 md:mt-0">Karibu Kariakoo, online</p>
+          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.16em] text-brand-200 md:mt-0">KARIAKOO · Dar es Salaam</p>
           <h1 className="mt-2 max-w-2xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-            Dar&apos;s biggest market, delivered to your door.
+            Shop Kariakoo. Get it delivered.
           </h1>
           <p className="mt-4 max-w-xl text-base text-white/75 sm:text-lg">
-            Hundreds of Kariakoo shops in one place. Pay KARIAKOO securely, and one rider brings everything to you.
+            Discover products from local shops and follow one order from checkout to your doorstep.
           </p>
           <div className="mt-6 max-w-2xl">
             <SearchBar variant="glass" id="hero-search" />
@@ -64,10 +70,10 @@ export default async function CustomerHomePage() {
       <section aria-label="Why shop with KARIAKOO" className="border-b border-line bg-subtle">
         <ul className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-4 sm:px-6">
           {[
-            { Icon: ShieldCheck, t: "Secure payments", h: "You pay KARIAKOO" },
-            { Icon: Bike, t: "Fast delivery", h: "One rider, door to door" },
-            { Icon: Store, t: "Verified shops", h: "Real Kariakoo sellers" },
-            { Icon: Headset, t: "24/7 support", h: "We're here to help" },
+            { Icon: ShieldCheck, t: "Clear order updates", h: "Know what happens next" },
+            { Icon: Bike, t: "Doorstep delivery", h: "A rider brings your order" },
+            { Icon: Store, t: "Approved shops", h: "Local sellers in one store" },
+            { Icon: Headset, t: "Order support", h: "Help when you need it" },
           ].map(({ Icon, t, h }) => (
             <li key={t} className="flex items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700"><Icon size={18} aria-hidden="true" /></span>
@@ -83,6 +89,9 @@ export default async function CustomerHomePage() {
       <div className="mx-auto max-w-7xl space-y-14 px-4 pt-10 sm:px-6">
         <RecentlyViewed products={recentInfo} />
 
+        <ShopPromotions promotions={promotions} />
+
+        {/* Department shortcuts: big, tappable tiles. */}
         <section aria-labelledby="dept-heading">
           <SectionHeading id="dept-heading" title="Shop by department" subtitle="Shirts, trousers, dresses, shoes and more" />
           <ul className="grid grid-cols-3 gap-3">
@@ -100,6 +109,7 @@ export default async function CustomerHomePage() {
           </ul>
         </section>
 
+        {/* Featured best sellers in a horizontal reel. */}
         <section aria-labelledby="featured-heading">
           <SectionHeading id="featured-heading" title="Featured in Kariakoo" subtitle="Best sellers, in stock and ready for delivery" href="/customer/search?sort=popular" linkLabel="Browse all" />
           <ul className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
@@ -111,11 +121,13 @@ export default async function CustomerHomePage() {
           </ul>
         </section>
 
+        {/* New arrivals grid. */}
         <section aria-labelledby="new-heading">
           <SectionHeading id="new-heading" title="New arrivals" subtitle="Just listed by Kariakoo sellers" href="/customer/search?sort=newest" />
           <ProductGrid products={newest} />
         </section>
 
+        {/* Special offers. */}
         {offers.length > 0 && (
           <section aria-labelledby="offers-heading" className="rounded-3xl bg-brand-50 p-4 sm:p-6">
             <SectionHeading id="offers-heading" title="Special offers" subtitle="Reduced prices from verified shops" />
@@ -123,6 +135,7 @@ export default async function CustomerHomePage() {
           </section>
         )}
 
+        {/* Popular shops. */}
         <section aria-labelledby="shops-heading">
           <SectionHeading id="shops-heading" title="Popular Kariakoo shops" subtitle="Fashion, electronics, pharmacies, food and more" href="/customer/shops" linkLabel="All shops" />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -132,13 +145,14 @@ export default async function CustomerHomePage() {
           </ul>
         </section>
 
+        {/* How it works. */}
         <section id="how" aria-labelledby="how-heading" className="rounded-3xl bg-night px-5 py-8 text-white sm:px-10 sm:py-12">
           <h2 id="how-heading" className="text-2xl font-bold tracking-tight">How KARIAKOO works</h2>
           <p className="mt-2 max-w-2xl text-white/70">One trusted company between you and the shop, from order to delivery.</p>
           <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { Icon: Store, title: "Order from many shops", body: "Fill one cart with items from different Kariakoo shops." },
-              { Icon: Wallet, title: "Pay KARIAKOO", body: "You pay us, not the shop. Mobile money is coming soon." },
+              { Icon: Wallet, title: "Choose how to pay", body: "Use one of the payment methods offered at checkout." },
               { Icon: Bike, title: "One rider delivers", body: "We confirm stock with each shop, collect, and deliver in one trip." },
               { Icon: ShieldCheck, title: "Shop paid after delivery", body: "Sellers are paid once you confirm delivery with your PIN." },
             ].map(({ Icon, title, body }, i) => (

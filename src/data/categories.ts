@@ -1,6 +1,7 @@
 import type { Category } from "@/lib/types";
 
-export const demoCategories: Category[] = [
+/** Fixed marketplace taxonomy mirrored by the Supabase categories table. */
+export const categories: Category[] = [
   { slug: "electronics", name: "Electronics", nameSw: "Elektroniki" },
   { slug: "fashion", name: "Clothing", nameSw: "Mavazi" },
   { slug: "shoes", name: "Shoes", nameSw: "Viatu" },

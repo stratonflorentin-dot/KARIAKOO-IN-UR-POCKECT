@@ -3,11 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
-import { ReportIssueForm } from "@/components/orders/ReportIssueForm";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/States";
 import { getSessionWithRole } from "@/lib/auth/session";
-import { customerOrder } from "@/lib/data/access";
+import { liveCustomerOrder } from "@/lib/data/customer-live";
 
 export const metadata: Metadata = { title: "Report a problem" };
 
@@ -29,8 +28,9 @@ export default function OrderHelpPage({ params }: PageProps<"/customer/orders/[i
 async function OrderHelp({ params }: Pick<PageProps<"/customer/orders/[id]/help">, "params">) {
   const { id } = await params;
   const session = await getSessionWithRole("customer");
-  const order = customerOrder(session, id);
-  if (!order) notFound();
+  const detail = await liveCustomerOrder(session, id);
+  if (!detail) notFound();
+  const order = detail.order;
 
   return (
     <div className="space-y-5">
@@ -39,7 +39,8 @@ async function OrderHelp({ params }: Pick<PageProps<"/customer/orders/[id]/help"
       </Link>
       <Card aria-labelledby="report-heading">
         <CardHeader id="report-heading" title="Report a problem" subtitle={`About order ${order.reference}`} />
-        <ReportIssueForm orderId={order.id} />
+        <p className="text-sm text-muted">Contact KARIAKOO support with reference <strong className="text-ink">{order.reference}</strong> so the team can review this order.</p>
+        {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? <a className="mt-4 inline-flex h-11 items-center rounded-full bg-night px-5 font-semibold text-white" href={`tel:${process.env.NEXT_PUBLIC_SUPPORT_PHONE}`}>Call KARIAKOO support</a> : <p className="mt-3 text-sm text-muted">Support contact details have not been configured yet.</p>}
       </Card>
     </div>
   );

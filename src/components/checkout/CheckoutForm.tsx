@@ -1,8 +1,9 @@
 "use client";
 
 import { CircleCheck, Lock } from "lucide-react";
-import { useActionState } from "react";
-import { reviewCheckout, type CheckoutState } from "@/app/customer/checkout/actions";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
+import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/customer/checkout/actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Field, fieldAria, inputClass } from "@/components/ui/Field";
 import { EmptyState, Notice } from "@/components/ui/States";
@@ -19,12 +20,23 @@ export interface PaymentOption {
   note: string;
 }
 
-export function CheckoutForm({ zones, payments }: { zones: DeliveryZone[]; payments: PaymentOption[] }) {
-  const { lines, hydrated } = useCart();
+export function CheckoutForm({ zones, payments, canOrder = false }: { zones: DeliveryZone[]; payments: PaymentOption[]; canOrder?: boolean }) {
+  const { lines, hydrated, clear } = useCart();
   const { zone: savedZone } = useDeliveryZone();
+  const router = useRouter();
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(reviewCheckout, { status: "idle" });
+  const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
+  // A stable idempotency key per visit, so an accidental double-submit is deduped.
+  const [idempotencyKey] = useState(() => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())));
   const v = state.values;
   const e = state.errors ?? {};
+
+  useEffect(() => {
+    if (placeState.status === "placed" && placeState.orderId) {
+      clear();
+      router.push(`/customer/orders/${placeState.orderId}`);
+    }
+  }, [placeState, clear, router]);
 
   if (hydrated && lines.length === 0) {
     return <div className="mt-6"><EmptyState title="Your cart is empty" body="Add products before checking out." action={<ButtonLink href="/customer">Start shopping</ButtonLink>} /></div>;
@@ -125,12 +137,34 @@ export function CheckoutForm({ zones, payments }: { zones: DeliveryZone[]; payme
             <p className="mt-3 text-xs text-muted">
               {state.verified.paymentLabel} · {formatTzPhone(state.verified.phone)}
             </p>
-            <Button disabled full size="lg" className="mt-5">
-              <Lock size={16} aria-hidden="true" /> Place order (Phase 4)
-            </Button>
-            <div className="mt-3">
-              <Notice tone="warning">Ordering is not live yet. No order has been created and no payment has been taken.</Notice>
-            </div>
+            {canOrder ? (
+              <form action={placeAction} className="mt-5">
+                <input type="hidden" name="cart" value={JSON.stringify(lines)} />
+                <input type="hidden" name="name" value={v?.name ?? ""} />
+                <input type="hidden" name="phone" value={v?.phone ?? ""} />
+                <input type="hidden" name="zone" value={v?.zone ?? ""} />
+                <input type="hidden" name="address" value={v?.address ?? ""} />
+                <input type="hidden" name="instructions" value={v?.instructions ?? ""} />
+                <input type="hidden" name="payment" value={v?.payment ?? ""} />
+                <input type="hidden" name="idempotency_key" value={idempotencyKey} />
+                {placeState.status === "error" && (
+                  <p role="alert" className="mb-2 rounded-xl bg-red-50 p-3 text-sm text-red-800">{placeState.message}</p>
+                )}
+                <Button type="submit" variant="gold" full size="lg" disabled={placing}>
+                  {placing ? "Placing your order…" : "Place order"}
+                </Button>
+                <p className="mt-2 text-xs text-muted">We create your order and show a delivery PIN to give the rider on hand-over. Payment is taken by your provider separately.</p>
+              </form>
+            ) : (
+              <>
+                <Button disabled full size="lg" className="mt-5">
+                  <Lock size={16} aria-hidden="true" /> Place order
+                </Button>
+                <div className="mt-3">
+                  <Notice tone="warning">Sign in as a customer to place this order.</Notice>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <p className="mt-2 text-sm text-muted">

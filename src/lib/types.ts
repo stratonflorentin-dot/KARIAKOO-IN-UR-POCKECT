@@ -1,5 +1,4 @@
-// Shared domain types. They mirror the database tables planned for Phase 2,
-// so moving from demo data to Supabase changes the data-access layer only.
+// Shared domain types aligned with the Supabase marketplace schema.
 //
 // MONEY: every amount is an integer number of Tanzanian shillings (TZS).
 // TZS coins below 1 shilling are not used in practice, so whole shillings
@@ -54,7 +53,8 @@ export interface Shop {
   joinedYear: number;
   /** Map position as [longitude, latitude], when known. */
   geo?: [number, number];
-  isDemo: true;
+  /** Set only by isolated demo/test fixtures. */
+  isDemo?: boolean;
 }
 
 export type ProductStatus = "active" | "archived";
@@ -98,7 +98,7 @@ export interface Product {
   description: string;
   highlights: string[];
   status: ProductStatus;
-  /** Units sold to date (demo), used for "popular" sorting. */
+  /** Units sold to date, used for "popular" sorting. */
   soldCount: number;
   /** Who it is for (clothing, shoes and accessories). */
   audience?: Audience;
@@ -110,7 +110,8 @@ export interface Product {
   shopName?: string;
   /** ISO date the product was listed, used for "newest" sorting. */
   listedAt: string;
-  isDemo: true;
+  /** Set only by isolated demo/test fixtures. */
+  isDemo?: boolean;
 }
 
 /* ---------------- Orders, payments and delivery ---------------- */
@@ -202,7 +203,8 @@ export interface Order {
   groups: FulfillmentGroup[];
   delivery: Delivery;
   history: StatusEvent[];
-  isDemo: true;
+  /** Set only by isolated demo/test fixtures. */
+  isDemo?: boolean;
 }
 
 /* ---------------- People ---------------- */
@@ -215,7 +217,8 @@ export interface Customer {
   status: "active" | "suspended";
   joinedAt: string;
   addresses: { label: string; zone: DeliveryZoneId; address: string }[];
-  isDemo: true;
+  /** Set only by isolated demo/test fixtures. */
+  isDemo?: boolean;
 }
 
 export type RiderStatus = "pending" | "approved" | "rejected" | "suspended";
@@ -230,7 +233,8 @@ export interface Rider {
   baseZone: DeliveryZoneId;
   rating: number;
   joinedAt: string;
-  isDemo: true;
+  /** Set only by isolated demo/test fixtures. */
+  isDemo?: boolean;
 }
 
 /* ---------------- Commission ---------------- */

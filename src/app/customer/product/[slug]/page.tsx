@@ -1,8 +1,9 @@
-import { BadgeCheck, Bike, MapPin, ShieldCheck, Store } from "lucide-react";
+import { BadgeCheck, Bike, KeyRound, MapPin, ShieldCheck, Star, Store } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AddToCart } from "@/components/cart/AddToCart";
+import { ShareButton } from "@/components/product/ShareButton";
 import { RecordView } from "@/components/customer/RecentlyViewed";
 import { Price } from "@/components/product/Price";
 import { ShopKindBadge } from "@/components/shop/ShopMark";
@@ -16,10 +17,8 @@ import { getCatalog } from "@/lib/catalog-source";
 import { deliveryZones, EXTRA_PICKUP_FEE_TZS } from "@/lib/delivery";
 import { formatTzs } from "@/lib/format";
 
-export async function generateStaticParams() {
-  return (await getCatalog()).getProducts().map((p) => ({ slug: p.slug }));
-}
-
+// No generateStaticParams: products come from live Supabase data (which can be
+// empty), so these pages render on demand rather than being prebuilt.
 export async function generateMetadata({ params }: PageProps<"/customer/product/[slug]">) {
   const { slug } = await params;
   const product = (await getCatalog()).getProduct(slug);
@@ -61,15 +60,25 @@ async function ProductContent({ params }: Pick<PageProps<"/customer/product/[slu
         </div>
 
         <div>
-          {shop && (
-            <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/customer/shops/${shop.slug}`} className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
-              <Store size={15} aria-hidden="true" /> {shop.name}
-              {shop.verified && <><BadgeCheck size={15} aria-hidden="true" /><span className="sr-only">(verified)</span></>}
-            </Link>
-            <ShopKindBadge shop={shop} />
-            </div>
-          )}
+          <div className="flex items-start justify-between gap-3">
+            {shop ? (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Link href={`/customer/shops/${shop.slug}`} className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
+                  <Store size={15} aria-hidden="true" /> {shop.name}
+                  {shop.verified && <><BadgeCheck size={15} aria-hidden="true" /><span className="sr-only">(verified seller)</span></>}
+                </Link>
+                {shop.verified && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-800">Verified seller</span>}
+                <ShopKindBadge shop={shop} />
+                {shop.reviewCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
+                    <Star size={13} className="fill-gold-400 text-gold-400" aria-hidden="true" />
+                    {shop.rating.toFixed(1)} <span className="text-muted/80">({shop.reviewCount})</span>
+                  </span>
+                )}
+              </div>
+            ) : <span />}
+            <ShareButton title={product.name} />
+          </div>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-4xl">{product.name}</h1>
           {product.audience && (
             <p className="mt-2 flex flex-wrap gap-2 text-sm">
@@ -92,6 +101,20 @@ async function ProductContent({ params }: Pick<PageProps<"/customer/product/[slu
           <div className="mt-6">
             <AddToCart productId={product.id} productName={product.name} maxQuantity={Math.min(product.stock, 20)} />
           </div>
+
+          {/* Compact reassurance at the decision point — honest claims only. */}
+          <ul className="mt-4 grid grid-cols-3 gap-2 text-center">
+            {[
+              { Icon: Bike, label: "Doorstep delivery" },
+              { Icon: ShieldCheck, label: "Secure payment" },
+              { Icon: KeyRound, label: "PIN on delivery" },
+            ].map(({ Icon, label }) => (
+              <li key={label} className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-subtle px-2 py-3">
+                <Icon size={18} className="text-brand-600" aria-hidden="true" />
+                <span className="text-xs font-medium text-ink">{label}</span>
+              </li>
+            ))}
+          </ul>
 
           <ul className="mt-6 space-y-3 rounded-2xl bg-subtle p-4 text-sm">
             <li className="flex gap-3">
