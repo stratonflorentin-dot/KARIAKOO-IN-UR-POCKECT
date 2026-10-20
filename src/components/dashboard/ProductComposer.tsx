@@ -27,12 +27,17 @@ export interface PublishedDraft {
   imageUrl?: string;
 }
 
+export interface PublishResult {
+  ok: boolean;
+  error?: string;
+}
+
 type Errors = Partial<Record<"name" | "priceTzs" | "stock" | "description" | "photo", string>>;
 
 export function ProductComposer({ categories, shopName, onPublish }: {
   categories: Category[];
   shopName: string;
-  onPublish: (draft: PublishedDraft) => void;
+  onPublish: (draft: PublishedDraft) => Promise<PublishResult>;
 }) {
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -45,12 +50,13 @@ export function ProductComposer({ categories, shopName, onPublish }: {
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
-  // Photos handed to published rows must stay alive after the form resets.
-  const published = useRef(new Set<string>());
+  const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
 
-  // Free an unused preview's memory when the photo changes or the form closes.
+  // The photo is a local preview only (not uploaded yet), so free its memory
+  // whenever it changes or the form unmounts.
   useEffect(() => () => {
-    if (photoUrl && !published.current.has(photoUrl)) URL.revokeObjectURL(photoUrl);
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
   }, [photoUrl]);
 
   const apparel = apparelCategories.includes(category);
@@ -83,7 +89,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
     if (fileInput.current) fileInput.current.value = "";
   }
 
-  function publish() {
+  async function publish() {
     const parsed = productDraftSchema.safeParse({
       name, category, priceTzs: price, stock, description,
       audience: apparel && audience ? audience : undefined,
@@ -96,12 +102,14 @@ export function ProductComposer({ categories, shopName, onPublish }: {
         next[key] ??= issue.message;
       }
     }
-    if (!photoUrl) next.photo = "Add a photo so customers can see the product.";
     setErrors(next);
-    if (!parsed.success || next.photo) return;
-    published.current.add(photoUrl!);
-    onPublish({ ...(parsed.data as PublishedDraft), imageUrl: photoUrl });
-    reset();
+    if (!parsed.success) return;
+    setBusy(true);
+    setSubmitError(undefined);
+    const res = await onPublish({ ...(parsed.data as PublishedDraft) });
+    setBusy(false);
+    if (res.ok) reset();
+    else setSubmitError(res.error ?? "Could not save the product.");
   }
 
   const priceNum = Number(price);
@@ -223,10 +231,11 @@ export function ProductComposer({ categories, shopName, onPublish }: {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit">Publish (demo)</Button>
-            <Button type="button" variant="ghost" onClick={reset}>Clear</Button>
+            <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Publish"}</Button>
+            <Button type="button" variant="ghost" onClick={reset} disabled={busy}>Clear</Button>
           </div>
-          <p className="text-xs text-muted">Demo mode: the photo stays on this device and nothing is saved. Real uploads go to secure storage once sellers sign in.</p>
+          {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
+          <p className="text-xs text-muted">Name, price, stock and description are saved to your shop. Photo upload is coming soon — for now products publish with a placeholder image.</p>
         </form>
 
         {/* Live preview */}

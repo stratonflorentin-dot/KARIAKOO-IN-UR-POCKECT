@@ -15,8 +15,8 @@ import { ACTIVE_ROLE_COOKIE } from "@/lib/auth/active-role";
 import { getSession } from "@/lib/auth/session";
 import { getCategories } from "@/lib/catalog";
 import { deliveryZones } from "@/lib/delivery";
+import { SHOP_AREAS } from "@/lib/shop-areas";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ShopArea } from "@/lib/types";
 
 export interface ApplyState {
   status: "idle" | "error";
@@ -24,13 +24,6 @@ export interface ApplyState {
   errors?: Record<string, string>;
   values?: Record<string, string>;
 }
-
-export const SHOP_AREAS: { id: ShopArea; label: string }[] = [
-  { id: "kariakoo", label: "Kariakoo" },
-  { id: "posta", label: "Posta / City Centre" },
-  { id: "sinza", label: "Sinza" },
-  { id: "mwenge", label: "Mwenge" },
-];
 
 /** Map the RPC's raised errors (by SQLSTATE where we can) to plain guidance. */
 function friendlyRpcError(code: string | undefined, message: string): string {

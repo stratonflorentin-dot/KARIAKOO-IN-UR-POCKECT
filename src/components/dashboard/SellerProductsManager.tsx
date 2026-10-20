@@ -1,12 +1,14 @@
 "use client";
 
-// Demo product manager. Edits live only in this browser tab and are never
-// sent anywhere. In Phase 3 each change becomes a Server Action that checks
-// the signed-in seller owns the product and validates it with Zod, with Row
-// Level Security as a second line of defence.
+// The seller's product manager, wired to the live products table. Publishing,
+// price/stock edits and archive/restore each call a server action that writes
+// under RLS (owner-scoped); the UI updates optimistically and reverts on error.
+// Photos are not uploaded yet — that's the next step — so new products publish
+// without a photo (a placeholder is shown).
 import { ChevronDown, Eye } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useState } from "react";
+import { createProduct, saveProductFields, setProductStatus } from "@/app/seller/products/actions";
 import { ProductImage } from "@/components/product/ProductImage";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,7 +17,7 @@ import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table
 import { audienceLabel, productTypeLabel } from "@/lib/departments";
 import { formatTzs } from "@/lib/format";
 import type { Category, Product } from "@/lib/types";
-import { ProductComposer, type PublishedDraft } from "./ProductComposer";
+import { ProductComposer, type PublishResult, type PublishedDraft } from "./ProductComposer";
 
 type Row = Pick<Product, "id" | "slug" | "name" | "category" | "priceTzs" | "stock" | "status" | "description" | "audience" | "productType" | "imageUrl">;
 
@@ -40,7 +42,6 @@ function groupOf(r: Row): Exclude<Tab, "all"> {
 export function SellerProductsManager({ initialProducts, categories, shopName }: { initialProducts: Row[]; categories: Category[]; shopName: string }) {
   const [rows, setRows] = useState<Row[]>(initialProducts);
   const [message, setMessage] = useState("");
-  const [nextId, setNextId] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
 
@@ -51,13 +52,47 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
 
   const update = (id: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
-  const publish = (d: PublishedDraft) => {
-    const id = `local-${nextId}`;
-    setRows((rs) => [{ id, slug: "", status: "active", ...d }, ...rs]);
-    setNextId((n) => n + 1);
-    setOpen(id);
-    setMessage(`Published “${d.name}” in this preview (not saved). Customers would see the photo and description shown below.`);
-  };
+  async function publish(d: PublishedDraft): Promise<PublishResult> {
+    const fd = new FormData();
+    fd.set("name", d.name);
+    fd.set("category", d.category);
+    if (d.audience) fd.set("audience", d.audience);
+    if (d.productType) fd.set("productType", d.productType);
+    fd.set("priceTzs", String(d.priceTzs));
+    fd.set("stock", String(d.stock));
+    fd.set("description", d.description);
+    const res = await createProduct(fd);
+    if (res.ok && res.id) {
+      setRows((rs) => [{ id: res.id!, slug: res.slug ?? "", status: "active", name: d.name, category: d.category, priceTzs: d.priceTzs, stock: d.stock, description: d.description, audience: d.audience, productType: d.productType, imageUrl: undefined }, ...rs]);
+      setMessage(`Saved “${d.name}”. It goes live to customers once your shop is approved.`);
+      return { ok: true };
+    }
+    return { ok: false, error: res.error ?? "Could not save the product." };
+  }
+
+  async function persistFields(r: Row) {
+    const fd = new FormData();
+    fd.set("id", r.id);
+    fd.set("priceTzs", String(r.priceTzs));
+    fd.set("stock", String(r.stock));
+    const res = await saveProductFields(fd);
+    setMessage(res.ok ? `Saved price and stock for “${r.name}”.` : `Could not save “${r.name}”: ${res.error}`);
+  }
+
+  async function changeStatus(r: Row, status: Row["status"]) {
+    const previous = r.status;
+    update(r.id, { status }); // optimistic
+    const fd = new FormData();
+    fd.set("id", r.id);
+    fd.set("status", status);
+    const res = await setProductStatus(fd);
+    if (!res.ok) {
+      update(r.id, { status: previous });
+      setMessage(`Could not update “${r.name}”: ${res.error}`);
+    } else {
+      setMessage(`${status === "archived" ? "Archived" : "Restored"} “${r.name}”.`);
+    }
+  }
 
   return (
     <>
@@ -84,7 +119,9 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
 
       <div className="mt-3">
         {visible.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-muted">No products in this list.</p>
+          <p className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-muted">
+            {rows.length === 0 ? "No products yet. Add your first product above." : "No products in this list."}
+          </p>
         ) : (
         <TableCard label="Your products" minWidth="52rem">
           <THead><Th>Product</Th><Th>Price (TSh)</Th><Th>Stock</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></THead>
@@ -109,12 +146,14 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
                     <label className="sr-only" htmlFor={`price-${r.id}`}>Price of {r.name}</label>
                     <input id={`price-${r.id}`} type="number" min={100} step={100} value={r.priceTzs} disabled={r.status === "archived"}
                       onChange={(e) => update(r.id, { priceTzs: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                      onBlur={() => persistFields(r)}
                       className={`${compactInputClass} w-32`} />
                   </td>
                   <td className={tdClass}>
                     <label className="sr-only" htmlFor={`stock-${r.id}`}>Stock of {r.name}</label>
                     <input id={`stock-${r.id}`} type="number" min={0} step={1} value={r.stock} disabled={r.status === "archived"}
                       onChange={(e) => update(r.id, { stock: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                      onBlur={() => persistFields(r)}
                       className={`${compactInputClass} w-24 ${r.stock === 0 ? "border-red-300" : ""}`} />
                   </td>
                   <td className={tdClass}>
@@ -135,11 +174,11 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
                         title={`Archive “${r.name}”?`}
                         body="Archived products are hidden from customers. Past orders keep their records. You can restore it later."
                         confirmLabel="Archive"
-                        onConfirm={() => { update(r.id, { status: "archived" }); setMessage(`Archived “${r.name}” in this preview (not saved).`); }}
+                        onConfirm={() => changeStatus(r, "archived")}
                         trigger={(openDialog) => <button type="button" onClick={openDialog} className="h-10 rounded-lg px-3 text-sm text-red-700 hover:bg-red-50">Archive<span className="sr-only"> {r.name}</span></button>}
                       />
                     ) : (
-                      <button type="button" onClick={() => { update(r.id, { status: "active" }); setMessage(`Restored “${r.name}” in this preview (not saved).`); }} className="h-10 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
+                      <button type="button" onClick={() => changeStatus(r, "active")} className="h-10 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
                         Restore<span className="sr-only"> {r.name}</span>
                       </button>
                     )}
