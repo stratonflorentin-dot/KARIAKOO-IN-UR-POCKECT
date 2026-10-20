@@ -44,11 +44,15 @@ export default function WelcomePage() {
         )}
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {roles.map(({ role, title, body, Icon, accent, href }) => (
-            <li key={role}>
-              <RoleCard role={role} href={href} title={title} body={body} Icon={Icon} accent={accent} />
-            </li>
-          ))}
+          {/* Admin is never a public, self-serve choice: staff sign in through
+              their own entrance (/staff). The demo preview still lists it. */}
+          {roles
+            .filter(({ role }) => DEMO_ROLE_PREVIEW_ENABLED || role !== "admin")
+            .map(({ role, title, body, Icon, accent, href }) => (
+              <li key={role}>
+                <RoleCard role={role} href={href} title={title} body={body} Icon={Icon} accent={accent} />
+              </li>
+            ))}
         </ul>
 
         <p className="mt-8 text-sm text-muted">
@@ -57,6 +61,13 @@ export default function WelcomePage() {
             Browse the marketplace as a guest
           </Link>
           .
+        </p>
+
+        <p className="mt-10 border-t border-line pt-5 text-xs text-muted">
+          KARIAKOO staff?{" "}
+          <Link href="/staff" className="font-semibold text-ink underline">
+            Admin sign in
+          </Link>
         </p>
       </div>
     </main>

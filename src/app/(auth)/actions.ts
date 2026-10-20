@@ -35,6 +35,39 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   redirect("/customer");
 }
 
+/**
+ * Staff / admin sign-in, kept separate from the public customer entrance.
+ * Admins are never minted from a form: user_roles has no client write policy,
+ * so this just authenticates and then checks the signed-in user actually holds
+ * the `admin` role. A non-admin who signs in here is signed back out — the
+ * staff door never drops a normal user into the dashboard area.
+ */
+export async function signInStaff(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  if (!email || !password) return { status: "error", message: "Enter your staff email and password." };
+
+  const sb = await createSupabaseServerClient();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return { status: "error", message: friendlyAuthError(error?.message ?? "") };
+
+  const { data: roleRows } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", data.user.id)
+    .eq("role", "admin")
+    .limit(1);
+
+  if (!roleRows || roleRows.length === 0) {
+    // Authenticated, but not staff: don't leave them holding a session here.
+    await sb.auth.signOut();
+    return { status: "error", message: "This entrance is for KARIAKOO staff only. Please use the main sign in." };
+  }
+
+  (await cookies()).set(ACTIVE_ROLE_COOKIE, "admin", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  redirect("/admin");
+}
+
 export async function signUp(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
