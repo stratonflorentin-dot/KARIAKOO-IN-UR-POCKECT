@@ -4,11 +4,12 @@ import { RoleGate } from "@/components/auth/RoleGate";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
+import { getDictionary } from "@/i18n/server";
 import type { Role } from "@/lib/types";
 import { SidebarNav, type NavItem } from "./SidebarNav";
 
 /** Sidebar dashboard used by the seller (light) and admin (dark) areas. */
-export function DashboardFrame({ role, title, tone, nav, searchable, children }: {
+export async function DashboardFrame({ role, title, tone, nav, searchable, children }: {
   role: Role;
   title: string;
   tone: "light" | "dark";
@@ -17,6 +18,7 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
   children: ReactNode;
 }) {
   const dark = tone === "dark";
+  const t = await getDictionary();
   return (
     <div className="flex min-h-full flex-1 flex-col bg-stone-50 lg:flex-row">
       <aside className={`lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col ${dark ? "border-b border-white/10 bg-gradient-to-b from-night to-[#102d23] text-white lg:border-b-0 lg:border-r" : "border-b border-stone-200 bg-white lg:border-b-0 lg:border-r"}`}>
@@ -27,7 +29,7 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
           </div>
           <div className="flex items-center gap-3 lg:mt-4">
             <LanguageSwitcher tone={dark ? "dark" : "light"} />
-            <Link href="/customer" className={`text-sm lg:hidden ${dark ? "text-white/70" : "text-muted"}`}>Store</Link>
+            <Link href="/customer" className={`text-sm lg:hidden ${dark ? "text-white/70" : "text-muted"}`}>{t.dash.store}</Link>
           </div>
         </div>
         <div className="lg:flex-1 lg:overflow-y-auto">
@@ -37,7 +39,7 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
           </Suspense>
         </div>
         <div className={`hidden px-5 py-4 text-sm lg:block ${dark ? "text-white/60" : "text-muted"}`}>
-          <Link href="/customer" className="hover:underline">← Back to store</Link>
+          <Link href="/customer" className="hover:underline">{t.dash.backToStore}</Link>
         </div>
       </aside>
       <div className="min-w-0 flex-1">

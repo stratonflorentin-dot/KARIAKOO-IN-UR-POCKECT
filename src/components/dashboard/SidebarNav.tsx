@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/i18n/client";
 import { stripLocale } from "@/i18n/config";
 import { useState } from "react";
 
@@ -64,6 +65,8 @@ export interface NavItem {
 }
 
 export function SidebarNav({ items, tone, searchable = false }: { items: NavItem[]; tone: "light" | "dark"; searchable?: boolean }) {
+  const { t } = useI18n();
+  const d = t.dash;
   const pathname = stripLocale(usePathname());
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -74,7 +77,7 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
     <>
       {searchable && (
         <div className="px-3 pb-3">
-          <label htmlFor="nav-search" className="sr-only">Search navigation</label>
+          <label htmlFor="nav-search" className="sr-only">{d.searchNav}</label>
           <div className={`flex items-center gap-2 rounded-xl px-3 ${dark ? "bg-white/10" : "bg-subtle"}`}>
             <Search size={16} className={dark ? "text-white/60" : "text-muted"} aria-hidden="true" />
             <input
@@ -82,7 +85,7 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Jump to…"
+              placeholder={d.jumpTo}
               className={`h-10 min-w-0 flex-1 bg-transparent text-sm outline-none ${dark ? "text-white placeholder:text-white/50" : "placeholder:text-muted"}`}
             />
           </div>
@@ -111,13 +114,13 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
             </li>
           );
         })}
-        {visible.length === 0 && <li className={`px-3 py-2 text-sm ${dark ? "text-white/60" : "text-muted"}`}>No matches</li>}
+        {visible.length === 0 && <li className={`px-3 py-2 text-sm ${dark ? "text-white/60" : "text-muted"}`}>{d.noMatches}</li>}
       </ul>
     </>
   );
 
   return (
-    <nav aria-label="Dashboard">
+    <nav aria-label={d.dashboardAria}>
       {/* Compact mobile menu */}
       <div className="px-3 pb-3 lg:hidden">
         <button
@@ -127,7 +130,7 @@ export function SidebarNav({ items, tone, searchable = false }: { items: NavItem
           aria-controls="dashboard-menu"
           className={`flex h-11 w-full items-center justify-between rounded-xl px-3 text-sm font-semibold ${dark ? "bg-white/10 text-white" : "bg-subtle text-ink"}`}
         >
-          {items.find((i) => i.href && (i.exact ? pathname === i.href : pathname.startsWith(i.href)))?.label ?? "Menu"}
+          {items.find((i) => i.href && (i.exact ? pathname === i.href : pathname.startsWith(i.href)))?.label ?? d.menu}
           {open ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
         </button>
         {open && <div id="dashboard-menu" className="pt-3">{list}</div>}

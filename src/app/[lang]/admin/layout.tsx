@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DashboardFrame } from "@/components/dashboard/DashboardFrame";
 import type { NavItem } from "@/components/dashboard/SidebarNav";
+import { getDictionary } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: "%s · Admin · KARIAKOO" },
@@ -12,25 +13,26 @@ export const metadata: Metadata = {
 // without a session (and would just see the access check's 404).
 export const instant = false;
 
-const nav: NavItem[] = [
-  { label: "Overview", icon: "overview", href: "/admin", exact: true },
-  { label: "Orders", icon: "orders", href: "/admin/orders" },
-  { label: "Businesses", icon: "shop", href: "/admin/shops" },
-  { label: "Riders", icon: "riders", href: "/admin/riders" },
-  { label: "Customers", icon: "customers", href: "/admin/customers" },
-  { label: "Products", icon: "products", href: "/admin/products" },
-  { label: "Commission", icon: "commission", href: "/admin/commission" },
-  { label: "Payments & settlements", icon: "payments", phase: 5 },
-  { label: "Delivery management", icon: "delivery", phase: 6 },
-  { label: "Disputes & refunds", icon: "disputes", phase: 5 },
-  { label: "Analytics & reports", icon: "analytics", phase: 5 },
-  { label: "Platform settings", icon: "settings", phase: 5 },
-  { label: "Admin users & security", icon: "security", phase: 2 },
-];
-
-export default function AdminLayout({ children }: LayoutProps<"/[lang]/admin">) {
+export default async function AdminLayout({ children }: LayoutProps<"/[lang]/admin">) {
+  const t = await getDictionary();
+  const a = t.dash.admin;
+  const nav: NavItem[] = [
+    { label: a.overview, icon: "overview", href: "/admin", exact: true },
+    { label: a.orders, icon: "orders", href: "/admin/orders" },
+    { label: a.businesses, icon: "shop", href: "/admin/shops" },
+    { label: a.riders, icon: "riders", href: "/admin/riders" },
+    { label: a.customers, icon: "customers", href: "/admin/customers" },
+    { label: a.products, icon: "products", href: "/admin/products" },
+    { label: a.commission, icon: "commission", href: "/admin/commission" },
+    { label: a.payments, icon: "payments", phase: 5 },
+    { label: a.delivery, icon: "delivery", phase: 6 },
+    { label: a.disputes, icon: "disputes", phase: 5 },
+    { label: a.analytics, icon: "analytics", phase: 5 },
+    { label: a.settings, icon: "settings", phase: 5 },
+    { label: a.security, icon: "security", phase: 2 },
+  ];
   return (
-    <DashboardFrame role="admin" title="Founder control centre" tone="dark" nav={nav} searchable>
+    <DashboardFrame role="admin" title={t.dash.adminCentre} tone="dark" nav={nav} searchable>
       {children}
     </DashboardFrame>
   );

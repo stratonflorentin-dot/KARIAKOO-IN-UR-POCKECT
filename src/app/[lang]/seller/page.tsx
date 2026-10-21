@@ -1,17 +1,21 @@
 import { AlertTriangle, BadgeCheck, ClipboardList, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
+import { fmt } from "@/i18n/config";
+import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
 import { liveSellerProducts, liveSellerShop, liveSellerSummary } from "@/lib/data/seller-live";
 
 export default async function SellerDashboardPage() {
+  const t = await getDictionary();
+  const s = t.seller;
   const session = await requireRole("seller");
   const shop = await liveSellerShop(session);
   if (!shop) {
     return (
       <>
-        <PageHeader title="Seller dashboard" description="Your account does not have a shop yet." />
-        <Link className="text-sm font-medium text-brand-700 hover:underline" href="/apply/seller">Set up your shop</Link>
+        <PageHeader title={s.noShopTitle} description={s.noShopDesc} />
+        <Link className="text-sm font-medium text-brand-700 hover:underline" href="/apply/seller">{s.setUpShop}</Link>
       </>
     );
   }
@@ -19,11 +23,11 @@ export default async function SellerDashboardPage() {
   const verified = shop.status === "approved";
 
   const actions = [
-    { href: "/seller/products", Icon: Package, title: "My products", sub: `${summary.productCount} listed` },
-    { href: "/seller/products", Icon: Plus, title: "Add product", sub: "Create a new listing" },
-    { href: "/seller/orders", Icon: ClipboardList, title: "Orders", sub: summary.pendingOrders ? `${summary.pendingOrders} need action` : "Manage orders" },
-    { href: "/seller/advertising", Icon: Megaphone, title: "Advertise", sub: "Promote your shop" },
-    { href: "/seller/finances", Icon: Receipt, title: "Finances", sub: "Proceeds & commission" },
+    { href: "/seller/products", Icon: Package, title: s.myProducts, sub: fmt(s.listedCount, { count: summary.productCount }) },
+    { href: "/seller/products", Icon: Plus, title: s.addProduct, sub: s.createListing },
+    { href: "/seller/orders", Icon: ClipboardList, title: s.ordersAction, sub: summary.pendingOrders ? fmt(s.needAction, { count: summary.pendingOrders }) : s.manageOrders },
+    { href: "/seller/advertising", Icon: Megaphone, title: s.advertise, sub: s.promoteShop },
+    { href: "/seller/finances", Icon: Receipt, title: s.finances, sub: s.proceedsCommission },
   ];
 
   return (
@@ -34,27 +38,27 @@ export default async function SellerDashboardPage() {
           {shop.name.charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">Hello, {shop.name}</h1>
+          <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{fmt(s.hello, { name: shop.name })}</h1>
           {verified ? (
             <span className="mt-0.5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
-              <BadgeCheck size={15} aria-hidden="true" /> Verified seller
+              <BadgeCheck size={15} aria-hidden="true" /> {t.product.verifiedSeller}
             </span>
           ) : (
             <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-              Shop {shop.status} — awaiting approval
+              {s.awaitingApproval}
             </span>
           )}
         </div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Products" value={String(summary.productCount)} hint={`${summary.activeProducts} active`} icon={<Package size={18} />} />
-        <StatCard label="Pending orders" value={String(summary.pendingOrders)} hint="Awaiting fulfilment" icon={<Timer size={18} />} />
-        <StatCard label="All orders" value={String(summary.orderCount)} hint="Containing your products" icon={<ClipboardList size={18} />} />
-        <StatCard label="Low stock" value={String(summary.lowStock)} hint="5 or fewer in stock" icon={<AlertTriangle size={18} />} />
+        <StatCard label={s.statProducts} value={String(summary.productCount)} hint={fmt(s.activeCount, { count: summary.activeProducts })} icon={<Package size={18} />} />
+        <StatCard label={s.statPending} value={String(summary.pendingOrders)} hint={s.awaitingFulfilment} icon={<Timer size={18} />} />
+        <StatCard label={s.statAllOrders} value={String(summary.orderCount)} hint={s.containingYours} icon={<ClipboardList size={18} />} />
+        <StatCard label={s.statLowStock} value={String(summary.lowStock)} hint={s.lowStockHint} icon={<AlertTriangle size={18} />} />
       </div>
 
-      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Quick actions</h2>
+      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-muted">{s.quickActions}</h2>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {actions.map(({ href, Icon, title, sub }) => (
           <li key={title}>
@@ -70,15 +74,15 @@ export default async function SellerDashboardPage() {
       </ul>
 
       <Card className="mt-8" aria-labelledby="inventory">
-        <CardHeader id="inventory" title="Inventory" action={<Link href="/seller/products" className="text-sm font-medium text-brand-700 hover:underline">Manage products</Link>} />
+        <CardHeader id="inventory" title={s.inventory} action={<Link href="/seller/products" className="text-sm font-medium text-brand-700 hover:underline">{s.manageProducts}</Link>} />
         {products.length === 0 ? (
-          <p className="text-sm text-muted">No products listed yet. Use “Add product” above to create your first listing.</p>
+          <p className="text-sm text-muted">{s.noProductsYet}</p>
         ) : (
           <ul className="divide-y divide-line text-sm">
             {products.slice(0, 8).map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                 <span className="font-medium">{p.name}</span>
-                <span className="text-muted">{p.stock} in stock · {p.status}</span>
+                <span className="text-muted">{fmt(s.inStockStatus, { count: p.stock, status: s.productStatus[p.status as keyof typeof s.productStatus] ?? p.status })}</span>
               </li>
             ))}
           </ul>
