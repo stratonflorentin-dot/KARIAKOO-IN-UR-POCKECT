@@ -70,6 +70,43 @@ generates its `android/`/`ios/` shells, add the permissions once:
   <string>KARIAKOO uses your location to send you nearby delivery jobs.</string>
   ```
 
+## Sign up with Google (customer / seller / rider)
+
+All three apps share one sign-in screen (`kariakoo_core` → `AuthScreen`). Besides
+email + password, it shows **Continue with Google** once the Google client ID is
+supplied (admin has no mobile app, so it never gets Google). First Google sign-in
+creates the Supabase account and grants the `customer` role, exactly like an email
+sign-up; sellers and riders then apply for their role in-app.
+
+The code is already wired (`AuthRepository.signInWithGoogle`, `google_sign_in`
+package). To switch it on:
+
+1. **Google Cloud Console** → APIs & Services → Credentials. Configure the OAuth
+   consent screen, then create three OAuth client IDs:
+   - **Web application** — note its Client ID and Client secret (for Supabase).
+   - **Android** — package name `com.kariakoo.customer` (and `.seller`, `.rider`)
+     plus your signing SHA-1.
+   - **iOS** — the app bundle IDs.
+2. **Supabase** → Authentication → Providers → **Google**: enable it, paste the
+   **Web** Client ID + secret, and add the **iOS** and **Android** client IDs under
+   *Authorized Client IDs*.
+3. **Run with the client IDs** (the "Continue with Google" button appears only when
+   `GOOGLE_SERVER_CLIENT_ID` is set):
+   ```sh
+   flutter run \
+     --dart-define=SUPABASE_KEY=sb_publishable_... \
+     --dart-define=GOOGLE_SERVER_CLIENT_ID=<WEB client id>.apps.googleusercontent.com \
+     --dart-define=GOOGLE_IOS_CLIENT_ID=<iOS client id>.apps.googleusercontent.com
+   ```
+4. **iOS only**: add the reversed iOS client ID as a URL scheme in
+   `apps/<app>/ios/Runner/Info.plist`. **Android**: nothing extra — it uses the
+   SHA-1-registered Android client. (Run `flutter create .` in each app first if the
+   `android/`/`ios/` shells don't exist yet.)
+
+For the easiest sign-up while testing, you can also turn **off** email confirmation
+in Supabase → Authentication → Providers → Email, so a new account is usable
+immediately.
+
 ## Notes
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps

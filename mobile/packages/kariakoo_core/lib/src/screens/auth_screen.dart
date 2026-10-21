@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_repository.dart';
 import '../auth/session_controller.dart';
+import '../config/env.dart';
 import '../theme/app_colors.dart';
 
 /// Shared sign-in / sign-up screen used by all three apps. On success the
@@ -57,6 +58,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       } else {
         await auth.signIn(email: _email.text.trim(), password: _password.text);
       }
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyAuthError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _google() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      // On success the session stream updates and AuthGate swaps to home.
+      await ref.read(authRepositoryProvider).signInWithGoogle();
     } catch (e) {
       if (mounted) setState(() => _error = friendlyAuthError(e));
     } finally {
@@ -129,6 +146,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       onPressed: _busy ? null : _submit,
                       child: Text(_busy ? 'Please wait…' : (_signUp ? 'Create account' : 'Sign in')),
                     ),
+                    if (Env.googleConfigured) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Text('or', style: TextStyle(color: AppColors.muted)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _busy ? null : _google,
+                        icon: const _GoogleG(),
+                        label: const Text('Continue with Google'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          side: const BorderSide(color: AppColors.line),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: _busy
@@ -146,6 +186,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A small Google "G" mark for the sign-in button. (Swap for the official
+/// multicolour asset to fully match Google's brand guidelines.)
+class _GoogleG extends StatelessWidget {
+  const _GoogleG();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 18,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: const Text(
+        'G',
+        style: TextStyle(color: Color(0xFF4285F4), fontWeight: FontWeight.w800, fontSize: 13, height: 1),
       ),
     );
   }
