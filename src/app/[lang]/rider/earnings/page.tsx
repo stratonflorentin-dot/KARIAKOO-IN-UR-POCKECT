@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
 import Link from "@/components/i18n/Link";
+import { PayoutAccountCard } from "@/components/finance/PayoutAccountCard";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
+import { fmt } from "@/i18n/config";
+import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
+import { getPayoutAccount } from "@/lib/data/finance";
 import { riderJobs } from "@/lib/data/rider-live";
-import { formatDateTime, formatTzs } from "@/lib/format";
+import { formatDate, formatDateTime, formatTzs } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Earnings" };
 
 export default async function RiderEarningsPage() {
-  const completed = (await riderJobs(await requireRole("rider")))
+  const session = await requireRole("rider");
+  const t = await getDictionary();
+  const account = await getPayoutAccount(session);
+  const updatedLabel = account ? fmt(t.finance.updated, { date: formatDate(account.updatedAt) }) : "";
+  const completed = (await riderJobs(session))
     .filter((job) => job.status === "DELIVERED" && job.deliveredAt)
     .sort((a, b) => b.deliveredAt!.localeCompare(a.deliveredAt!));
   const recorded = completed.reduce((sum, job) => sum + job.payoutTzs, 0);
@@ -21,6 +29,7 @@ export default async function RiderEarningsPage() {
       <p className="text-4xl font-extrabold tracking-tight">{formatTzs(recorded)}</p>
       <p className="mt-1 text-sm text-white/70">{completed.length} completed {completed.length === 1 ? "delivery" : "deliveries"}</p>
     </Card>
+    <PayoutAccountCard account={account} updatedLabel={updatedLabel} />
     <section aria-labelledby="per-delivery">
       <h2 id="per-delivery" className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">Completed deliveries</h2>
       {completed.length === 0 ? <EmptyState title="No completed deliveries yet" /> : <ul className="space-y-2">{completed.map((job) => <li key={job.orderId}><Link href={`/rider/jobs/${job.orderId}`} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4"><div><p className="font-semibold">{job.reference}</p><p className="text-xs text-muted">{formatDateTime(job.deliveredAt!)}</p></div><p className="font-bold">{formatTzs(job.payoutTzs)}</p></Link></li>)}</ul>}

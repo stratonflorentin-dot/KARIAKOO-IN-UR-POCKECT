@@ -6,7 +6,7 @@ import { RiderNav } from "@/components/rider/RiderNav";
 import { SafetyButton } from "@/components/rider/SafetyButton";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
-import { requireRole } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session";
 import { riderPresenceFor } from "@/lib/data/dispatch";
 
 export const metadata: Metadata = {
@@ -20,7 +20,11 @@ export const metadata: Metadata = {
 export const instant = false;
 
 export default async function RiderLayout({ children }: LayoutProps<"/[lang]/rider">) {
-  const online = await riderPresenceFor(await requireRole("rider"));
+  // A real rider gets the live availability controls; anyone else falls through
+  // to the friendly RoleGate below instead of a bare 404.
+  const session = await getSession();
+  const rider = session?.role === "rider" ? session : null;
+  const online = rider ? await riderPresenceFor(rider) : false;
   return (
     <div className="flex min-h-full flex-1 flex-col bg-stone-100">
       <header className="sticky top-0 z-30 bg-night text-white">
@@ -29,10 +33,12 @@ export default async function RiderLayout({ children }: LayoutProps<"/[lang]/rid
             <Logo tone="light" href="/rider" compact />
             <span className="text-sm font-bold tracking-wide">RIDER</span>
           </div>
-          <div className="flex items-center gap-2">
-            <SafetyButton />
-            <AvailabilityToggle initialOnline={online} />
-          </div>
+          {rider && (
+            <div className="flex items-center gap-2">
+              <SafetyButton />
+              <AvailabilityToggle initialOnline={online} />
+            </div>
+          )}
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-5">

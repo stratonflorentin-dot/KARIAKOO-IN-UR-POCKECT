@@ -4,7 +4,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, PageHeader, StatCard } from "@/components/ui/Card";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { buttonClasses } from "@/components/ui/Button";
+import { PayoutAccountCard } from "@/components/finance/PayoutAccountCard";
+import { fmt } from "@/i18n/config";
+import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
+import { getPayoutAccount } from "@/lib/data/finance";
 import { liveSellerOrders, liveSellerShop } from "@/lib/data/seller-live";
 import { formatDate, formatTzs } from "@/lib/format";
 import { breakdown, formatBps } from "@/lib/money";
@@ -16,6 +20,9 @@ const settlementTone = { not_due: "neutral", pending: "warning", settled: "succe
 
 export default async function SellerFinancesPage() {
   const session = await requireRole("seller");
+  const t = await getDictionary();
+  const account = await getPayoutAccount(session);
+  const updatedLabel = account ? fmt(t.finance.updated, { date: formatDate(account.updatedAt) }) : "";
   const shop = await liveSellerShop(session);
   const live = shop ? await liveSellerOrders(session, shop.id) : [];
   const orders = live.map((o) => ({
@@ -51,6 +58,10 @@ export default async function SellerFinancesPage() {
         <StatCard label="Refunds & adjustments" value={formatTzs(0)} hint={`${refunded.length} order(s) refunded before dispatch`} />
         <StatCard label="Pending settlement" value={formatTzs(pendingSettlement.sellerProceedsTzs)} hint="Delivered, awaiting payout" />
         <StatCard label="Settled to you" value={formatTzs(settled.sellerProceedsTzs)} />
+      </div>
+
+      <div className="mt-6">
+        <PayoutAccountCard account={account} updatedLabel={updatedLabel} />
       </div>
 
       <Card className="mt-6" aria-labelledby="how-commission">
