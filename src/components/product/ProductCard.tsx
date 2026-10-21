@@ -3,16 +3,14 @@ import { isOnOffer } from "@/lib/product-utils";
 import type { Product } from "@/lib/types";
 import { Price } from "./Price";
 import { ProductImage } from "./ProductImage";
-import { StockBadge } from "./StockBadge";
+import { OfferBadge, StockBadge } from "./StockBadge";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm shadow-stone-950/[0.025] transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_16px_40px_-22px_rgba(5,150,105,0.5)] focus-within:ring-2 focus-within:ring-brand-500">
       <div className="relative">
         <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} />
-        {isOnOffer(product) && (
-          <span className="absolute right-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">Offer</span>
-        )}
+        {isOnOffer(product) && <OfferBadge />}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3.5 sm:p-4">
         <p className="truncate text-xs font-medium text-muted">{product.shopName}</p>

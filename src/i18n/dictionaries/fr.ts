@@ -246,6 +246,10 @@ const fr: Dictionary = {
     shipsFrom: "Expédié depuis {address} · {hours}",
     details: "Détails du produit",
     moreIn: "Plus dans {category}",
+    inStock: "En stock",
+    outOfStock: "Épuisé",
+    onlyLeft: "Plus que {count}",
+    offer: "Promo",
   },
   footer: {
     blurb: "Les boutiques de Kariakoo, en ligne. Découvrez des produits locaux, passez commande et suivez la préparation et la livraison au même endroit.",

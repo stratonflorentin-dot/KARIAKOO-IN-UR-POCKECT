@@ -244,6 +244,10 @@ const en = {
     shipsFrom: "Ships from {address} · {hours}",
     details: "Product details",
     moreIn: "More in {category}",
+    inStock: "In stock",
+    outOfStock: "Out of stock",
+    onlyLeft: "Only {count} left",
+    offer: "Offer",
   },
   footer: {
     blurb: "Kariakoo's shops, online. Explore local products, place an order, and follow fulfilment and delivery in one place.",

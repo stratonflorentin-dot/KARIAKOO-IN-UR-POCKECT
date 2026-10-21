@@ -245,6 +245,10 @@ const sw: Dictionary = {
     shipsFrom: "Hutumwa kutoka {address} · {hours}",
     details: "Maelezo ya bidhaa",
     moreIn: "Zaidi katika {category}",
+    inStock: "Ipo",
+    outOfStock: "Imeisha",
+    onlyLeft: "Zimebaki {count} tu",
+    offer: "Ofa",
   },
   footer: {
     blurb: "Maduka ya Kariakoo, mtandaoni. Gundua bidhaa za hapa, weka oda, na fuatilia maandalizi na usafirishaji sehemu moja.",
