@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
 import 'product_forms.dart';
@@ -34,6 +35,66 @@ class SellerProductsScreen extends ConsumerStatefulWidget {
 
 class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
   String _tab = 'all';
+  bool _sharingLocation = false;
+
+  Future<void> _shareShopLocation() async {
+    if (_sharingLocation) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share shop pickup location?'),
+        content: const Text(
+          'Use this only while you are at your shop entrance. The saved pin is shown to customers on your shop page and to riders assigned to collect orders.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _sharingLocation = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw Exception('Turn on location services and try again.');
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        throw Exception('Allow location access to share your shop pickup point.');
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      await ref.read(sellerRepositoryProvider).setShopLocation(
+            lat: position.latitude,
+            lng: position.longitude,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Shop pickup location shared with customers and assigned riders.'),
+        ));
+        ref.invalidate(myShopProvider);
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _sharingLocation = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +111,17 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Share shop pickup location',
+            onPressed: _sharingLocation ? null : _shareShopLocation,
+            icon: _sharingLocation
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location),
+          ),
           IconButton(
             tooltip: 'Advertise',
             onPressed: () => Navigator.of(context).push(

@@ -28,6 +28,13 @@ class SellerRepository {
     return (rows as List).map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<void> setShopLocation({required double lat, required double lng}) async {
+    await supabase.rpc('seller_set_shop_location', params: {
+      'p_lat': lat,
+      'p_lng': lng,
+    });
+  }
+
   Future<void> addProduct({
     required String shopId,
     required String name,
