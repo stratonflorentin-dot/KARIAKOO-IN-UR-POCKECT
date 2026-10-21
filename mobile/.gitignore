@@ -6,9 +6,7 @@
 build/
 pubspec.lock
 
-# Generated platform shells (recreate with `flutter create`; see README)
-**/android/
-**/ios/
+# Other platform shells are not used by these apps.
 **/linux/
 **/macos/
 **/windows/
@@ -23,3 +21,8 @@ pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 .metadata
+
+# Local run credentials (never commit OAuth client IDs or keys)
+.env
+.env.*
+!.env.example

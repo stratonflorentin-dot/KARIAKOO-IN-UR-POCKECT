@@ -52,7 +52,18 @@ flutter run \
   --dart-define=SUPABASE_KEY=<your sb_publishable_... key>
 ```
 
-Tip: put these in a VS Code `launch.json` or a `run.sh` so you don't retype them.
+For native Google sign-in, use the convenience launcher after setting the values in
+your local shell (do not put them in tracked files):
+
+```powershell
+$env:SUPABASE_KEY = 'sb_publishable_...'
+$env:GOOGLE_SERVER_CLIENT_ID = '...apps.googleusercontent.com'
+$env:GOOGLE_IOS_CLIENT_ID = '...apps.googleusercontent.com' # required for iOS
+.\run.ps1 customer # or seller / rider
+```
+
+On macOS/Linux, export the same three variables and run `./run.sh customer` (or
+`seller` / `rider`). The scripts pass values only as `--dart-define` arguments.
 
 ## Rider app — location permission
 
@@ -81,32 +92,43 @@ sign-up; sellers and riders then apply for their role in-app.
 The code is already wired (`AuthRepository.signInWithGoogle`, `google_sign_in`
 package). To switch it on:
 
-1. **Google Cloud Console** → APIs & Services → Credentials. Configure the OAuth
-   consent screen, then create three OAuth client IDs:
-   - **Web application** — note its Client ID and Client secret (for Supabase).
-   - **Android** — package name `com.kariakoo.customer` (and `.seller`, `.rider`)
-     plus your signing SHA-1.
-   - **iOS** — the app bundle IDs.
-2. **Supabase** → Authentication → Providers → **Google**: enable it, paste the
-   **Web** Client ID + secret, and add the **iOS** and **Android** client IDs under
-   *Authorized Client IDs*.
-3. **Run with the client IDs** (the "Continue with Google" button appears only when
-   `GOOGLE_SERVER_CLIENT_ID` is set):
-   ```sh
-   flutter run \
-     --dart-define=SUPABASE_KEY=sb_publishable_... \
-     --dart-define=GOOGLE_SERVER_CLIENT_ID=<WEB client id>.apps.googleusercontent.com \
-     --dart-define=GOOGLE_IOS_CLIENT_ID=<iOS client id>.apps.googleusercontent.com
-   ```
-4. **iOS only**: add the reversed iOS client ID as a URL scheme in
-   `apps/<app>/ios/Runner/Info.plist`. **Android**: nothing extra — it uses the
-   SHA-1-registered Android client. (Run `flutter create .` in each app first if the
-   `android/`/`ios/` shells don't exist yet.)
-
-For the easiest sign-up while testing, you can also turn **off** email confirmation
-in Supabase → Authentication → Providers → Email, so a new account is usable
-immediately.
-
+1. **Create Google OAuth clients.** In [Google Cloud Console](https://console.cloud.google.com/):
+   - Select the KARIAKOO Google Cloud project from the project picker, or create one.
+     Open **Google Auth Platform > Branding**, set an app name and support email,
+     then open **Audience**, choose **External**, and add your test account under
+     **Test users** while the consent screen is in testing.
+   - Open **Google Auth Platform > Clients > Create client > Web application**.
+     Name it `KARIAKOO Supabase`. Under **Authorized redirect URIs**, add the callback
+     shown at Supabase **Authentication > URL Configuration**:
+     `https://galecacpodrgshzsyitm.supabase.co/auth/v1/callback`. Click **Create**
+     and record the Web **Client ID** and **Client secret**.
+   - Create three **Android** clients, one per app. Enter package names
+     `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`, and
+     that app's debug SHA-1. From each app folder, run
+     `cd android; .\gradlew signingReport` on Windows (or
+     `cd android && ./gradlew signingReport` on macOS/Linux); copy `SHA1` from the
+     `Variant: debug` section.
+   - Create three **iOS** clients, one per app, with bundle IDs
+     `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`.
+     Record each iOS **Client ID** for the app's URL scheme and run configuration.
+2. **Enable Google in Supabase.** In the [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
+   open **Authentication > Providers > Google**, switch it on, paste the Web Client
+   ID and secret into their fields, add all three Android and all three iOS Client
+   IDs to **Authorized Client IDs**, and save.
+3. **Allow immediate sign-up for testing.** Open **Authentication > Providers > Email**,
+   switch **Confirm email** off, and save. A newly created account can then get a
+   session immediately.
+4. **Add the iOS URL schemes.** Reverse the iOS client ID's first hostname component.
+   For example, `123456-abc.apps.googleusercontent.com` becomes
+   `com.googleusercontent.apps.123456-abc`. Add it under
+   `CFBundleURLTypes > CFBundleURLSchemes` in each corresponding
+   `apps/kariakoo_<app>/ios/Runner/Info.plist`. Android needs no extra manifest
+   entry for Google sign-in; Google matches the Android client by package and SHA-1.
+5. **Run with the client IDs.** Set `SUPABASE_KEY` to the project's
+   `sb_publishable_...` key, `GOOGLE_SERVER_CLIENT_ID` to the Web Client ID, and on
+   iOS set `GOOGLE_IOS_CLIENT_ID` to that app's iOS Client ID. Use `mobile/run.ps1`
+   or `mobile/run.sh` as shown above. The Google button appears when the Web Client
+   ID is set.
 ## Notes
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps
