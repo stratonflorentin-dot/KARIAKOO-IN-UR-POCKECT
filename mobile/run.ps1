@@ -5,6 +5,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $appDir = Join-Path $PSScriptRoot "apps/kariakoo_$App"
+$localConfig = Join-Path $PSScriptRoot '.env.local'
+if (Test-Path -LiteralPath $localConfig) {
+  foreach ($line in Get-Content -LiteralPath $localConfig) {
+    if ($line -match '^\s*([A-Z0-9_]+)=(.*)$') {
+      $name = $Matches[1]
+      $value = $Matches[2].Trim().Trim('"').Trim("'")
+      if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+      }
+    }
+  }
+}
 
 if ([string]::IsNullOrWhiteSpace($env:SUPABASE_KEY)) {
   throw 'Set SUPABASE_KEY to the Supabase sb_publishable_... key before running.'
@@ -28,7 +40,20 @@ if (-not [string]::IsNullOrWhiteSpace($iosClientId)) {
 
 Push-Location $appDir
 try {
-  flutter run @defines
+  $flutterCommand = Get-Command flutter -ErrorAction SilentlyContinue
+  if ($flutterCommand) {
+    & $flutterCommand.Source run @defines
+  } else {
+    $flutterCandidates = @(
+      (if ($env:FLUTTER_ROOT) { Join-Path $env:FLUTTER_ROOT 'bin\flutter.bat' }),
+      'D:\tools\flutter\bin\flutter.bat',
+      'D:\flutter\bin\flutter.bat'
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+    if (-not $flutterCandidates) {
+      throw 'Flutter was not found on PATH, under FLUTTER_ROOT, or at the usual D: drive locations.'
+    }
+    & $flutterCandidates[0] run @defines
+  }
 } finally {
   Pop-Location
 }

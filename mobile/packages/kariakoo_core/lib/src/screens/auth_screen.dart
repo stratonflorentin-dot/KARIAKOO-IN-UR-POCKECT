@@ -99,7 +99,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     });
     try {
       // On success the session stream updates and AuthGate swaps to home.
-      await ref.read(authRepositoryProvider).signInWithGoogle();
+      final signedIn = await ref.read(authRepositoryProvider).signInWithGoogle();
+      if (!signedIn && mounted) {
+        setState(() => _info = 'Google sign-in was cancelled. You can try again or use email.');
+      }
     } catch (e) {
       if (mounted) setState(() => _error = friendlyAuthError(e));
     } finally {

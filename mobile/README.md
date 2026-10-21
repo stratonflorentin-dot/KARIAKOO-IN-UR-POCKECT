@@ -53,7 +53,9 @@ flutter run \
 ```
 
 For native Google sign-in, use the convenience launcher after setting the values in
-your local shell (do not put them in tracked files):
+`mobile/.env.local` (already git-ignored) or your local shell. Never put credentials
+in tracked files. The launcher loads the ignored file automatically and passes the
+values only as `--dart-define` arguments:
 
 ```powershell
 $env:SUPABASE_KEY = 'sb_publishable_...'
@@ -108,10 +110,12 @@ package). To switch it on:
      and record the Web **Client ID** and **Client secret**.
    - Create three **Android** clients, one per app. Enter package names
      `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`, and
-     that app's debug SHA-1. From each app folder, run
+     the debug signing SHA-1 for this Windows machine:
+     `09:50:2D:A6:7E:BB:AE:29:93:0B:05:60:C0:42:AA:BE:CE:92:6F:9E`.
+     To re-check after changing the debug keystore, run
      `cd android; .\gradlew signingReport` on Windows (or
-     `cd android && ./gradlew signingReport` on macOS/Linux); copy `SHA1` from the
-     `Variant: debug` section.
+     `cd android && ./gradlew signingReport` on macOS/Linux) and copy `SHA1` from
+     `Variant: debug`.
    - Create three **iOS** clients, one per app, with bundle IDs
      `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`.
      Record each iOS **Client ID** for the app's URL scheme and run configuration.
@@ -120,10 +124,10 @@ package). To switch it on:
      seller iOS `966761629099-8ipg37rlrtjg5vgsi8gdpp729mjsanjk.apps.googleusercontent.com`;
      rider iOS `966761629099-k5f072ootlt6mld50a45328v2c99t2pj.apps.googleusercontent.com`.
      Android clients still need their debug SHA-1 fingerprints.
-2. **Google is enabled in Supabase.** The Web Client ID and secret are saved in the
-   [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
-   along with all three iOS Client IDs under **Authorized Client IDs**. Add the
-   Android Client IDs there once their SHA-1 fingerprints are available.
+2. In the [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
+   enable **Authentication > Providers > Google**, set its Web Client ID and secret,
+   and add all three iOS plus all three Android client IDs under **Authorized Client
+   IDs**. Keep **Confirm email** off if new accounts should be signed in immediately.
 3. **Immediate sign-up is enabled for testing.** Supabase **Authentication > Providers** currently has **Confirm email** off, so a new account can receive a session directly.
 4. **iOS URL schemes are configured.** Each app Info.plist contains the reversed
    scheme for its iOS OAuth client. Android needs no extra manifest entry for Google

@@ -60,10 +60,14 @@ class AuthRepository {
     if (idToken == null) {
       throw const AuthException('Google sign-in did not return an ID token.');
     }
+    final accessToken = googleAuth.accessToken;
+    if (accessToken == null) {
+      throw const AuthException('Google sign-in did not return an access token.');
+    }
     await supabase.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
-      accessToken: googleAuth.accessToken,
+      accessToken: accessToken,
     );
     return true;
   }
