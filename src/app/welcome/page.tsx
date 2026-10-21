@@ -42,19 +42,10 @@ export default function WelcomePage() {
           ))}
         </ul>
 
-        <p className="mt-5 text-center text-sm text-muted">
-          Just looking?{" "}
-          <Link href="/customer" className="font-semibold text-brand-700 underline">Browse as a guest</Link>
-        </p>
-
         <div className="mt-auto pt-10 text-center">
           <p className="text-sm text-muted">
             Already have an account?{" "}
             <Link href="/sign-in" className="font-semibold text-brand-700">Login</Link>
-          </p>
-          <p className="mt-3 text-xs text-muted">
-            KARIAKOO staff?{" "}
-            <Link href="/staff" className="font-semibold text-ink underline">Admin sign in</Link>
           </p>
         </div>
       </div>

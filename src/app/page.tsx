@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 
@@ -25,9 +24,6 @@ export default function SplashPage() {
         <div className="relative mt-10 space-y-3">
           <ButtonLink href="/welcome" variant="gold" size="lg" full>Get Started</ButtonLink>
           <ButtonLink href="/sign-in" variant="glass" size="lg" full>Login</ButtonLink>
-          <p className="pt-1 text-center text-sm">
-            <Link href="/customer" className="font-medium text-white/75 underline underline-offset-4 hover:text-white">Browse as a guest</Link>
-          </p>
         </div>
       </div>
     </main>
