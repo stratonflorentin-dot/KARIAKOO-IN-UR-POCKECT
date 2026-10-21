@@ -17,8 +17,13 @@ $defines = @(
   "--dart-define=SUPABASE_KEY=$($env:SUPABASE_KEY)"
   "--dart-define=GOOGLE_SERVER_CLIENT_ID=$($env:GOOGLE_SERVER_CLIENT_ID)"
 )
-if (-not [string]::IsNullOrWhiteSpace($env:GOOGLE_IOS_CLIENT_ID)) {
-  $defines += "--dart-define=GOOGLE_IOS_CLIENT_ID=$($env:GOOGLE_IOS_CLIENT_ID)"
+$appSpecificIosClientVariable = "GOOGLE_IOS_CLIENT_ID_$($App.ToUpperInvariant())"
+$iosClientId = [Environment]::GetEnvironmentVariable($appSpecificIosClientVariable)
+if ([string]::IsNullOrWhiteSpace($iosClientId)) {
+  $iosClientId = $env:GOOGLE_IOS_CLIENT_ID
+}
+if (-not [string]::IsNullOrWhiteSpace($iosClientId)) {
+  $defines += "--dart-define=GOOGLE_IOS_CLIENT_ID=$iosClientId"
 }
 
 Push-Location $appDir

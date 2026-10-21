@@ -58,9 +58,13 @@ your local shell (do not put them in tracked files):
 ```powershell
 $env:SUPABASE_KEY = 'sb_publishable_...'
 $env:GOOGLE_SERVER_CLIENT_ID = '...apps.googleusercontent.com'
-$env:GOOGLE_IOS_CLIENT_ID = '...apps.googleusercontent.com' # required for iOS
+$env:GOOGLE_IOS_CLIENT_ID_CUSTOMER = '...apps.googleusercontent.com' # choose matching app
 .\run.ps1 customer # or seller / rider
 ```
+
+For iOS, set `GOOGLE_IOS_CLIENT_ID_CUSTOMER`, `GOOGLE_IOS_CLIENT_ID_SELLER`, or
+`GOOGLE_IOS_CLIENT_ID_RIDER` for the app you are launching. The scripts accept the
+generic `GOOGLE_IOS_CLIENT_ID` as a fallback.
 
 On macOS/Linux, export the same three variables and run `./run.sh customer` (or
 `seller` / `rider`). The scripts pass values only as `--dart-define` arguments.
@@ -111,29 +115,27 @@ package). To switch it on:
    - Create three **iOS** clients, one per app, with bundle IDs
      `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`.
      Record each iOS **Client ID** for the app's URL scheme and run configuration.
-2. **Enable Google in Supabase.** In the [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
-   open **Authentication > Providers > Google**, switch it on, paste the Web Client
-   ID and secret into their fields, add all three Android and all three iOS Client
-   IDs to **Authorized Client IDs**, and save.
-3. **Allow immediate sign-up for testing.** Open **Authentication > Providers > Email**,
-   switch **Confirm email** off, and save. A newly created account can then get a
-   session immediately.
-4. **Add the iOS URL schemes.** Reverse the iOS client ID's first hostname component.
-   For example, `123456-abc.apps.googleusercontent.com` becomes
-   `com.googleusercontent.apps.123456-abc`. Add it under
-   `CFBundleURLTypes > CFBundleURLSchemes` in each corresponding
-   `apps/kariakoo_<app>/ios/Runner/Info.plist`. Android needs no extra manifest
-   entry for Google sign-in; Google matches the Android client by package and SHA-1.
+   - Created IDs: Web `966761629099-tfuvmihotlbnrl9rv54vv4t63blb805r.apps.googleusercontent.com`;
+     customer iOS `966761629099-gctthm9jiqs13uen72opug1e5blmffh1.apps.googleusercontent.com`;
+     seller iOS `966761629099-8ipg37rlrtjg5vgsi8gdpp729mjsanjk.apps.googleusercontent.com`;
+     rider iOS `966761629099-k5f072ootlt6mld50a45328v2c99t2pj.apps.googleusercontent.com`.
+     Android clients still need their debug SHA-1 fingerprints.
+2. **Google is enabled in Supabase.** The Web Client ID and secret are saved in the
+   [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
+   along with all three iOS Client IDs under **Authorized Client IDs**. Add the
+   Android Client IDs there once their SHA-1 fingerprints are available.
+3. **Immediate sign-up is enabled for testing.** Supabase **Authentication > Providers** currently has **Confirm email** off, so a new account can receive a session directly.
+4. **iOS URL schemes are configured.** Each app Info.plist contains the reversed
+   scheme for its iOS OAuth client. Android needs no extra manifest entry for Google
+   sign-in; Google matches the Android client by package and SHA-1.
 5. **Run with the client IDs.** Set `SUPABASE_KEY` to the project's
    `sb_publishable_...` key, `GOOGLE_SERVER_CLIENT_ID` to the Web Client ID, and on
-   iOS set `GOOGLE_IOS_CLIENT_ID` to that app's iOS Client ID. Use `mobile/run.ps1`
-   or `mobile/run.sh` as shown above. The Google button appears when the Web Client
-   ID is set.
+   iOS set the app-specific `GOOGLE_IOS_CLIENT_ID_CUSTOMER`, `_SELLER`, or `_RIDER`
+   to the matching iOS Client ID. Use `mobile/run.ps1` or `mobile/run.sh` as shown
+   above. The Google button appears when the Web Client ID is set.
 ## Notes
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps
   only ever use the **publishable** key — never a service/secret key.
-- **Email confirmation is ON** in the Supabase project, so a new sign-up must confirm by
-  email before signing in. For easier testing, you can turn it off in Supabase →
-  Authentication → Providers → Email → "Confirm email".
+- **Email confirmation is OFF** in Supabase for immediate sign-up during testing.
 - Maps use free OpenStreetMap/MapLibre tiles (`flutter_map`) — no paid Google Maps key.
