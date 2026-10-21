@@ -9,6 +9,8 @@ import { ProductImage } from "@/components/product/ProductImage";
 import { StockBadge } from "@/components/product/StockBadge";
 import { Button } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
+import { useI18n } from "@/i18n/client";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { apparelCategories, audiences, productTypes } from "@/lib/departments";
 import { IMAGE_TYPES, productDraftSchema, validateImageFile } from "@/lib/validation/product";
 import type { Audience, Category, CategorySlug, ProductType } from "@/lib/types";
@@ -36,6 +38,8 @@ export function ProductComposer({ categories, shopName, onPublish }: {
   shopName: string;
   onPublish: (draft: PublishedDraft) => Promise<PublishResult>;
 }) {
+  const { t } = useI18n();
+  const c = t.composer;
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
@@ -75,7 +79,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
     };
     probe.onerror = () => {
       URL.revokeObjectURL(url);
-      setErrors((e) => ({ ...e, photo: "That file isn't a readable image." }));
+      setErrors((e) => ({ ...e, photo: c.notReadableImage }));
     };
     probe.src = url;
   }
@@ -106,7 +110,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
     const res = await onPublish({ ...(parsed.data as PublishedDraft) });
     setBusy(false);
     if (res.ok) reset();
-    else setSubmitError(res.error ?? "Could not save the product.");
+    else setSubmitError(res.error ?? t.sellerProducts.couldNotSave);
   }
 
   const priceNum = Number(price);
@@ -117,14 +121,14 @@ export function ProductComposer({ categories, shopName, onPublish }: {
 
   return (
     <section aria-labelledby={`${id}-title`} className="rounded-2xl border border-line bg-white p-5">
-      <h2 id={`${id}-title`} className="font-semibold">Add a product</h2>
-      <p className="text-sm text-muted">Preview how the name, price, stock and description will appear in the store.</p>
+      <h2 id={`${id}-title`} className="font-semibold">{c.addProduct}</h2>
+      <p className="text-sm text-muted">{c.previewHint}</p>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_20rem]">
         <form noValidate onSubmit={(e) => { e.preventDefault(); publish(); }} className="space-y-4">
           {/* Photo */}
           <div>
-            <span className="text-sm font-medium">Photo</span>
+            <span className="text-sm font-medium">{c.photo}</span>
             <div className="mt-1 flex items-center gap-3">
               <button
                 type="button"
@@ -133,20 +137,20 @@ export function ProductComposer({ categories, shopName, onPublish }: {
               >
                 {photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photoUrl} alt="Selected product photo" className="h-full w-full object-cover" />
+                  <img src={photoUrl} alt={c.selectedPhotoAlt} className="h-full w-full object-cover" />
                 ) : (
                   <ImagePlus aria-hidden="true" />
                 )}
-                <span className="sr-only">{photoUrl ? "Change photo" : "Choose photo"}</span>
+                <span className="sr-only">{photoUrl ? c.changePhoto : c.choosePhoto}</span>
               </button>
               <div className="text-xs text-muted">
                 <label htmlFor={`${id}-photo`} className="font-semibold text-brand-700 hover:underline">
-                  {photoUrl ? "Change photo" : "Choose a photo"}
+                  {photoUrl ? c.changePhoto : c.chooseAPhoto}
                 </label>
-                <p>JPG, PNG or WebP, up to 5 MB. Use a clear photo on a plain background.</p>
+                <p>{c.photoHint}</p>
                 {photoUrl && (
                   <button type="button" onClick={() => { setPhotoUrl(undefined); if (fileInput.current) fileInput.current.value = ""; }} className="mt-1 inline-flex items-center gap-1 text-red-700 hover:underline">
-                    <X size={12} aria-hidden="true" /> Remove
+                    <X size={12} aria-hidden="true" /> {c.remove}
                   </button>
                 )}
               </div>
@@ -164,32 +168,32 @@ export function ProductComposer({ categories, shopName, onPublish }: {
           </div>
 
           <div>
-            <label htmlFor={`${id}-name`} className="text-sm font-medium">Product name</label>
-            <input id={`${id}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Men's Linen Shirt" className={`${compactInputClass} mt-1`} {...aria("name")} />
+            <label htmlFor={`${id}-name`} className="text-sm font-medium">{c.productName}</label>
+            <input id={`${id}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder={c.productNamePlaceholder} className={`${compactInputClass} mt-1`} {...aria("name")} />
             {err("name")}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label htmlFor={`${id}-cat`} className="text-sm font-medium">Category</label>
+              <label htmlFor={`${id}-cat`} className="text-sm font-medium">{t.search.category}</label>
               <select id={`${id}-cat`} value={category} onChange={(e) => setCategory(e.target.value as CategorySlug)} className={`${compactInputClass} mt-1`}>
-                {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                {categories.map((cat) => <option key={cat.slug} value={cat.slug}>{t.categories[cat.slug as keyof Dictionary["categories"]] ?? cat.name}</option>)}
               </select>
             </div>
             {apparel && (
               <>
                 <div>
-                  <label htmlFor={`${id}-aud`} className="text-sm font-medium">For</label>
+                  <label htmlFor={`${id}-aud`} className="text-sm font-medium">{c.forLabel}</label>
                   <select id={`${id}-aud`} value={audience} onChange={(e) => { setAudience(e.target.value as Audience | ""); setProductType(""); }} className={`${compactInputClass} mt-1`}>
-                    <option value="">Choose…</option>
+                    <option value="">{c.choose}</option>
                     {audiences.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor={`${id}-type`} className="text-sm font-medium">Type</label>
+                  <label htmlFor={`${id}-type`} className="text-sm font-medium">{c.type}</label>
                   <select id={`${id}-type`} value={productType} onChange={(e) => setProductType(e.target.value as ProductType | "")} className={`${compactInputClass} mt-1`}>
-                    <option value="">Choose…</option>
-                    {types.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                    <option value="">{c.choose}</option>
+                    {types.map((pt) => <option key={pt.id} value={pt.id}>{pt.label}</option>)}
                   </select>
                 </div>
               </>
@@ -198,26 +202,26 @@ export function ProductComposer({ categories, shopName, onPublish }: {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor={`${id}-price`} className="text-sm font-medium">Price (TSh)</label>
+              <label htmlFor={`${id}-price`} className="text-sm font-medium">{t.sellerProducts.colPrice}</label>
               <input id={`${id}-price`} type="number" inputMode="numeric" min={100} step={100} value={price} onChange={(e) => setPrice(e.target.value)} className={`${compactInputClass} mt-1`} {...aria("priceTzs")} />
               {err("priceTzs")}
             </div>
             <div>
-              <label htmlFor={`${id}-stock`} className="text-sm font-medium">Stock</label>
+              <label htmlFor={`${id}-stock`} className="text-sm font-medium">{t.sellerProducts.colStock}</label>
               <input id={`${id}-stock`} type="number" inputMode="numeric" min={0} step={1} value={stock} onChange={(e) => setStock(e.target.value)} className={`${compactInputClass} mt-1`} {...aria("stock")} />
               {err("stock")}
             </div>
           </div>
 
           <div>
-            <label htmlFor={`${id}-desc`} className="text-sm font-medium">Description</label>
+            <label htmlFor={`${id}-desc`} className="text-sm font-medium">{c.description}</label>
             <textarea
               id={`${id}-desc`}
               rows={4}
               maxLength={1000}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Material, sizes, colours, condition, what's included…"
+              placeholder={c.descriptionPlaceholder}
               className={`${compactInputClass} mt-1 h-auto py-2`}
               {...aria("description")}
             />
@@ -228,28 +232,28 @@ export function ProductComposer({ categories, shopName, onPublish }: {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Publish"}</Button>
-            <Button type="button" variant="ghost" onClick={reset} disabled={busy}>Clear</Button>
+            <Button type="submit" disabled={busy}>{busy ? t.seller.saving : c.publish}</Button>
+            <Button type="button" variant="ghost" onClick={reset} disabled={busy}>{c.clear}</Button>
           </div>
           {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
-          <p className="text-xs text-muted">Name, price, stock and description are saved to your shop. Photo upload is coming soon — for now products publish with a placeholder image.</p>
+          <p className="text-xs text-muted">{c.footerNote}</p>
         </form>
 
         {/* Live preview */}
-        <aside aria-label="Customer preview" className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Customer preview</p>
+        <aside aria-label={c.customerPreview} className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{c.customerPreview}</p>
           <div className="overflow-hidden rounded-2xl border border-line bg-white">
-            <ProductImage category={category} name={name || "New product"} imageUrl={photoUrl} />
+            <ProductImage category={category} name={name || c.newProduct} imageUrl={photoUrl} />
             <div className="space-y-1.5 p-3">
               <p className="flex items-center gap-1 truncate text-xs text-muted"><Store size={12} aria-hidden="true" /> {shopName}</p>
-              <p className="line-clamp-2 text-sm font-semibold">{name || "Product name"}</p>
+              <p className="line-clamp-2 text-sm font-semibold">{name || c.productNameFallback}</p>
               <Price amount={Number.isFinite(priceNum) && priceNum > 0 ? priceNum : 0} />
               <StockBadge stock={Number.isFinite(stockNum) ? stockNum : 0} />
             </div>
           </div>
           <div className="rounded-2xl bg-subtle p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">On the product page</p>
-            <p className="mt-1 whitespace-pre-line text-sm text-ink">{description || "Your description appears here."}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{c.onProductPage}</p>
+            <p className="mt-1 whitespace-pre-line text-sm text-ink">{description || c.descAppears}</p>
           </div>
         </aside>
       </div>

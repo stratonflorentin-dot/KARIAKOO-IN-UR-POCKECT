@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { compactInputClass } from "@/components/ui/Field";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
+import { useI18n } from "@/i18n/client";
+import { fmt } from "@/i18n/config";
 import { audienceLabel, productTypeLabel } from "@/lib/departments";
 import { formatTzs } from "@/lib/format";
 import type { Category, Product } from "@/lib/types";
@@ -23,12 +25,12 @@ type Row = Pick<Product, "id" | "slug" | "name" | "category" | "priceTzs" | "sto
 
 type Tab = "all" | "active" | "low" | "out" | "archived";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "low", label: "Low stock" },
-  { id: "out", label: "Out of stock" },
-  { id: "archived", label: "Archived" },
+const TABS: { id: Tab; labelKey: "tabAll" | "tabActive" | "tabLow" | "tabOut" | "tabArchived" }[] = [
+  { id: "all", labelKey: "tabAll" },
+  { id: "active", labelKey: "tabActive" },
+  { id: "low", labelKey: "tabLow" },
+  { id: "out", labelKey: "tabOut" },
+  { id: "archived", labelKey: "tabArchived" },
 ];
 
 /** Which status group a product falls into, for the tabs. */
@@ -40,6 +42,8 @@ function groupOf(r: Row): Exclude<Tab, "all"> {
 }
 
 export function SellerProductsManager({ initialProducts, categories, shopName }: { initialProducts: Row[]; categories: Category[]; shopName: string }) {
+  const { t } = useI18n();
+  const sp = t.sellerProducts;
   const [rows, setRows] = useState<Row[]>(initialProducts);
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -64,10 +68,10 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
     const res = await createProduct(fd);
     if (res.ok && res.id) {
       setRows((rs) => [{ id: res.id!, slug: res.slug ?? "", status: "active", name: d.name, category: d.category, priceTzs: d.priceTzs, stock: d.stock, description: d.description, audience: d.audience, productType: d.productType, imageUrl: undefined }, ...rs]);
-      setMessage(`Saved “${d.name}”. It goes live to customers once your shop is approved.`);
+      setMessage(fmt(sp.savedProduct, { name: d.name }));
       return { ok: true };
     }
-    return { ok: false, error: res.error ?? "Could not save the product." };
+    return { ok: false, error: res.error ?? sp.couldNotSave };
   }
 
   async function persistFields(r: Row) {
@@ -76,7 +80,7 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
     fd.set("priceTzs", String(r.priceTzs));
     fd.set("stock", String(r.stock));
     const res = await saveProductFields(fd);
-    setMessage(res.ok ? `Saved price and stock for “${r.name}”.` : `Could not save “${r.name}”: ${res.error}`);
+    setMessage(res.ok ? fmt(sp.savedPriceStock, { name: r.name }) : fmt(sp.couldNotSaveNamed, { name: r.name, error: res.error ?? "" }));
   }
 
   async function changeStatus(r: Row, status: Row["status"]) {
@@ -88,9 +92,9 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
     const res = await setProductStatus(fd);
     if (!res.ok) {
       update(r.id, { status: previous });
-      setMessage(`Could not update “${r.name}”: ${res.error}`);
+      setMessage(fmt(sp.couldNotUpdate, { name: r.name, error: res.error ?? "" }));
     } else {
-      setMessage(`${status === "archived" ? "Archived" : "Restored"} “${r.name}”.`);
+      setMessage(fmt(status === "archived" ? sp.archivedNamed : sp.restoredNamed, { name: r.name }));
     }
   }
 
@@ -99,20 +103,20 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
       <ProductComposer categories={categories} shopName={shopName} onPublish={publish} />
       <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-emerald-800">{message}</p>
 
-      <div role="tablist" aria-label="Filter products by status" className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-        {TABS.map((t) => (
+      <div role="tablist" aria-label={sp.filterLabel} className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
+        {TABS.map((tabDef) => (
           <button
-            key={t.id}
+            key={tabDef.id}
             type="button"
             role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === tabDef.id}
+            onClick={() => setTab(tabDef.id)}
             className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
-              tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
+              tab === tabDef.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
             }`}
           >
-            {t.label}
-            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>{counts[t.id]}</span>
+            {sp[tabDef.labelKey]}
+            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === tabDef.id ? "bg-white/20" : "bg-subtle text-muted"}`}>{counts[tabDef.id]}</span>
           </button>
         ))}
       </div>
@@ -120,11 +124,11 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
       <div className="mt-3">
         {visible.length === 0 ? (
           <p className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-muted">
-            {rows.length === 0 ? "No products yet. Add your first product above." : "No products in this list."}
+            {rows.length === 0 ? sp.noProductsYet : sp.noneInList}
           </p>
         ) : (
-        <TableCard label="Your products" minWidth="52rem">
-          <THead><Th>Product</Th><Th>Price (TSh)</Th><Th>Stock</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></THead>
+        <TableCard label={sp.tableLabel} minWidth="52rem">
+          <THead><Th>{sp.colProduct}</Th><Th>{sp.colPrice}</Th><Th>{sp.colStock}</Th><Th>{sp.colStatus}</Th><Th><span className="sr-only">{sp.colActions}</span></Th></THead>
           <tbody className={tbodyClass}>
             {visible.map((r) => (
               <Fragment key={r.id}>
@@ -143,43 +147,43 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
                     </div>
                   </th>
                   <td className={tdClass}>
-                    <label className="sr-only" htmlFor={`price-${r.id}`}>Price of {r.name}</label>
+                    <label className="sr-only" htmlFor={`price-${r.id}`}>{fmt(sp.priceOf, { name: r.name })}</label>
                     <input id={`price-${r.id}`} type="number" min={100} step={100} value={r.priceTzs} disabled={r.status === "archived"}
                       onChange={(e) => update(r.id, { priceTzs: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                       onBlur={() => persistFields(r)}
                       className={`${compactInputClass} w-32`} />
                   </td>
                   <td className={tdClass}>
-                    <label className="sr-only" htmlFor={`stock-${r.id}`}>Stock of {r.name}</label>
+                    <label className="sr-only" htmlFor={`stock-${r.id}`}>{fmt(sp.stockOf, { name: r.name })}</label>
                     <input id={`stock-${r.id}`} type="number" min={0} step={1} value={r.stock} disabled={r.status === "archived"}
                       onChange={(e) => update(r.id, { stock: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                       onBlur={() => persistFields(r)}
                       className={`${compactInputClass} w-24 ${r.stock === 0 ? "border-red-300" : ""}`} />
                   </td>
                   <td className={tdClass}>
-                    {r.status === "archived" ? <Badge>Archived</Badge> : r.stock === 0 ? <Badge tone="danger">Out of stock</Badge> : r.stock <= 5 ? <Badge tone="warning">Low stock</Badge> : <Badge tone="success">Live</Badge>}
+                    {r.status === "archived" ? <Badge>{sp.archived}</Badge> : r.stock === 0 ? <Badge tone="danger">{sp.outOfStock}</Badge> : r.stock <= 5 ? <Badge tone="warning">{sp.lowStock}</Badge> : <Badge tone="success">{sp.live}</Badge>}
                   </td>
                   <td className={`${tdClass} whitespace-nowrap text-right`}>
                     <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}
                       className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
-                      <ChevronDown size={15} className={open === r.id ? "rotate-180" : ""} aria-hidden="true" /> Details<span className="sr-only"> of {r.name}</span>
+                      <ChevronDown size={15} className={open === r.id ? "rotate-180" : ""} aria-hidden="true" /> {sp.details}<span className="sr-only"> {r.name}</span>
                     </button>
                     {r.slug && r.status === "active" && (
                       <Link href={`/customer/product/${r.slug}`} className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
-                        <Eye size={15} aria-hidden="true" /> View<span className="sr-only"> {r.name} in store</span>
+                        <Eye size={15} aria-hidden="true" /> {sp.view}<span className="sr-only"> {r.name}</span>
                       </Link>
                     )}
                     {r.status === "active" ? (
                       <ConfirmDialog
-                        title={`Archive “${r.name}”?`}
-                        body="Archived products are hidden from customers. Past orders keep their records. You can restore it later."
-                        confirmLabel="Archive"
+                        title={fmt(sp.archiveTitle, { name: r.name })}
+                        body={sp.archiveBody}
+                        confirmLabel={sp.archive}
                         onConfirm={() => changeStatus(r, "archived")}
-                        trigger={(openDialog) => <button type="button" onClick={openDialog} className="h-10 rounded-lg px-3 text-sm text-red-700 hover:bg-red-50">Archive<span className="sr-only"> {r.name}</span></button>}
+                        trigger={(openDialog) => <button type="button" onClick={openDialog} className="h-10 rounded-lg px-3 text-sm text-red-700 hover:bg-red-50">{sp.archive}<span className="sr-only"> {r.name}</span></button>}
                       />
                     ) : (
                       <button type="button" onClick={() => changeStatus(r, "active")} className="h-10 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
-                        Restore<span className="sr-only"> {r.name}</span>
+                        {sp.restore}<span className="sr-only"> {r.name}</span>
                       </button>
                     )}
                   </td>

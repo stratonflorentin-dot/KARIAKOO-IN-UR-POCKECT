@@ -3,24 +3,29 @@ import { SellerProductsManager } from "@/components/dashboard/SellerProductsMana
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Card";
 import { EmptyState, Notice } from "@/components/ui/States";
+import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
 import { getCategories } from "@/lib/catalog";
 import { liveSellerProducts, liveSellerShop } from "@/lib/data/seller-live";
 
-export const metadata: Metadata = { title: "Products" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).dash.seller.products };
+}
 
 export default async function SellerProductsPage() {
+  const t = await getDictionary();
+  const sp = t.sellerProducts;
   const session = await requireRole("seller");
   const shop = await liveSellerShop(session);
 
   if (!shop) {
     return (
       <>
-        <PageHeader title="Products" description="List products, manage stock, and see how customers will see them." />
+        <PageHeader title={t.dash.seller.products} description={sp.noShopDesc} />
         <EmptyState
-          title="Set up your shop first"
-          body="You need an approved or pending shop before you can list products."
-          action={<ButtonLink href="/apply/seller" variant="dark">Set up your shop</ButtonLink>}
+          title={t.seller.setUpFirst}
+          body={sp.noShopBody}
+          action={<ButtonLink href="/apply/seller" variant="dark">{t.seller.setUpShop}</ButtonLink>}
         />
       </>
     );
@@ -30,10 +35,10 @@ export default async function SellerProductsPage() {
 
   return (
     <>
-      <PageHeader title="Products" description="Add products with a description, see exactly how customers will see them, and manage price, stock and availability." />
+      <PageHeader title={t.dash.seller.products} description={sp.pageDesc} />
       {shop.status !== "approved" && (
         <div className="mb-4">
-          <Notice tone="warning">Your shop is {shop.status}. You can add products now — they go live to customers once your shop is approved.</Notice>
+          <Notice tone="warning">{sp.notApproved}</Notice>
         </div>
       )}
       <SellerProductsManager initialProducts={products} categories={getCategories()} shopName={shop.name} />
