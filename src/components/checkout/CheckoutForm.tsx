@@ -20,6 +20,15 @@ export interface PaymentOption {
   note: string;
 }
 
+// A brand-toned chip per method (a coloured initial, not a trademarked logo).
+const PAY_CHIP: Record<string, string> = {
+  mpesa: "bg-red-500",
+  mixx: "bg-sky-500",
+  airtelmoney: "bg-red-600",
+  halopesa: "bg-orange-500",
+  cod: "bg-brand-600",
+};
+
 export function CheckoutForm({ zones, payments, canOrder = false }: { zones: DeliveryZone[]; payments: PaymentOption[]; canOrder?: boolean }) {
   const { lines, hydrated, clear } = useCart();
   const { zone: savedZone } = useDeliveryZone();
@@ -84,7 +93,10 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                 className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 py-2 ${p.configured ? "cursor-pointer border-line has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50" : "cursor-not-allowed border-dashed border-line bg-subtle text-muted"}`}
               >
                 <input type="radio" name="payment" value={p.id} disabled={!p.configured} defaultChecked={v?.payment === p.id} className="h-4 w-4 accent-brand-600" />
-                <span className="text-sm">
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white ${p.configured ? PAY_CHIP[p.id] ?? "bg-brand-600" : "bg-stone-300"}`} aria-hidden="true">
+                  {p.label.charAt(0)}
+                </span>
+                <span className="min-w-0 text-sm">
                   <span className="block font-medium">{p.label}</span>
                   <span className="block text-xs">{p.configured ? p.note : "Not connected yet"}</span>
                 </span>
