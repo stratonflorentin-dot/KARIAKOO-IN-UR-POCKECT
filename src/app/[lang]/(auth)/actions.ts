@@ -58,6 +58,36 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   redirect(localizePath(locale, "/customer"));
 }
 
+/** Start the Supabase-hosted Google OAuth flow for the selected app role. */
+export async function beginGoogleSignIn(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const { locale, e } = await context();
+  const requestedRole = String(formData.get("as") ?? "customer");
+  const as = requestedRole === "seller" || requestedRole === "rider" ? requestedRole : "customer";
+  const nextPath = as === "customer" ? "/customer" : `/apply/${as}`;
+  const callback = new URL("/auth/callback", await requestOrigin());
+  callback.searchParams.set("provider", "google");
+  callback.searchParams.set("as", as);
+  callback.searchParams.set("next", localizePath(locale, nextPath));
+
+  const sb = await createSupabaseServerClient();
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback.toString() },
+  });
+  if (error || !data.url) {
+    return {
+      status: "error",
+      message: error
+        ? friendlyAuthError(error.message, e)
+        : dictionaryFor(locale).auth.googleFailed,
+    };
+  }
+  redirect(data.url);
+}
+
 /** Absolute origin of this request, for links Supabase emails back to us. */
 async function requestOrigin(): Promise<string> {
   const h = await headers();
@@ -138,16 +168,32 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const requestedRole = String(formData.get("as") ?? "customer");
+  const as = requestedRole === "seller" || requestedRole === "rider" ? requestedRole : "customer";
   if (fullName.length < 2) return { status: "error", message: e.enterName };
   if (!email) return { status: "error", message: e.enterEmail };
   if (password.length < 8) return { status: "error", message: e.passwordShort };
 
+  const callback = new URL("/auth/callback", await requestOrigin());
+  callback.searchParams.set("provider", "email");
+  callback.searchParams.set("as", as);
+  callback.searchParams.set(
+    "next",
+    localizePath(locale, as === "customer" ? "/customer" : `/apply/${as}`),
+  );
   const sb = await createSupabaseServerClient();
-  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: callback.toString(),
+    },
+  });
   if (error) return { status: "error", message: friendlyAuthError(error.message, e) };
   // When email confirmation is on, there is no session yet.
   if (!data.session) return { status: "ok", message: e.accountCreated };
-  redirect(localizePath(locale, "/customer"));
+  redirect(localizePath(locale, as === "customer" ? "/customer" : `/apply/${as}`));
 }
 
 export async function signOut() {

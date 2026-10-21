@@ -2,6 +2,7 @@ import { Bike, Store, User } from "lucide-react";
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { SignInForm } from "@/components/auth/AuthForm";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import Link from "@/components/i18n/Link";
 import { Notice } from "@/components/ui/States";
 import { getDictionary } from "@/i18n/server";
@@ -34,6 +35,13 @@ export default async function SignInPage({ searchParams }: PageProps<"/[lang]/si
       {params.error === "link" && (
         <div className="mb-4"><Notice tone="warning">{t.auth.linkExpired}</Notice></div>
       )}
+      {params.error === "google" && (
+        <div className="mb-4"><Notice tone="warning">{t.auth.googleFailed}</Notice></div>
+      )}
+      <GoogleSignInButton as={as} />
+      <div className="my-4 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />{t.auth.orWithEmail}<span className="h-px flex-1 bg-line" />
+      </div>
       <SignInForm as={as} />
       <p className="mt-5 text-center text-sm text-muted">
         {copy.footerLead}{" "}

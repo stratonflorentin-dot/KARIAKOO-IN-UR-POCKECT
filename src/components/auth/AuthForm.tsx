@@ -122,12 +122,13 @@ export function StaffSignInForm() {
   );
 }
 
-export function SignUpForm() {
+export function SignUpForm({ as = "customer" }: { as?: "customer" | "seller" | "rider" }) {
   const id = useId();
   const { t } = useI18n();
   const [state, action, pending] = useActionState<AuthState, FormData>(signUp, { status: "idle" });
   return (
     <form action={action} className="space-y-3">
+      <input type="hidden" name="as" value={as} />
       <IconField id={`${id}-name`} label={t.auth.fullName} Icon={User} name="full_name" type="text" autoComplete="name" required />
       <IconField id={`${id}-email`} label={t.auth.email} Icon={Mail} name="email" type="email" autoComplete="email" required />
       <PasswordField id={`${id}-password`} label={t.auth.choosePassword} autoComplete="new-password" minLength={8} />

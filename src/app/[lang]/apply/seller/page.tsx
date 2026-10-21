@@ -2,6 +2,7 @@ import { Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "@/components/i18n/Link";
 import { SellerApplyForm } from "@/components/apply/ApplyForms";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { ButtonLink } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { Notice } from "@/components/ui/States";
@@ -45,9 +46,13 @@ export default async function SellerApplyPage() {
         {!signedIn ? (
           <div className="mt-6 space-y-4">
             <Notice tone="info">{a.needAccount}</Notice>
+            <GoogleSignInButton as="seller" />
+            <div className="flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+              <span className="h-px flex-1 bg-line" />{t.auth.orWithEmail}<span className="h-px flex-1 bg-line" />
+            </div>
             <div className="flex gap-3">
-              <ButtonLink href="/sign-up" variant="dark">{a.createAccount}</ButtonLink>
-              <ButtonLink href="/sign-in" variant="outline">{a.signIn}</ButtonLink>
+              <ButtonLink href="/sign-up?as=seller" variant="dark">{a.createAccount}</ButtonLink>
+              <ButtonLink href="/sign-in?as=seller" variant="outline">{a.signIn}</ButtonLink>
             </div>
           </div>
         ) : existing ? (
