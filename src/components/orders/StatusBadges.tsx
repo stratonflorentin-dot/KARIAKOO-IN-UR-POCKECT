@@ -1,10 +1,7 @@
+"use client";
+
 import { Badge, type Tone } from "@/components/ui/Badge";
-import {
-  deliveryStatusLabel,
-  fulfillmentStatusLabel,
-  orderStatusLabel,
-  paymentStatusLabel,
-} from "@/lib/status";
+import { useI18n } from "@/i18n/client";
 import type { DeliveryStatus, FulfillmentStatus, OrderStatus, PaymentStatus } from "@/lib/types";
 
 const orderTone: Record<OrderStatus, Tone> = {
@@ -45,7 +42,19 @@ const deliveryTone: Record<DeliveryStatus, Tone> = {
   CANCELLED: "neutral",
 };
 
-export const OrderStatusBadge = ({ status }: { status: OrderStatus }) => <Badge tone={orderTone[status]}>{orderStatusLabel[status]}</Badge>;
-export const PaymentStatusBadge = ({ status }: { status: PaymentStatus }) => <Badge tone={paymentTone[status]}>{paymentStatusLabel[status]}</Badge>;
-export const FulfillmentBadge = ({ status }: { status: FulfillmentStatus }) => <Badge tone={fulfillmentTone[status]}>{fulfillmentStatusLabel[status]}</Badge>;
-export const DeliveryStatusBadge = ({ status }: { status: DeliveryStatus }) => <Badge tone={deliveryTone[status]}>{deliveryStatusLabel[status]}</Badge>;
+export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+  const { t } = useI18n();
+  return <Badge tone={orderTone[status]}>{t.status.order[status]}</Badge>;
+}
+export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
+  const { t } = useI18n();
+  return <Badge tone={paymentTone[status]}>{t.status.payment[status]}</Badge>;
+}
+export function FulfillmentBadge({ status }: { status: FulfillmentStatus }) {
+  const { t } = useI18n();
+  return <Badge tone={fulfillmentTone[status]}>{t.status.fulfillment[status]}</Badge>;
+}
+export function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
+  const { t } = useI18n();
+  return <Badge tone={deliveryTone[status]}>{t.status.delivery[status]}</Badge>;
+}

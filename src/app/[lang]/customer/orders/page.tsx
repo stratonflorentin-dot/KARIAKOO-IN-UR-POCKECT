@@ -6,22 +6,27 @@ import { RoleGate } from "@/components/auth/RoleGate";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, Skeleton } from "@/components/ui/States";
+import { fmt } from "@/i18n/config";
+import { getDictionary } from "@/i18n/server";
 import { getSessionWithRole } from "@/lib/auth/session";
 import { liveCustomerOrders } from "@/lib/data/customer-live";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { orderTotals } from "@/lib/money";
 
-export const metadata: Metadata = { title: "My orders" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).orders.myOrders };
+}
 
 // Every page in this area needs a signed-in session, so it is rendered per
 // request. Opt out of build-time instant-navigation validation, which renders
 // without a session (and would just see the access check's 404).
 export const instant = false;
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
+  const t = await getDictionary();
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">My orders</h1>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.orders.myOrders}</h1>
       <Suspense fallback={<Skeleton className="mt-6 h-64" />}>
         <RoleGate role="customer">
           <OrderList />
@@ -32,9 +37,10 @@ export default function OrdersPage() {
 }
 
 async function OrderList() {
+  const t = await getDictionary();
   const orders = await liveCustomerOrders(await getSessionWithRole("customer"));
   if (orders.length === 0) {
-    return <div className="mt-6"><EmptyState icon={<Package size={22} />} title="No orders yet" action={<ButtonLink href="/customer">Start shopping</ButtonLink>} /></div>;
+    return <div className="mt-6"><EmptyState icon={<Package size={22} />} title={t.orders.noOrders} action={<ButtonLink href="/customer">{t.cart.startShopping}</ButtonLink>} /></div>;
   }
   return (
     <ul className="mt-6 space-y-3">
@@ -51,8 +57,8 @@ async function OrderList() {
                   <PaymentStatusBadge status={o.paymentStatus} />
                 </div>
                 <p className="mt-1 truncate text-sm text-muted">
-                  {itemCount} {itemCount === 1 ? "item" : "items"} · {o.items[0].productName}
-                  {o.items.length > 1 ? ` + ${o.items.length - 1} more` : ""}
+                  {itemCount === 1 ? t.common.item : fmt(t.common.items, { count: itemCount })} · {o.items[0].productName}
+                  {o.items.length > 1 ? ` ${fmt(t.orders.more, { count: o.items.length - 1 })}` : ""}
                 </p>
                 <p className="mt-0.5 text-xs text-muted">{formatDateTime(o.placedAt)}</p>
               </div>
