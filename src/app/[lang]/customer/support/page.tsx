@@ -2,23 +2,26 @@ import { Bike, CreditCard, MessageCircle, PackageOpen, RotateCcw } from "lucide-
 import type { Metadata } from "next";
 import Link from "@/components/i18n/Link";
 import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
+import { getDictionary } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Help centre" };
-
-const topics = [
-  { Icon: Bike, title: "Delivery", body: "Track your order, delivery times, and what the 4-digit PIN is for." },
-  { Icon: CreditCard, title: "Payments", body: "How you pay KARIAKOO, cash on delivery, and when an order is marked paid." },
-  { Icon: RotateCcw, title: "Returns & refunds", body: "Report a wrong or missing item and request a refund from your order." },
-  { Icon: PackageOpen, title: "Orders", body: "Find an order, understand its status, and what happens at each step." },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).support.metaTitle };
+}
 
 /** Customer help centre: common topics and how to reach support. */
-export default function SupportPage() {
+export default async function SupportPage() {
+  const s = (await getDictionary()).support;
+  const topics = [
+    { Icon: Bike, title: s.deliveryT, body: s.deliveryB },
+    { Icon: CreditCard, title: s.paymentsT, body: s.paymentsB },
+    { Icon: RotateCcw, title: s.returnsT, body: s.returnsB },
+    { Icon: PackageOpen, title: s.ordersT, body: s.ordersB },
+  ];
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <Link href="/customer" className="text-sm font-medium text-brand-700 hover:underline">← Home</Link>
+      <Link href="/customer" className="text-sm font-medium text-brand-700 hover:underline">← {s.home}</Link>
       <div className="mt-4">
-      <PageHeader title="How can we help?" description="Answers to common questions and help with an existing order." />
+        <PageHeader title={s.title} description={s.subtitle} />
       </div>
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -36,20 +39,20 @@ export default function SupportPage() {
       </ul>
 
       <Card aria-labelledby="report-heading" className="mt-6">
-        <CardHeader id="report-heading" title="Problem with an order?" subtitle="Report it from the order itself so we have the details." />
+        <CardHeader id="report-heading" title={s.problemTitle} subtitle={s.problemSub} />
         <Link
           href="/customer/orders"
           className="inline-flex items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm font-semibold hover:border-brand-300 hover:bg-brand-50"
         >
-          <PackageOpen size={16} className="shrink-0 text-brand-700" aria-hidden="true" /> Go to my orders
+          <PackageOpen size={16} className="shrink-0 text-brand-700" aria-hidden="true" /> {s.goToOrders}
         </Link>
       </Card>
 
       <Card aria-labelledby="contact-heading" className="mt-6">
-        <CardHeader id="contact-heading" title="Contact us" />
+        <CardHeader id="contact-heading" title={s.contact} />
         <p className="flex gap-2 text-sm text-muted">
           <MessageCircle size={16} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
-          {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? <a className="font-semibold text-brand-700 hover:underline" href={`tel:${process.env.NEXT_PUBLIC_SUPPORT_PHONE}`}>Call KARIAKOO support</a> : "Support contact details have not been configured yet."}
+          {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? <a className="font-semibold text-brand-700 hover:underline" href={`tel:${process.env.NEXT_PUBLIC_SUPPORT_PHONE}`}>{s.call}</a> : s.notConfigured}
         </p>
       </Card>
     </div>

@@ -11,6 +11,9 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { ProductImage } from "@/components/product/ProductImage";
 import { StockBadge } from "@/components/product/StockBadge";
 import { Skeleton } from "@/components/ui/States";
+import { fmt } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { getDictionary } from "@/i18n/server";
 import { getCategory } from "@/lib/catalog";
 import { audienceLabel, productTypeLabel } from "@/lib/departments";
 import { getCatalog } from "@/lib/catalog-source";
@@ -40,8 +43,11 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
   const catalog = await getCatalog();
   const product = catalog.getProduct(slug);
   if (!product) notFound();
+  const t = await getDictionary();
+  const d = t.product;
   const shop = catalog.getShop(product.shopId);
   const category = getCategory(product.category);
+  const categoryName = category ? (t.categories[category.slug as keyof Dictionary["categories"]] ?? category.name) : "";
   const related = catalog.searchProducts({ category: product.category, sort: "popular", pageSize: 5 }).items.filter((p) => p.id !== product.id).slice(0, 4);
   const cheapest = Math.min(...deliveryZones.map((z) => z.feeTzs));
 
@@ -49,8 +55,8 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
     <>
       <RecordView productId={product.id} />
       <nav aria-label="Breadcrumb" className="truncate text-sm text-muted">
-        <Link href="/customer" className="hover:text-ink">Home</Link> /{" "}
-        {category && <><Link href={`/customer/category/${category.slug}`} className="hover:text-ink">{category.name}</Link> /{" "}</>}
+        <Link href="/customer" className="hover:text-ink">{t.nav.home}</Link> /{" "}
+        {category && <><Link href={`/customer/category/${category.slug}`} className="hover:text-ink">{categoryName}</Link> /{" "}</>}
         <span aria-current="page" className="text-ink">{product.name}</span>
       </nav>
 
@@ -67,7 +73,7 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
                   <Store size={15} aria-hidden="true" /> {shop.name}
                   {shop.verified && <><BadgeCheck size={15} aria-hidden="true" /><span className="sr-only">(verified seller)</span></>}
                 </Link>
-                {shop.verified && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-800">Verified seller</span>}
+                {shop.verified && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-800">{d.verifiedSeller}</span>}
                 <ShopKindBadge shop={shop} />
                 {shop.reviewCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
@@ -83,7 +89,7 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           {product.audience && (
             <p className="mt-2 flex flex-wrap gap-2 text-sm">
               <Link href={product.audience === "unisex" ? "/customer/department/men" : `/customer/department/${product.audience}`} className="rounded-full bg-night px-3 py-1 font-medium text-white hover:bg-stone-800">
-                {product.audience === "unisex" ? "Men & Women" : audienceLabel(product.audience)}
+                {product.audience === "unisex" ? d.menWomen : audienceLabel(product.audience)}
               </Link>
               {product.productType && (
                 <Link href={`/customer/search?type=${product.productType}${product.audience !== "unisex" ? `&for=${product.audience}` : ""}`} className="rounded-full border border-line px-3 py-1 font-medium hover:border-brand-300">
@@ -94,7 +100,7 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           )}
           <div className="mt-4">
             <Price amount={product.priceTzs} compareAt={product.compareAtTzs} size="lg" />
-            <p className="mt-1 text-sm text-muted">per {product.unit} · delivery from {formatTzs(cheapest)}</p>
+            <p className="mt-1 text-sm text-muted">{fmt(d.perDelivery, { unit: product.unit, fee: formatTzs(cheapest) })}</p>
           </div>
           <div className="mt-3"><StockBadge stock={product.stock} /></div>
 
@@ -105,9 +111,9 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           {/* Compact reassurance at the decision point — honest claims only. */}
           <ul className="mt-4 grid grid-cols-3 gap-2 text-center">
             {[
-              { Icon: Bike, label: "Doorstep delivery" },
-              { Icon: ShieldCheck, label: "Secure payment" },
-              { Icon: KeyRound, label: "PIN on delivery" },
+              { Icon: Bike, label: d.trustDoorstep },
+              { Icon: ShieldCheck, label: d.trustSecure },
+              { Icon: KeyRound, label: d.trustPin },
             ].map(({ Icon, label }) => (
               <li key={label} className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-subtle px-2 py-3">
                 <Icon size={18} className="text-brand-600" aria-hidden="true" />
@@ -119,25 +125,22 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           <ul className="mt-6 space-y-3 rounded-2xl bg-subtle p-4 text-sm">
             <li className="flex gap-3">
               <ShieldCheck className="shrink-0 text-brand-600" size={20} aria-hidden="true" />
-              <span><strong className="font-semibold">You pay KARIAKOO, not the shop.</strong> The seller is paid only after you confirm delivery with your PIN.</span>
+              <span><strong className="font-semibold">{d.payTitle}</strong> {d.payBody}</span>
             </li>
             <li className="flex gap-3">
               <Bike className="shrink-0 text-brand-600" size={20} aria-hidden="true" />
-              <span>
-                Rider delivery across Dar es Salaam, {formatTzs(cheapest)}–{formatTzs(Math.max(...deliveryZones.map((z) => z.feeTzs)))} by area,
-                plus {formatTzs(EXTRA_PICKUP_FEE_TZS)} for each extra shop in your order.
-              </span>
+              <span>{fmt(d.riderDelivery, { min: formatTzs(cheapest), max: formatTzs(Math.max(...deliveryZones.map((z) => z.feeTzs))), extra: formatTzs(EXTRA_PICKUP_FEE_TZS) })}</span>
             </li>
             {shop && (
               <li className="flex gap-3">
                 <MapPin className="shrink-0 text-brand-600" size={20} aria-hidden="true" />
-                <span>Ships from {shop.address} · {shop.openingHours}</span>
+                <span>{fmt(d.shipsFrom, { address: shop.address, hours: shop.openingHours })}</span>
               </li>
             )}
           </ul>
 
           <section aria-labelledby="details-heading" className="mt-8">
-            <h2 id="details-heading" className="text-lg font-semibold">Product details</h2>
+            <h2 id="details-heading" className="text-lg font-semibold">{d.details}</h2>
             <p className="mt-2 leading-7 text-muted">{product.description}</p>
             <ul className="mt-4 flex flex-wrap gap-2">
               {product.highlights.map((h) => <li key={h} className="rounded-full border border-line px-3 py-1 text-sm">{h}</li>)}
@@ -148,7 +151,7 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
 
       {related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-14">
-          <h2 id="related-heading" className="mb-4 text-xl font-bold tracking-tight">More in {category?.name}</h2>
+          <h2 id="related-heading" className="mb-4 text-xl font-bold tracking-tight">{fmt(d.moreIn, { category: categoryName })}</h2>
           <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             {related.map((p) => <li key={p.id}><ProductCard product={p} /></li>)}
           </ul>
