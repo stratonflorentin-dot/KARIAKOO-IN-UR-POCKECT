@@ -10,7 +10,8 @@ import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from "@/i18n/con
  *    their saved choice, else their browser's, else English. The locale being
  *    viewed is kept in a cookie so server actions and redirects can follow it.
  *
- * 2. Admin domain (optional, via ADMIN_DOMAIN). On the admin domain, app paths
+ * 2. Admin domain (ADMIN_DOMAIN, defaulting to the production admin hostname).
+ *    On the admin domain, app paths
  *    are served from /admin (sign-in and password pages excepted); on the main
  *    domain, /admin paths redirect to the admin domain.
  *
@@ -19,6 +20,7 @@ import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from "@/i18n/con
  */
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
+const DEFAULT_ADMIN_DOMAIN = "kariakoo-admin-nine.vercel.app";
 
 /** Paths an admin-domain visitor reaches as-is rather than under /admin. */
 const ADMIN_DOMAIN_PASSTHROUGH = ["/admin", "/staff", "/forgot-password", "/reset-password"];
@@ -61,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
   // 2. Admin domain routing.
   let rewriteTo: URL | null = null;
-  const adminDomain = process.env.ADMIN_DOMAIN;
+  const adminDomain = process.env.ADMIN_DOMAIN?.trim() || DEFAULT_ADMIN_DOMAIN;
   if (localized && isLocale(first)) {
     const rest = pathname.slice(first.length + 1) || "/";
     if (isAdminDomain(request.headers.get("host"), adminDomain)) {

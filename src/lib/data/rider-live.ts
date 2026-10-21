@@ -26,6 +26,8 @@ export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt:
 export async function riderOffers(session: Session | null): Promise<RiderOfferView[]> {
   assertRole(session, "rider");
   const sb = await createSupabaseServerClient();
+  const { error: dispatchError } = await sb.rpc("rider_refresh_offers");
+  if (dispatchError) throw new Error(`Could not refresh delivery offers: ${dispatchError.message}`);
   const { data, error } = await sb.from("delivery_offers")
     .select("order_id,payout_tzs,expires_at")
     .eq("rider_id", session.userId)

@@ -1,6 +1,7 @@
 import { Bike, ClipboardList, DollarSign, MapPin, Truck, Wallet } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { LiveOfferList } from "@/components/rider/LiveOfferList";
+import { RiderDispatchPoller } from "@/components/rider/RiderDispatchPoller";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
@@ -32,6 +33,7 @@ export default async function RiderDashboardPage() {
 
   return (
     <>
+      <RiderDispatchPoller />
       <PageHeader
         title="Your deliveries"
         description="Live delivery activity assigned to your rider account."

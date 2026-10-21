@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
@@ -19,6 +21,21 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
   bool _online = false;
   bool _busy = false;
   String? _note;
+  Timer? _offersRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _offersRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted) ref.invalidate(myOffersProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _offersRefreshTimer?.cancel();
+    super.dispose();
+  }
 
   String get _riderId => widget.session.riderId!;
 

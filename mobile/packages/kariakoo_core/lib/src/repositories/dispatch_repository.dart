@@ -11,7 +11,8 @@ class DispatchRepository {
   const DispatchRepository();
 
   /// Go online/offline and (optionally) report the rider's real GPS fix.
-  Future<void> setPresence({required bool online, double? lng, double? lat}) async {
+  Future<void> setPresence(
+      {required bool online, double? lng, double? lat}) async {
     await supabase.rpc('rider_set_presence', params: {
       'p_online': online,
       'p_lng': lng,
@@ -21,16 +22,23 @@ class DispatchRepository {
 
   /// The caller's live offers (RLS already scopes to this rider).
   Future<List<DeliveryOffer>> myOffers() async {
+    // This also recovers orders that were placed while this rider was offline
+    // and requeues offers that expired without being accepted.
+    await supabase.rpc('rider_refresh_offers');
     final rows = await supabase
         .from('delivery_offers')
         .select('id,order_id,rider_id,payout_tzs,status,offered_at,expires_at')
         .eq('status', 'pending')
+        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
         .order('offered_at', ascending: false);
-    return (rows as List).map((e) => DeliveryOffer.fromJson(e as Map<String, dynamic>)).toList();
+    return (rows as List)
+        .map((e) => DeliveryOffer.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<String> acceptOffer(String orderId) async {
-    final res = await supabase.rpc('rider_accept_offer', params: {'p_order': orderId});
+    final res =
+        await supabase.rpc('rider_accept_offer', params: {'p_order': orderId});
     return res is String ? res : 'ACCEPTED';
   }
 
@@ -40,13 +48,15 @@ class DispatchRepository {
 
   /// Move an accepted job forward: PICKED_UP or IN_TRANSIT.
   Future<String> advance(String orderId, String to) async {
-    final res = await supabase.rpc('rider_advance_delivery', params: {'p_order': orderId, 'p_to': to});
+    final res = await supabase.rpc('rider_advance_delivery',
+        params: {'p_order': orderId, 'p_to': to});
     return res is String ? res : to;
   }
 
   /// Finish an in-transit delivery by entering the customer's PIN.
   Future<String> completeDelivery(String orderId, String pin) async {
-    final res = await supabase.rpc('rider_complete_delivery', params: {'p_order': orderId, 'p_pin': pin});
+    final res = await supabase.rpc('rider_complete_delivery',
+        params: {'p_order': orderId, 'p_pin': pin});
     return res is String ? res : 'DELIVERED';
   }
 
@@ -56,14 +66,16 @@ class DispatchRepository {
         .from('deliveries')
         .select('order_id,rider_id,status,rider_payout_tzs')
         .eq('rider_id', riderId)
-        .inFilter('status', ['ACCEPTED', 'PICKED_UP', 'IN_TRANSIT'])
-        .limit(1);
+        .inFilter('status', ['ACCEPTED', 'PICKED_UP', 'IN_TRANSIT']).limit(1);
     final list = rows as List;
-    return list.isEmpty ? null : RiderDelivery.fromJson(list.first as Map<String, dynamic>);
+    return list.isEmpty
+        ? null
+        : RiderDelivery.fromJson(list.first as Map<String, dynamic>);
   }
 }
 
-final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) => const DispatchRepository());
+final dispatchRepositoryProvider =
+    Provider<DispatchRepository>((ref) => const DispatchRepository());
 
 final myOffersProvider = FutureProvider.autoDispose<List<DeliveryOffer>>((ref) {
   return ref.read(dispatchRepositoryProvider).myOffers();
