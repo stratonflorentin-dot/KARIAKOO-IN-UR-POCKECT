@@ -1,89 +1,63 @@
-import { Bike, ShoppingBag, Store } from "lucide-react";
+import { Bike, ChevronRight, Store, User } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 
-export const metadata: Metadata = { title: "Choose how you'll use KARIAKOO" };
+export const metadata: Metadata = { title: "Choose your role" };
 
 // Customers browse directly; sellers and riders apply for access. Admin is
 // staff-only and has a separate sign-in entrance.
 const roles = [
-  { role: "customer", title: "Customer", body: "Discover shops, order and pay securely, and track delivery.", Icon: ShoppingBag, accent: "bg-brand-600", href: "/customer" },
-  { role: "seller", title: "Business / Seller", body: "List products, manage stock, confirm orders and see your earnings.", Icon: Store, accent: "bg-brand-800", href: "/apply/seller" },
-  { role: "rider", title: "Rider", body: "Accept delivery jobs, follow pickup and drop-off, and earn.", Icon: Bike, accent: "bg-gold-500", href: "/apply/rider" },
+  { role: "customer", title: "Customer", sw: "Mteja", body: "Shop, order and track your deliveries", Icon: User, chip: "bg-brand-600 text-white", href: "/customer" },
+  { role: "seller", title: "Seller / Supplier", sw: "Mfanyabiashara", body: "List products, manage stock and fulfil orders", Icon: Store, chip: "bg-gold-400 text-ink", href: "/apply/seller" },
+  { role: "rider", title: "Delivery Rider", sw: "Dereva", body: "Collect parcels and deliver orders", Icon: Bike, chip: "bg-brand-600 text-white", href: "/apply/rider" },
 ] as const;
 
-/**
- * Role chooser / onboarding for customer, seller, and rider entry points.
- */
+/** Role chooser (reference frame 2): customer, seller and rider entry points. */
 export default function WelcomePage() {
   return (
-    <main id="main" className="min-h-full flex-1 bg-subtle px-4 py-10">
-      <div className="mx-auto max-w-3xl">
-        <Logo href="/" tagline size="lg" />
-        <h1 className="mt-6 text-3xl font-bold tracking-tight">How do you want to use KARIAKOO?</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Join Tanzania&apos;s trusted marketplace. Pick the experience that fits you — each role has its own tailored
-          screens.
-        </p>
+    <main id="main" className="flex min-h-full flex-1 flex-col bg-subtle px-4 py-10">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+        <div className="flex justify-center">
+          <Logo href="/" tagline size="lg" />
+        </div>
+        <h1 className="mt-8 text-center text-2xl font-bold tracking-tight">Choose Your Role</h1>
+        <p className="mt-1 text-center text-sm text-muted">Select how you want to use KARIAKOO AT UR POCKET</p>
 
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {roles.map(({ role, title, body, Icon, accent, href }) => (
-              <li key={role}>
-              <RoleCard href={href} title={title} body={body} Icon={Icon} accent={accent} />
-              </li>
-            ))}
+        <ul className="mt-6 space-y-3">
+          {roles.map(({ role, title, sw, body, Icon, chip, href }) => (
+            <li key={role}>
+              <Link href={href} className="flex items-center gap-4 rounded-2xl border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
+                <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full ${chip}`}>
+                  <Icon size={24} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{title}</span>
+                  <span className="block text-sm font-semibold text-brand-700">{sw}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{body}</span>
+                </span>
+                <ChevronRight size={20} className="shrink-0 text-muted" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
         </ul>
 
-        <p className="mt-8 text-sm text-muted">
+        <p className="mt-5 text-center text-sm text-muted">
           Just looking?{" "}
-          <Link href="/customer" className="font-semibold text-brand-700 underline">
-            Browse the marketplace as a guest
-          </Link>
-          .
+          <Link href="/customer" className="font-semibold text-brand-700 underline">Browse as a guest</Link>
         </p>
 
-        <p className="mt-10 border-t border-line pt-5 text-xs text-muted">
-          KARIAKOO staff?{" "}
-          <Link href="/staff" className="font-semibold text-ink underline">
-            Admin sign in
-          </Link>
-        </p>
+        <div className="mt-auto pt-10 text-center">
+          <p className="text-sm text-muted">
+            Already have an account?{" "}
+            <Link href="/sign-in" className="font-semibold text-brand-700">Login</Link>
+          </p>
+          <p className="mt-3 text-xs text-muted">
+            KARIAKOO staff?{" "}
+            <Link href="/staff" className="font-semibold text-ink underline">Admin sign in</Link>
+          </p>
+        </div>
       </div>
     </main>
-  );
-}
-
-function RoleCard({
-  href,
-  title,
-  body,
-  Icon,
-  accent,
-}: {
-  href: string;
-  title: string;
-  body: string;
-  Icon: typeof ShoppingBag;
-  accent: string;
-}) {
-  const inner = (
-    <>
-      <span className={`grid h-12 w-12 place-items-center rounded-2xl text-white ${accent}`}>
-        <Icon aria-hidden="true" />
-      </span>
-      <span>
-        <span className="block text-lg font-semibold">{title}</span>
-        <span className="mt-1 block text-sm text-muted">{body}</span>
-      </span>
-    </>
-  );
-  const cardClass =
-    "flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-line bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg";
-
-  return (
-    <Link href={href} className={cardClass}>
-      {inner}
-    </Link>
   );
 }

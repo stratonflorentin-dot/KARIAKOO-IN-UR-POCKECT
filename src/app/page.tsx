@@ -1,107 +1,59 @@
-import { Bike, Headset, ShieldCheck, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
-import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { Logo } from "@/components/ui/Logo";
-import { SearchBar } from "@/components/ui/SearchBar";
-import { getCategories } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "KARIAKOO — now closer to you",
   description: "Shop Kariakoo's trusted shops online: fashion, electronics, food and home essentials, delivered across Dar es Salaam.",
 };
 
-const trust = [
-  { Icon: ShieldCheck, title: "Clear order updates", hint: "See each step as it happens" },
-  { Icon: Bike, title: "Doorstep delivery", hint: "A rider brings your order" },
-  { Icon: Store, title: "Approved shops", hint: "Local sellers in one store" },
-  { Icon: Headset, title: "Order support", hint: "Help for your purchase" },
-];
-
-/** Public splash / welcome screen: the app's front door before choosing a role. */
-export default function LandingPage() {
-  const categories = getCategories().slice(0, 6);
-
+/** Splash / onboarding: brand promise, then Get Started or Login (reference frame 1). */
+export default function SplashPage() {
   return (
-    <main id="main" className="flex-1 bg-surface">
-      <section className="relative overflow-hidden bg-night text-white">
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_-10%,rgba(16,185,129,0.55),transparent_60%),radial-gradient(40rem_25rem_at_-10%_110%,rgba(245,190,30,0.25),transparent_60%)]" />
-        <div aria-hidden="true" className="absolute inset-0 opacity-[0.06] [background-image:repeating-linear-gradient(45deg,#fff_0_2px,transparent_2px_22px)]" />
-        <div className="relative mx-auto max-w-2xl px-4 pb-12 pt-8 sm:px-6 sm:pt-12">
-          <div className="flex items-center justify-between">
-            <Logo tone="light" href="/" tagline />
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">Dar es Salaam</span>
-          </div>
+    <main id="main" className="relative flex min-h-dvh flex-1 flex-col overflow-hidden bg-night text-white">
+      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_26rem_at_50%_8%,rgba(16,185,129,0.45),transparent_65%),radial-gradient(36rem_18rem_at_50%_100%,rgba(245,190,30,0.28),transparent_70%)]" />
+      <Skyline />
 
-          <p className="mt-10 text-sm font-semibold text-gold-300">Shop · Order · Deliver</p>
-          <h1 className="mt-2 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-            Shop Kariakoo.
-            <br />
-            Get it <span className="text-gold-400">delivered</span>.
-          </h1>
-          <p className="mt-4 max-w-lg text-base text-white/75">
-            Explore products from local shops, place an order in one store, and follow its journey to your door.
+      <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-16 sm:pt-24">
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <Logo tone="light" href="/" tagline size="xl" />
+          <p className="mt-5 text-sm font-semibold tracking-wide text-white/85">Kununua · Kupeleka · Kufaidika</p>
+          <p className="mt-6 max-w-xs text-base text-white/70">Tanzania&apos;s trusted marketplace and delivery network.</p>
+        </div>
+
+        <div className="relative mt-10 space-y-3">
+          <ButtonLink href="/welcome" variant="gold" size="lg" full>Get Started</ButtonLink>
+          <ButtonLink href="/sign-in" variant="glass" size="lg" full>Login</ButtonLink>
+          <p className="pt-1 text-center text-sm">
+            <Link href="/customer" className="font-medium text-white/75 underline underline-offset-4 hover:text-white">Browse as a guest</Link>
           </p>
-
-          <div className="mt-6">
-            <SearchBar variant="glass" id="landing-search" />
-          </div>
-
-          <nav aria-label="Popular categories" className="-mx-4 mt-6 sm:mx-0">
-            <ul className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 sm:flex-wrap sm:px-0">
-              {categories.map((c) => (
-                <li key={c.slug} className="shrink-0">
-                  <Link
-                    href={`/customer/category/${c.slug}`}
-                    className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 bg-white/10 pl-1.5 pr-4 text-sm font-medium text-white backdrop-blur-md transition hover:border-gold-400/60 hover:bg-white/15"
-                  >
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-white/15">
-                      <CategoryIcon slug={c.slug} size={16} />
-                    </span>
-                    {c.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <ButtonLink href="/customer" variant="gold" size="lg" full>
-              Start shopping →
-            </ButtonLink>
-            <ButtonLink href="/welcome" variant="glass" size="lg" full>
-              Choose how you&apos;ll use Kariakoo
-            </ButtonLink>
-          </div>
         </div>
-
-        {/* Gold skyline flourish along the bottom, like the mockup. */}
-        <div aria-hidden="true" className="relative h-6 bg-gold-400/90" style={{ clipPath: "polygon(0 100%, 0 40%, 8% 55%, 14% 20%, 22% 55%, 30% 30%, 40% 60%, 50% 25%, 60% 58%, 70% 35%, 80% 60%, 90% 30%, 100% 55%, 100% 100%)" }} />
-      </section>
-
-      <section aria-labelledby="why-heading" className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-        <h2 id="why-heading" className="sr-only">Why KARIAKOO</h2>
-        <ul className="grid grid-cols-2 gap-3">
-          {trust.map(({ Icon, title, hint }) => (
-            <li key={title} className="rounded-3xl border border-line bg-white p-4">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-brand-700">
-                <Icon size={20} aria-hidden="true" />
-              </span>
-              <p className="mt-3 font-semibold">{title}</p>
-              <p className="text-sm text-muted">{hint}</p>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-8 rounded-3xl bg-brand-50 p-5 text-center">
-          <p className="text-lg font-bold text-brand-900">Kariakoo, made more accessible.</p>
-          <p className="mt-1 text-sm text-brand-800">Browse local shops, find what you need, and keep your order in view.</p>
-          <ButtonLink href="/welcome" variant="primary" size="lg" className="mt-4">
-            Get started
-          </ButtonLink>
-        </div>
-      </section>
+      </div>
     </main>
+  );
+}
+
+/** Decorative Dar es Salaam skyline silhouette behind the buttons. */
+function Skyline() {
+  const towers: [number, number, number][] = [
+    [0, 70, 14], [16, 110, 12], [30, 150, 18], [50, 95, 10], [62, 190, 16], [80, 130, 14], [96, 240, 20],
+    [118, 160, 12], [132, 120, 16], [150, 210, 14], [166, 150, 18], [186, 100, 12], [200, 175, 16], [218, 125, 14],
+    [234, 260, 22], [258, 140, 12], [272, 185, 16], [290, 105, 14], [306, 155, 18], [326, 90, 12], [340, 135, 16],
+    [358, 80, 14], [374, 120, 26],
+  ];
+  return (
+    <svg aria-hidden="true" viewBox="0 0 400 280" preserveAspectRatio="xMidYMax slice" className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] w-full">
+      <defs>
+        <linearGradient id="kk-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#064e3b" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#0a211a" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      {towers.map(([x, h, w]) => (
+        <rect key={x} x={x} y={280 - h} width={w} height={h} rx="1.5" fill="url(#kk-sky)" />
+      ))}
+      <rect x="0" y="272" width="400" height="8" fill="#0a211a" />
+    </svg>
   );
 }
