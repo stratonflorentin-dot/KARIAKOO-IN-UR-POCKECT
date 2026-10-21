@@ -1,7 +1,8 @@
 /// KARIAKOO shared core: Supabase, models, auth, repositories, theme, widgets.
 library kariakoo_core;
 
-export 'package:supabase_flutter/supabase_flutter.dart' show User, AuthState, AuthException;
+export 'package:supabase_flutter/supabase_flutter.dart'
+    show User, AuthState, AuthException;
 
 export 'src/config/env.dart';
 export 'src/supabase/supabase_init.dart';
@@ -34,4 +35,5 @@ export 'src/util/format.dart';
 
 export 'src/screens/auth_screen.dart';
 export 'src/widgets/auth_gate.dart';
+export 'src/widgets/retry_panel.dart';
 export 'src/widgets/gold_button.dart';

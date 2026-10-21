@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
 
-const List<String> _zones = ['kariakoo', 'ilala', 'kinondoni', 'ubungo', 'temeke', 'kigamboni'];
+const List<String> _zones = [
+  'kariakoo',
+  'ilala',
+  'kinondoni',
+  'ubungo',
+  'temeke',
+  'kigamboni'
+];
 
 /// Apply to become a rider. Calls apply_as_rider, which grants the rider role
 /// (pending) and creates the rider record; an admin approves before jobs flow.
@@ -42,7 +49,9 @@ class _RiderApplyScreenState extends ConsumerState<RiderApplyScreen> {
       ref.invalidate(sessionProvider); // reload roles -> show the dashboard
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -57,25 +66,34 @@ class _RiderApplyScreenState extends ConsumerState<RiderApplyScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('Tell us about your vehicle. An admin reviews new riders before you start getting jobs.',
+            const Text(
+                'Tell us about your vehicle. An admin reviews new riders before you start getting jobs.',
                 style: TextStyle(color: AppColors.muted)),
             const SizedBox(height: 16),
             TextFormField(
               controller: _vehicle,
-              decoration: const InputDecoration(labelText: 'Vehicle (e.g. Motorcycle)'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              decoration:
+                  const InputDecoration(labelText: 'Vehicle (e.g. Motorcycle)'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _plate,
               decoration: const InputDecoration(labelText: 'Number plate'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _zone,
               decoration: const InputDecoration(labelText: 'Base area'),
-              items: [for (final z in _zones) DropdownMenuItem(value: z, child: Text(z[0].toUpperCase() + z.substring(1)))],
+              items: [
+                for (final z in _zones)
+                  DropdownMenuItem(
+                      value: z,
+                      child: Text(z[0].toUpperCase() + z.substring(1)))
+              ],
               onChanged: (v) => setState(() => _zone = v ?? 'kariakoo'),
             ),
             if (_error != null) ...[
@@ -83,7 +101,9 @@ class _RiderApplyScreenState extends ConsumerState<RiderApplyScreen> {
               Text(_error!, style: const TextStyle(color: AppColors.danger)),
             ],
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Submitting…' : 'Apply to ride')),
+            ElevatedButton(
+                onPressed: _busy ? null : _submit,
+                child: Text(_busy ? 'Submitting…' : 'Apply to ride')),
           ],
         ),
       ),

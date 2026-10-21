@@ -39,9 +39,17 @@ class SellerEntry extends ConsumerWidget {
     if (!session.hasRole(AppRole.seller)) return SellerHome(session: session);
     final shop = ref.watch(myShopProvider);
     return shop.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, __) => SellerHome(session: session),
-      data: (s) => s == null ? SellerHome(session: session) : SellerProductsScreen(session: session, shop: s),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => Scaffold(
+        body: RetryPanel(
+          message: 'Could not load your shop details.',
+          onRetry: () => ref.invalidate(myShopProvider),
+        ),
+      ),
+      data: (s) => s == null
+          ? SellerHome(session: session)
+          : SellerProductsScreen(session: session, shop: s),
     );
   }
 }
@@ -55,7 +63,8 @@ class SellerHome extends ConsumerWidget {
     final isSeller = session.hasRole(AppRole.seller);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KARIAKOO Seller', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('KARIAKOO Seller',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
             tooltip: 'Sign out',
@@ -72,7 +81,9 @@ class SellerHome extends ConsumerWidget {
             children: [
               const Icon(Icons.storefront, size: 56, color: AppColors.brand600),
               const SizedBox(height: 16),
-              Text('Karibu, ${session.displayName}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text('Karibu, ${session.displayName}',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text(
                 'Sell to Kariakoo shoppers. Open a shop, get approved, then manage your products and orders.',
@@ -82,7 +93,8 @@ class SellerHome extends ConsumerWidget {
               if (!isSeller) ...[
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SellerApplyScreen())),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const SellerApplyScreen())),
                   child: const Text('Open a shop'),
                 ),
               ],

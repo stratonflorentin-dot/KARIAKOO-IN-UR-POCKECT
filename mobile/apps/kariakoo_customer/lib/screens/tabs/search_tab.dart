@@ -31,14 +31,21 @@ class _SearchTabState extends ConsumerState<SearchTab> {
       ),
       body: products.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Could not load products.')),
+        error: (_, __) => RetryPanel(
+          message: 'Could not load products.',
+          onRetry: () => ref.invalidate(featuredProductsProvider),
+        ),
         data: (items) {
           final filtered = _query.isEmpty
               ? items
-              : items.where((p) => p.name.toLowerCase().contains(_query)).toList();
+              : items
+                  .where((p) => p.name.toLowerCase().contains(_query))
+                  .toList();
           if (filtered.isEmpty) {
             return Center(
-              child: Text(_query.isEmpty ? 'Start typing to search.' : 'No products match "$_query".'),
+              child: Text(_query.isEmpty
+                  ? 'Start typing to search.'
+                  : 'No products match "$_query".'),
             );
           }
           return GridView.builder(
@@ -56,7 +63,8 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                 product: p,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ProductDetailScreen(product: p)),
+                  MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(product: p)),
                 ),
               );
             },

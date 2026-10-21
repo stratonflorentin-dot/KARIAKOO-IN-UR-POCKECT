@@ -20,7 +20,10 @@ class SellerPromotionsScreen extends ConsumerWidget {
       ),
       body: promos.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('Could not load your posts.')),
+        error: (_, __) => RetryPanel(
+          message: 'Could not load your posts.',
+          onRetry: () => ref.invalidate(myPromotionsProvider(shop.id)),
+        ),
         data: (list) => list.isEmpty
             ? const _Empty()
             : RefreshIndicator(
@@ -35,7 +38,9 @@ class SellerPromotionsScreen extends ConsumerWidget {
                   itemBuilder: (context, i) => _PromoCard(
                     promo: list[i],
                     onDelete: () async {
-                      await ref.read(promotionsRepositoryProvider).deletePromotion(list[i].id);
+                      await ref
+                          .read(promotionsRepositoryProvider)
+                          .deletePromotion(list[i].id);
                       ref.invalidate(myPromotionsProvider(shop.id));
                     },
                   ),
@@ -53,7 +58,8 @@ class _PromoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expired = promo.expiresAt != null && promo.expiresAt!.isBefore(DateTime.now());
+    final expired =
+        promo.expiresAt != null && promo.expiresAt!.isBefore(DateTime.now());
     return Opacity(
       opacity: expired ? 0.5 : 1,
       child: Container(
@@ -69,15 +75,25 @@ class _PromoCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(999)),
-                  child: Text(promo.kindLabel, style: const TextStyle(fontSize: 11, color: AppColors.brand800, fontWeight: FontWeight.w600)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: AppColors.brand50,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Text(promo.kindLabel,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.brand800,
+                          fontWeight: FontWeight.w600)),
                 ),
                 const Spacer(),
-                if (expired) const Text('Expired', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                if (expired)
+                  const Text('Expired',
+                      style: TextStyle(fontSize: 11, color: AppColors.muted)),
                 IconButton(
                   onPressed: () => onDelete(),
-                  icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 20, color: AppColors.danger),
                   tooltip: 'Delete',
                 ),
               ],
@@ -86,13 +102,17 @@ class _PromoCard extends StatelessWidget {
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(promo.imageUrl!, height: 140, width: double.infinity, fit: BoxFit.cover,
+                child: Image.network(promo.imageUrl!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const SizedBox.shrink()),
               ),
             ],
             if ((promo.title ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(promo.title!, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(promo.title!,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
             if ((promo.body ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -116,10 +136,13 @@ class _Empty extends StatelessWidget {
             children: [
               Icon(Icons.campaign_outlined, size: 48, color: AppColors.muted),
               SizedBox(height: 12),
-              Text('No posts yet', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('No posts yet',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
               SizedBox(height: 6),
-              Text('Post a status, tease an upcoming product, or show your branding — customers see it in the app.',
-                  textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted)),
+              Text(
+                  'Post a status, tease an upcoming product, or show your branding — customers see it in the app.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.muted)),
             ],
           ),
         ),
@@ -185,12 +208,15 @@ class _CreatePromoFormState extends ConsumerState<_CreatePromoForm> {
             body: body.isEmpty ? null : body,
             imageUrl: image.isEmpty ? null : image,
             // Statuses fade after a day; teasers/branding stay until removed.
-            expiresAt: _kind == 'status' ? DateTime.now().add(const Duration(hours: 24)) : null,
+            expiresAt: _kind == 'status'
+                ? DateTime.now().add(const Duration(hours: 24))
+                : null,
           );
       ref.invalidate(myPromotionsProvider(widget.shop.id));
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = 'Could not post. ${e.toString().replaceFirst('Exception: ', '')}');
+      setState(() => _error =
+          'Could not post. ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -204,34 +230,56 @@ class _CreatePromoFormState extends ConsumerState<_CreatePromoForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('New advert', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('New advert',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'status', label: Text('Status'), icon: Icon(Icons.bolt)),
-              ButtonSegment(value: 'teaser', label: Text('Coming soon'), icon: Icon(Icons.schedule)),
-              ButtonSegment(value: 'branding', label: Text('Branding'), icon: Icon(Icons.storefront)),
+              ButtonSegment(
+                  value: 'status',
+                  label: Text('Status'),
+                  icon: Icon(Icons.bolt)),
+              ButtonSegment(
+                  value: 'teaser',
+                  label: Text('Coming soon'),
+                  icon: Icon(Icons.schedule)),
+              ButtonSegment(
+                  value: 'branding',
+                  label: Text('Branding'),
+                  icon: Icon(Icons.storefront)),
             ],
             selected: {_kind},
             onSelectionChanged: (s) => setState(() => _kind = s.first),
           ),
           const SizedBox(height: 12),
-          TextField(controller: _title, decoration: const InputDecoration(labelText: 'Title (optional)')),
+          TextField(
+              controller: _title,
+              decoration: const InputDecoration(labelText: 'Title (optional)')),
           const SizedBox(height: 10),
-          TextField(controller: _body, maxLines: 3, decoration: const InputDecoration(labelText: 'Message (optional)')),
+          TextField(
+              controller: _body,
+              maxLines: 3,
+              decoration:
+                  const InputDecoration(labelText: 'Message (optional)')),
           const SizedBox(height: 10),
-          TextField(controller: _image, decoration: const InputDecoration(labelText: 'Image link https:// (optional)')),
+          TextField(
+              controller: _image,
+              decoration: const InputDecoration(
+                  labelText: 'Image link https:// (optional)')),
           if (_kind == 'status')
             const Padding(
               padding: EdgeInsets.only(top: 8),
-              child: Text('Status posts disappear after 24 hours.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              child: Text('Status posts disappear after 24 hours.',
+                  style: TextStyle(fontSize: 12, color: AppColors.muted)),
             ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!, style: const TextStyle(color: AppColors.danger)),
           ],
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Posting…' : 'Post')),
+          ElevatedButton(
+              onPressed: _busy ? null : _save,
+              child: Text(_busy ? 'Posting…' : 'Post')),
         ],
       ),
     );

@@ -16,7 +16,8 @@ Future<void> showAddProductSheet(BuildContext context, {required Shop shop}) {
 }
 
 /// Bottom sheet to edit price / stock / availability of an existing product.
-Future<void> showEditProductSheet(BuildContext context, {required Product product, required String shopId}) {
+Future<void> showEditProductSheet(BuildContext context,
+    {required Product product, required String shopId}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -75,7 +76,8 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
       ref.invalidate(myProductsProvider(widget.shop.id));
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = 'Could not save. ${e.toString().replaceFirst('Exception: ', '')}');
+      setState(() => _error =
+          'Could not save. ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -92,22 +94,35 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Add a product', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Add a product',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             TextFormField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Product name'),
-              validator: (v) => (v == null || v.trim().length < 3) ? 'At least 3 characters' : null,
+              validator: (v) => (v == null || v.trim().length < 3)
+                  ? 'At least 3 characters'
+                  : null,
             ),
             const SizedBox(height: 12),
-            categories.maybeWhen(
-              data: (cats) => DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: [for (final c in cats) DropdownMenuItem(value: c.slug, child: Text(c.name))],
-                onChanged: (v) => setState(() => _category = v),
+            categories.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => TextButton.icon(
+                onPressed: () => ref.invalidate(categoriesProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Could not load categories. Try again.'),
               ),
-              orElse: () => const LinearProgressIndicator(),
+              data: (cats) => cats.isEmpty
+                  ? const Text('No categories are available yet.')
+                  : DropdownButtonFormField<String>(
+                      initialValue: _category,
+                      decoration: const InputDecoration(labelText: 'Category'),
+                      items: [
+                        for (final c in cats)
+                          DropdownMenuItem(value: c.slug, child: Text(c.name))
+                      ],
+                      onChanged: (v) => setState(() => _category = v),
+                    ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -119,7 +134,9 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
                     decoration: const InputDecoration(labelText: 'Price (TSh)'),
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
-                      if (n == null || n < 100 || n > 50000000) return '100 – 50,000,000';
+                      if (n == null || n < 100 || n > 50000000) {
+                        return '100 – 50,000,000';
+                      }
                       return null;
                     },
                   ),
@@ -132,7 +149,9 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
                     decoration: const InputDecoration(labelText: 'Stock'),
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
-                      if (n == null || n < 0 || n > 100000) return '0 – 100,000';
+                      if (n == null || n < 0 || n > 100000) {
+                        return '0 – 100,000';
+                      }
                       return null;
                     },
                   ),
@@ -143,7 +162,8 @@ class _AddProductFormState extends ConsumerState<_AddProductForm> {
             TextFormField(
               controller: _description,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -170,8 +190,10 @@ class _EditProductForm extends ConsumerStatefulWidget {
 }
 
 class _EditProductFormState extends ConsumerState<_EditProductForm> {
-  late final _price = TextEditingController(text: widget.product.priceTzs.toString());
-  late final _stock = TextEditingController(text: widget.product.stock.toString());
+  late final _price =
+      TextEditingController(text: widget.product.priceTzs.toString());
+  late final _stock =
+      TextEditingController(text: widget.product.stock.toString());
   bool _busy = false;
 
   @override
@@ -189,7 +211,8 @@ class _EditProductFormState extends ConsumerState<_EditProductForm> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not save: $e')));
         setState(() => _busy = false);
       }
     }
@@ -205,7 +228,9 @@ class _EditProductFormState extends ConsumerState<_EditProductForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.product.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(widget.product.name,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -241,8 +266,11 @@ class _EditProductFormState extends ConsumerState<_EditProductForm> {
           OutlinedButton(
             onPressed: _busy
                 ? null
-                : () => _run(() => repo.updateProduct(widget.product.id, status: archived ? 'active' : 'archived')),
-            child: Text(archived ? 'Restore to store' : 'Archive (hide from customers)'),
+                : () => _run(() => repo.updateProduct(widget.product.id,
+                    status: archived ? 'active' : 'archived')),
+            child: Text(archived
+                ? 'Restore to store'
+                : 'Archive (hide from customers)'),
           ),
         ],
       ),

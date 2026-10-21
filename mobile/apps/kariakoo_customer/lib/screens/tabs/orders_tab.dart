@@ -14,7 +14,10 @@ class OrdersTab extends ConsumerWidget {
       appBar: AppBar(title: const Text('My orders')),
       body: orders.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('Could not load your orders.')),
+        error: (_, __) => RetryPanel(
+          message: 'Could not load your orders.',
+          onRetry: () => ref.invalidate(myOrdersProvider),
+        ),
         data: (list) => list.isEmpty
             ? const _Empty()
             : RefreshIndicator(
@@ -43,7 +46,9 @@ class _OrderCard extends StatelessWidget {
     return InkWell(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: order.id, reference: order.reference)),
+        MaterialPageRoute(
+            builder: (_) => OrderDetailScreen(
+                orderId: order.id, reference: order.reference)),
       ),
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -59,10 +64,13 @@ class _OrderCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(order.reference, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(order.reference,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text('${order.createdAt.day}/${order.createdAt.month}/${order.createdAt.year}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  Text(
+                      '${order.createdAt.day}/${order.createdAt.month}/${order.createdAt.year}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.muted)),
                 ],
               ),
             ),
@@ -89,8 +97,12 @@ class _StatusChip extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 12, color: color, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -107,10 +119,13 @@ class _Empty extends StatelessWidget {
           children: [
             Icon(Icons.receipt_long_outlined, size: 48, color: AppColors.muted),
             SizedBox(height: 12),
-            Text('No orders yet', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text('No orders yet',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             SizedBox(height: 6),
-            Text('Add items to your cart and check out to place your first order.',
-                textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted)),
+            Text(
+                'Add items to your cart and check out to place your first order.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted)),
           ],
         ),
       ),

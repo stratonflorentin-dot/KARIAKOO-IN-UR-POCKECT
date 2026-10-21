@@ -22,12 +22,14 @@ const List<(String, String)> _tabs = [
 
 /// The seller's "My Products" portal: status tabs, live product list, add/edit.
 class SellerProductsScreen extends ConsumerStatefulWidget {
-  const SellerProductsScreen({super.key, required this.session, required this.shop});
+  const SellerProductsScreen(
+      {super.key, required this.session, required this.shop});
   final AppSession session;
   final Shop shop;
 
   @override
-  ConsumerState<SellerProductsScreen> createState() => _SellerProductsScreenState();
+  ConsumerState<SellerProductsScreen> createState() =>
+      _SellerProductsScreenState();
 }
 
 class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
@@ -41,15 +43,18 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('My Products', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            Text(widget.shop.name, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+            const Text('My Products',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            Text(widget.shop.name,
+                style: const TextStyle(fontSize: 12, color: AppColors.muted)),
           ],
         ),
         actions: [
           IconButton(
             tooltip: 'Advertise',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => SellerPromotionsScreen(shop: widget.shop)),
+              MaterialPageRoute(
+                  builder: (_) => SellerPromotionsScreen(shop: widget.shop)),
             ),
             icon: const Icon(Icons.campaign),
           ),
@@ -67,13 +72,24 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
       ),
       body: products.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('Could not load your products.')),
+        error: (_, __) => RetryPanel(
+          message: 'Could not load your products.',
+          onRetry: () => ref.invalidate(myProductsProvider(widget.shop.id)),
+        ),
         data: (items) {
-          final counts = <String, int>{'all': items.length, 'active': 0, 'low': 0, 'out': 0, 'archived': 0};
+          final counts = <String, int>{
+            'all': items.length,
+            'active': 0,
+            'low': 0,
+            'out': 0,
+            'archived': 0
+          };
           for (final p in items) {
             counts[_groupOf(p)] = (counts[_groupOf(p)] ?? 0) + 1;
           }
-          final visible = _tab == 'all' ? items : items.where((p) => _groupOf(p) == _tab).toList();
+          final visible = _tab == 'all'
+              ? items
+              : items.where((p) => _groupOf(p) == _tab).toList();
 
           return Column(
             children: [
@@ -81,7 +97,8 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
                 height: 54,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   itemCount: _tabs.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, i) {
@@ -92,7 +109,9 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
                       onSelected: (_) => setState(() => _tab = id),
                       label: Text('$label (${counts[id] ?? 0})'),
                       selectedColor: AppColors.brand600,
-                      labelStyle: TextStyle(color: selected ? Colors.white : AppColors.ink, fontWeight: FontWeight.w600),
+                      labelStyle: TextStyle(
+                          color: selected ? Colors.white : AppColors.ink,
+                          fontWeight: FontWeight.w600),
                     );
                   },
                 ),
@@ -103,15 +122,18 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
                     : RefreshIndicator(
                         onRefresh: () async {
                           ref.invalidate(myProductsProvider(widget.shop.id));
-                          await ref.read(myProductsProvider(widget.shop.id).future);
+                          await ref
+                              .read(myProductsProvider(widget.shop.id).future);
                         },
                         child: ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: visible.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, i) => _ProductRow(
                             product: visible[i],
-                            onTap: () => showEditProductSheet(context, product: visible[i], shopId: widget.shop.id),
+                            onTap: () => showEditProductSheet(context,
+                                product: visible[i], shopId: widget.shop.id),
                           ),
                         ),
                       ),
@@ -152,26 +174,37 @@ class _ProductRow extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
-              decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.inventory_2_outlined, color: AppColors.brand600),
+              decoration: BoxDecoration(
+                  color: AppColors.brand50,
+                  borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.inventory_2_outlined,
+                  color: AppColors.brand600),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text(product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('${formatTzs(product.priceTzs)} · ${product.stock} in stock',
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  Text(
+                      '${formatTzs(product.priceTzs)} · ${product.stock} in stock',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.muted)),
                 ],
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-              child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999)),
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 11, color: color, fontWeight: FontWeight.w600)),
             ),
             const Icon(Icons.chevron_right, color: AppColors.muted),
           ],

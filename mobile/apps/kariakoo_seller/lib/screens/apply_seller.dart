@@ -48,7 +48,9 @@ class _SellerApplyScreenState extends ConsumerState<SellerApplyScreen> {
       ref.invalidate(myShopProvider);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -64,43 +66,73 @@ class _SellerApplyScreenState extends ConsumerState<SellerApplyScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('List your products on KARIAKOO. An admin reviews new shops before they go live.',
+            const Text(
+                'List your products on KARIAKOO. An admin reviews new shops before they go live.',
                 style: TextStyle(color: AppColors.muted)),
             const SizedBox(height: 16),
             TextFormField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Shop name'),
-              validator: (v) => (v == null || v.trim().length < 2) ? 'Enter a shop name' : null,
+              validator: (v) => (v == null || v.trim().length < 2)
+                  ? 'Enter a shop name'
+                  : null,
             ),
             const SizedBox(height: 12),
-            categories.maybeWhen(
-              data: (cats) => DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration: const InputDecoration(labelText: 'Main category'),
-                items: [for (final c in cats) DropdownMenuItem(value: c.slug, child: Text(c.name))],
-                onChanged: (v) => setState(() => _category = v),
+            categories.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (error, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Shop categories could not be loaded. Check your connection and try again.'),
+                  TextButton.icon(
+                    onPressed: () => ref.invalidate(categoriesProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
               ),
-              orElse: () => const LinearProgressIndicator(),
+              data: (cats) => cats.isEmpty
+                  ? const Text(
+                      'No shop categories are available yet. Please try again later.')
+                  : DropdownButtonFormField<String>(
+                      initialValue: _category,
+                      decoration:
+                          const InputDecoration(labelText: 'Main category'),
+                      items: [
+                        for (final c in cats)
+                          DropdownMenuItem(value: c.slug, child: Text(c.name))
+                      ],
+                      onChanged: (v) => setState(() => _category = v),
+                    ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _area,
               decoration: const InputDecoration(labelText: 'Area'),
-              items: [for (final a in _areas) DropdownMenuItem(value: a, child: Text(a[0].toUpperCase() + a.substring(1)))],
+              items: [
+                for (final a in _areas)
+                  DropdownMenuItem(
+                      value: a,
+                      child: Text(a[0].toUpperCase() + a.substring(1)))
+              ],
               onChanged: (v) => setState(() => _area = v ?? 'kariakoo'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _address,
               decoration: const InputDecoration(labelText: 'Shop address'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter an address' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter an address' : null,
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(_error!, style: const TextStyle(color: AppColors.danger)),
             ],
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Submitting…' : 'Apply to sell')),
+            ElevatedButton(
+                onPressed: _busy ? null : _submit,
+                child: Text(_busy ? 'Submitting…' : 'Apply to sell')),
           ],
         ),
       ),

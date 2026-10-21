@@ -5,7 +5,8 @@ import 'package:kariakoo_core/kariakoo_core.dart';
 import '../widgets/product_card.dart';
 import 'product_detail.dart';
 
-final _categoryProductsProvider = FutureProvider.family<List<Product>, String>((ref, slug) {
+final _categoryProductsProvider =
+    FutureProvider.family<List<Product>, String>((ref, slug) {
   return ref.read(catalogRepositoryProvider).products(category: slug);
 });
 
@@ -20,7 +21,11 @@ class CategoryProductsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(category.name)),
       body: products.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Could not load this category.')),
+        error: (_, __) => RetryPanel(
+          message: 'Could not load this category.',
+          onRetry: () =>
+              ref.invalidate(_categoryProductsProvider(category.slug)),
+        ),
         data: (items) => items.isEmpty
             ? const Center(child: Text('Nothing here yet.'))
             : GridView.builder(
@@ -38,7 +43,8 @@ class CategoryProductsScreen extends ConsumerWidget {
                     product: p,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: p)),
+                      MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(product: p)),
                     ),
                   );
                 },
