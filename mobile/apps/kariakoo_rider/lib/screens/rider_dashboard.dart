@@ -261,6 +261,41 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
   Widget build(BuildContext context) {
     final offers = ref.watch(myOffersProvider);
     final active = ref.watch(activeDeliveryProvider(_riderId));
+    final delivery = active.valueOrNull;
+    final mapPins = <KariakooMapPin>[
+      if (_lastLocation != null)
+        KariakooMapPin(
+          point: _lastLocation!,
+          label: 'Your current position',
+          icon: Icons.delivery_dining,
+          color: AppColors.brand700,
+        ),
+      if (delivery != null && delivery.status == 'ACCEPTED')
+        for (var index = 0; index < delivery.pickups.length; index++)
+          if (delivery.pickups[index].lat != null &&
+              delivery.pickups[index].lng != null)
+            KariakooMapPin(
+              point: LatLng(
+                  delivery.pickups[index].lat!, delivery.pickups[index].lng!),
+              label: 'Pickup ${index + 1}: ${delivery.pickups[index].name}',
+              icon: Icons.store,
+              color: AppColors.brand600,
+            ),
+      if (delivery != null &&
+          delivery.status != 'ACCEPTED' &&
+          delivery.dropoffLat != null &&
+          delivery.dropoffLng != null)
+        KariakooMapPin(
+          point: LatLng(delivery.dropoffLat!, delivery.dropoffLng!),
+          label: 'Customer drop-off',
+          icon: Icons.location_on,
+          color: AppColors.danger,
+        ),
+    ];
+    final mapCenter = _lastLocation ??
+        (mapPins.isNotEmpty
+            ? mapPins.first.point
+            : const LatLng(-6.7924, 39.2083));
 
     return Scaffold(
       appBar: AppBar(
@@ -297,6 +332,44 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
                 online: _online,
                 busy: _busy,
                 onChanged: _busy ? null : _toggleOnline),
+            const SizedBox(height: 20),
+            const _SectionTitle('Map & navigation'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  KariakooMap(
+                    key: ValueKey(
+                        '${mapCenter.latitude}:${mapCenter.longitude}:${delivery?.orderId}'),
+                    initialCenter: mapCenter,
+                    pins: mapPins,
+                    height: 280,
+                    zoom: 13,
+                    showGuideLine: mapPins.length > 1,
+                    userAgentPackageName: 'com.kariakoo.rider',
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    !_online
+                        ? 'Go online to show your GPS position and receive jobs.'
+                        : delivery == null
+                            ? 'Your location is updating while you are online. No active delivery yet.'
+                            : delivery.status == 'ACCEPTED'
+                                ? 'Map shows your location and available shop pickup pins.'
+                                : 'Map shows your location and the customer drop-off pin.',
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
             if (_note != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -339,7 +412,6 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
                       'No active delivery. Go online to receive jobs.')
                   : _ActiveDeliveryCard(
                       delivery: d,
-                      currentLocation: _lastLocation,
                       onAdvance: () => _advance(d),
                       onComplete: () => _complete(d),
                       onNavigate: (pickup) => _navigateForDelivery(d, pickup)),
@@ -421,12 +493,10 @@ class _OnlineCard extends StatelessWidget {
 class _ActiveDeliveryCard extends StatelessWidget {
   const _ActiveDeliveryCard(
       {required this.delivery,
-      required this.currentLocation,
       required this.onAdvance,
       required this.onComplete,
       required this.onNavigate});
   final RiderDelivery delivery;
-  final LatLng? currentLocation;
   final VoidCallback onAdvance;
   final VoidCallback onComplete;
   final ValueChanged<PickupStop?> onNavigate;
@@ -434,36 +504,6 @@ class _ActiveDeliveryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canAdvance = delivery.nextStep != null;
-    final mapPins = <KariakooMapPin>[
-      if (currentLocation != null)
-        KariakooMapPin(
-          point: currentLocation!,
-          label: 'Your current position',
-          icon: Icons.delivery_dining,
-          color: AppColors.brand700,
-        ),
-      for (var i = 0;
-          delivery.status == 'ACCEPTED' && i < delivery.pickups.length;
-          i++)
-        if (delivery.pickups[i].lat != null && delivery.pickups[i].lng != null)
-          KariakooMapPin(
-            point: LatLng(delivery.pickups[i].lat!, delivery.pickups[i].lng!),
-            label: 'Pickup ${i + 1}: ${delivery.pickups[i].name}',
-            icon: Icons.store,
-            color: AppColors.brand600,
-          ),
-      if (delivery.dropoffLat != null && delivery.dropoffLng != null)
-        KariakooMapPin(
-          point: LatLng(delivery.dropoffLat!, delivery.dropoffLng!),
-          label: 'Customer drop-off',
-          icon: Icons.location_on,
-          color: AppColors.danger,
-        ),
-    ];
-    final mapCenter = currentLocation ??
-        (mapPins.isNotEmpty
-            ? mapPins.first.point
-            : const LatLng(-6.7924, 39.2083));
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -503,19 +543,6 @@ class _ActiveDeliveryCard extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 26,
                   fontWeight: FontWeight.w800)),
-          if (mapPins.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            KariakooMap(
-              key: ValueKey(
-                  '${currentLocation?.latitude}:${currentLocation?.longitude}:${delivery.orderId}'),
-              initialCenter: mapCenter,
-              pins: mapPins,
-              height: 250,
-              zoom: 13,
-              showGuideLine: mapPins.length > 1,
-              userAgentPackageName: 'com.kariakoo.rider',
-            ),
-          ],
           if (delivery.status == 'ACCEPTED' && delivery.pickups.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text('Pickup: ${delivery.pickups.first.name}',
