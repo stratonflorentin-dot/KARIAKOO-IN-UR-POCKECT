@@ -9,6 +9,9 @@ import { ShopKindBadge, ShopMark } from "@/components/shop/ShopMark";
 import { buttonClasses } from "@/components/ui/Button";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
+import { fmt } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { getDictionary } from "@/i18n/server";
 import { shopAreaLabel } from "@/lib/areas";
 import { getCategory, parseProductFilters } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalog-source";
@@ -17,7 +20,7 @@ import { getCatalog } from "@/lib/catalog-source";
 // empty), so these pages render on demand rather than being prebuilt.
 export async function generateMetadata({ params }: PageProps<"/[lang]/customer/shops/[slug]">) {
   const { slug } = await params;
-  return { title: (await getCatalog()).getShop(slug)?.name ?? "Shop" };
+  return { title: (await getCatalog()).getShop(slug)?.name ?? (await getDictionary()).shopDetail.shopFallback };
 }
 
 export default function ShopPage({ params, searchParams }: PageProps<"/[lang]/customer/shops/[slug]">) {
@@ -30,6 +33,8 @@ export default function ShopPage({ params, searchParams }: PageProps<"/[lang]/cu
 
 async function ShopContent({ params, searchParams }: PageProps<"/[lang]/customer/shops/[slug]">) {
   const { slug } = await params;
+  const t = await getDictionary();
+  const d = t.shopDetail;
   const catalog = await getCatalog();
   const shop = catalog.getShop(slug);
   if (!shop) notFound();
@@ -48,15 +53,15 @@ async function ShopContent({ params, searchParams }: PageProps<"/[lang]/customer
               {shop.name}
               {shop.verified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-brand-200">
-                  <BadgeCheck size={14} aria-hidden="true" /> Verified
+                  <BadgeCheck size={14} aria-hidden="true" /> {d.verified}
                 </span>
               )}
             </h1>
             <p className="mt-1 flex items-center gap-1 text-white/75"><MapPin size={14} aria-hidden="true" /> {shop.address} · {shopAreaLabel[shop.area]}</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
-              <span className="inline-flex items-center gap-1"><Star size={14} className="fill-brand-400 text-brand-400" aria-hidden="true" /> {shop.rating.toFixed(1)} ({shop.reviewCount} reviews)</span>
+              <span className="inline-flex items-center gap-1"><Star size={14} className="fill-brand-400 text-brand-400" aria-hidden="true" /> {shop.rating.toFixed(1)} ({fmt(t.shops.reviews, { count: shop.reviewCount })})</span>
               <span className="inline-flex items-center gap-1"><Clock size={14} aria-hidden="true" /> {shop.openingHours}</span>
-              <span>Since {shop.joinedYear}</span>
+              <span>{fmt(d.since, { year: shop.joinedYear })}</span>
             </p>
           </div>
         </div>
@@ -65,53 +70,53 @@ async function ShopContent({ params, searchParams }: PageProps<"/[lang]/customer
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <p className="max-w-2xl text-muted">{shop.description}</p>
         <p className="mt-2 text-sm text-muted">
-          Orders from this shop are placed with and paid to KARIAKOO.{" "}
-          <Link href="/customer#how" className="font-medium text-brand-700 hover:underline">How it works</Link>
+          {d.ordersNote}
+          <Link href="/customer#how" className="font-medium text-brand-700 hover:underline">{d.howItWorks}</Link>
         </p>
 
         <form action={`/customer/shops/${shop.slug}`} className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label htmlFor="shop-q" className="text-sm font-medium">Search this shop</label>
+            <label htmlFor="shop-q" className="text-sm font-medium">{d.searchThisShop}</label>
             <input id="shop-q" name="q" type="search" defaultValue={filters.q} className={`${compactInputClass} mt-1`} />
           </div>
           <div className="sm:w-56">
-            <label htmlFor="shop-cat" className="text-sm font-medium">Category</label>
+            <label htmlFor="shop-cat" className="text-sm font-medium">{t.search.category}</label>
             <select id="shop-cat" name="category" defaultValue={filters.category ?? ""} className={`${compactInputClass} mt-1`}>
-              <option value="">All</option>
-              {shop.categories.map((c) => <option key={c} value={c}>{getCategory(c)?.name}</option>)}
+              <option value="">{d.allCats}</option>
+              {shop.categories.map((c) => <option key={c} value={c}>{t.categories[c as keyof Dictionary["categories"]] ?? getCategory(c)?.name}</option>)}
             </select>
           </div>
-          <button type="submit" className={buttonClasses({ variant: "dark" })}>Filter</button>
+          <button type="submit" className={buttonClasses({ variant: "dark" })}>{d.filter}</button>
         </form>
 
-        <h2 className="mb-4 mt-8 text-xl font-bold tracking-tight">Products ({items.length})</h2>
+        <h2 className="mb-4 mt-8 text-xl font-bold tracking-tight">{fmt(d.products, { count: items.length })}</h2>
         {items.length > 0 ? (
           <ProductGrid products={items} />
         ) : (
-          <EmptyState title="No matching products" body="Try another word or category." action={<Link className={buttonClasses({ variant: "outline" })} href={`/customer/shops/${shop.slug}`}>Show all products</Link>} />
+          <EmptyState title={d.noMatch} body={d.noMatchBody} action={<Link className={buttonClasses({ variant: "outline" })} href={`/customer/shops/${shop.slug}`}>{d.showAll}</Link>} />
         )}
 
         {shop.geo && (
           <section aria-labelledby="location-heading" className="mt-12">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 id="location-heading" className="text-lg font-semibold">Location</h2>
+              <h2 id="location-heading" className="text-lg font-semibold">{d.location}</h2>
               <a href={directionsUrl(shop.geo)} target="_blank" rel="noopener noreferrer" className={buttonClasses({ variant: "outline", size: "sm" })}>
-                Get directions
+                {d.getDirections}
               </a>
             </div>
             <MapLoader
-              ariaLabel={`Map showing ${shop.name}`}
+              ariaLabel={fmt(d.mapAria, { name: shop.name })}
               heightClass="h-64"
               points={[{ id: shop.id, kind: "shop", badge: shop.name.charAt(0), label: `${shop.name} · ${shop.address}`, geo: shop.geo }]}
-              note="You can also order online: a KARIAKOO rider collects from this shop and delivers to you."
+              note={d.mapNote}
             />
           </section>
         )}
 
         <section aria-labelledby="reviews-heading" className="mt-12 rounded-2xl border border-line p-5">
-          <h2 id="reviews-heading" className="font-semibold">Reviews</h2>
+          <h2 id="reviews-heading" className="font-semibold">{d.reviewsTitle}</h2>
           <p className="mt-1 text-sm text-muted">
-            {shop.reviewCount > 0 ? `Rated ${shop.rating.toFixed(1)} from ${shop.reviewCount} customer reviews.` : "Customer reviews have not been added yet."}
+            {shop.reviewCount > 0 ? fmt(d.rated, { rating: shop.rating.toFixed(1), count: shop.reviewCount }) : d.noReviews}
           </p>
         </section>
       </div>

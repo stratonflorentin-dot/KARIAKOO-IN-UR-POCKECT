@@ -1,5 +1,8 @@
+"use client";
+
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
-import { shopKind, shopKindAccent, shopKindLabel } from "@/lib/shop-kind";
+import { useI18n } from "@/i18n/client";
+import { shopKind, shopKindAccent } from "@/lib/shop-kind";
 import type { Shop } from "@/lib/types";
 
 /** The shop's "logo": an accent tile with its shop-type icon. */
@@ -15,11 +18,12 @@ export function ShopMark({ shop, size = "md" }: { shop: Pick<Shop, "categories">
 }
 
 export function ShopKindBadge({ shop }: { shop: Pick<Shop, "categories"> }) {
+  const { t } = useI18n();
   const kind = shopKind(shop);
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${shopKindAccent[kind]}`}>
       <CategoryIcon slug={kind} size={12} />
-      {shopKindLabel[kind]}
+      {t.shopKinds[kind]}
     </span>
   );
 }

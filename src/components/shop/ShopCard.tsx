@@ -1,9 +1,14 @@
+"use client";
+
 import { BadgeCheck, MapPin, Star } from "lucide-react";
 import Link from "@/components/i18n/Link";
+import { useI18n } from "@/i18n/client";
+import { fmt } from "@/i18n/config";
 import type { Shop } from "@/lib/types";
 import { ShopKindBadge, ShopMark } from "./ShopMark";
 
 export function ShopCard({ shop }: { shop: Shop }) {
+  const { t } = useI18n();
   return (
     <article className="relative flex h-full flex-col rounded-2xl border border-line bg-white p-4 transition hover:border-brand-300 hover:shadow-md focus-within:ring-2 focus-within:ring-brand-500">
       <div className="flex items-start gap-3">
@@ -16,7 +21,7 @@ export function ShopCard({ shop }: { shop: Shop }) {
             {shop.verified && (
               <>
                 <BadgeCheck className="shrink-0 text-brand-600" size={18} aria-hidden="true" />
-                <span className="sr-only">(verified)</span>
+                <span className="sr-only">({t.product.verifiedSeller})</span>
               </>
             )}
           </h3>
@@ -30,7 +35,7 @@ export function ShopCard({ shop }: { shop: Shop }) {
       <p className="mt-auto flex items-center gap-1 pt-3 text-sm font-medium text-ink">
         <Star className="fill-brand-500 text-brand-500" size={15} aria-hidden="true" />
         {shop.rating.toFixed(1)}
-        <span className="font-normal text-muted">({shop.reviewCount} reviews) · {shop.openingHours}</span>
+        <span className="font-normal text-muted">({fmt(t.shops.reviews, { count: shop.reviewCount })}) · {shop.openingHours}</span>
       </p>
     </article>
   );
