@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ACTIVE_ROLE_COOKIE } from "@/lib/auth/active-role";
 import { isRole } from "@/lib/auth/session";
@@ -29,8 +29,60 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { status: "error", message: "Enter your email and password." };
 
+  const as = String(formData.get("as") ?? "customer");
+
   const sb = await createSupabaseServerClient();
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return { status: "error", message: friendlyAuthError(error?.message ?? "") };
+
+  // Seller / rider logins land in that area when the account holds the role;
+  // otherwise on the application page, which shows their status or the form.
+  if (as === "seller" || as === "rider") {
+    const { data: roleRows } = await sb.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", as).limit(1);
+    if (roleRows && roleRows.length > 0) {
+      (await cookies()).set(ACTIVE_ROLE_COOKIE, as, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+      redirect(`/${as}`);
+    }
+    redirect(`/apply/${as}`);
+  }
+  redirect("/customer");
+}
+
+/** Absolute origin of this request, for links Supabase emails back to us. */
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
+ * Email a password-reset link. The reply is the same whether or not the email
+ * has an account, so this can't be used to discover who is registered.
+ */
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { status: "error", message: "Enter the email you signed up with." };
+
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await requestOrigin()}/auth/callback?next=/reset-password`,
+  });
+  if (error && error.message.toLowerCase().includes("rate limit")) {
+    return { status: "error", message: friendlyAuthError(error.message) };
+  }
+  return { status: "ok", message: "If that email has a KARIAKOO account, a reset link is on its way. Check your inbox." };
+}
+
+/** Set a new password for the user signed in through the reset link. */
+export async function updatePassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { status: "error", message: "Use a password of at least 8 characters." };
+
+  const sb = await createSupabaseServerClient();
+  const { data: auth } = await sb.auth.getUser();
+  if (!auth.user) return { status: "error", message: "This reset link has expired. Request a new one." };
+  const { error } = await sb.auth.updateUser({ password });
   if (error) return { status: "error", message: friendlyAuthError(error.message) };
   redirect("/customer");
 }
