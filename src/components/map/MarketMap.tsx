@@ -8,7 +8,7 @@
 // location", only while the map is open, and it never leaves the device.
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Layers, LocateFixed, LocateOff } from "lucide-react";
+import { Crosshair, Layers, LocateFixed, LocateOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Turbopack can't resolve MapLibre's bundled worker URL, so load the copy
@@ -142,6 +142,9 @@ export default function MarketMap({
   heightClass = "h-72 sm:h-80",
   note,
   heat = [],
+  selectedLocation,
+  onLocationSelect,
+  locationPicker = false,
 }: {
   points: MapPoint[];
   ariaLabel: string;
@@ -154,10 +157,18 @@ export default function MarketMap({
   note?: string;
   /** Shaded circles showing demand; bigger weight = bigger, stronger circle. */
   heat?: { geo: LngLat; weight: number }[];
+  /** Enable click-to-place and draggable shop pin selection. */
+  selectedLocation?: LngLat | null;
+  onLocationSelect?: (location: LngLat) => void;
+  locationPicker?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const meMarker = useRef<maplibregl.Marker | null>(null);
+  const selectedMarker = useRef<maplibregl.Marker | null>(null);
+  const locationSelectRef = useRef(onLocationSelect);
+  const selectedLocationRef = useRef(selectedLocation);
+  const isLocationPicker = Boolean(onLocationSelect);
   const watchId = useRef<number | null>(null);
   const [me, setMe] = useState<LngLat | null>(null);
   const [geoError, setGeoError] = useState("");
@@ -167,8 +178,16 @@ export default function MarketMap({
   const heatKey = JSON.stringify(heat);
 
   useEffect(() => {
+    locationSelectRef.current = onLocationSelect;
+  }, [onLocationSelect]);
+
+  useEffect(() => {
+    selectedLocationRef.current = selectedLocation;
+  }, [selectedLocation]);
+
+  useEffect(() => {
     const pts: MapPoint[] = JSON.parse(pointsKey);
-    if (!container.current || pts.length === 0) return;
+    if (!container.current || (pts.length === 0 && !locationSelectRef.current)) return;
     const map = new maplibregl.Map({
       container: container.current,
       style: {
@@ -181,13 +200,44 @@ export default function MarketMap({
           { id: "streets", type: "raster", source: "streets", layout: { visibility: viewRef.current === "streets" ? "visible" : "none" } },
         ],
       },
-      center: pts[0].geo,
-      zoom: 15,
+      center: selectedLocationRef.current ?? pts[0]?.geo ?? [39.2083, -6.7924],
+      zoom: selectedLocationRef.current || pts.length ? 15 : 13,
       attributionControl: { compact: true },
       cooperativeGestures: true, // one-finger scrolling still scrolls the page on phones
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+
+    const placePin = (geo: LngLat) => {
+      if (!selectedMarker.current) {
+        const el = document.createElement("div");
+        el.setAttribute("aria-label", "Selected shop pickup location");
+        el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
+        selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" })
+          .setLngLat(geo)
+          .addTo(map);
+        selectedMarker.current.on("dragend", () => {
+          const p = selectedMarker.current?.getLngLat();
+          if (p) locationSelectRef.current?.([p.lng, p.lat]);
+        });
+      } else {
+        selectedMarker.current.setLngLat(geo);
+      }
+      locationSelectRef.current?.(geo);
+    };
+    if (locationSelectRef.current) {
+      if (selectedLocationRef.current) {
+        const el = document.createElement("div");
+        el.setAttribute("aria-label", "Selected shop pickup location");
+        el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
+        selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(selectedLocationRef.current).addTo(map);
+        selectedMarker.current.on("dragend", () => {
+          const p = selectedMarker.current?.getLngLat();
+          if (p) locationSelectRef.current?.([p.lng, p.lat]);
+        });
+      }
+      map.on("click", (event) => placePin([event.lngLat.lng, event.lngLat.lat]));
+    }
 
     for (const p of pts) {
       new maplibregl.Marker({ element: pinElement(p) })
@@ -232,8 +282,31 @@ export default function MarketMap({
       map.remove();
       mapRef.current = null;
       meMarker.current = null;
+      selectedMarker.current = null;
     };
-  }, [pointsKey, heatKey, route]);
+  }, [pointsKey, heatKey, route, isLocationPicker]);
+
+  useEffect(() => {
+    if (!mapRef.current || !locationSelectRef.current) return;
+    if (!selectedLocation) {
+      selectedMarker.current?.remove();
+      selectedMarker.current = null;
+      return;
+    }
+    const map = mapRef.current;
+    if (!selectedMarker.current) {
+      const el = document.createElement("div");
+      el.setAttribute("aria-label", "Selected shop pickup location");
+      el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
+      selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(selectedLocation).addTo(map);
+      selectedMarker.current.on("dragend", () => {
+        const p = selectedMarker.current?.getLngLat();
+        if (p) locationSelectRef.current?.([p.lng, p.lat]);
+      });
+    } else {
+      selectedMarker.current.setLngLat(selectedLocation);
+    }
+  }, [selectedLocation]);
 
   // Switch between satellite and street map without rebuilding the map.
   useEffect(() => {
@@ -273,6 +346,29 @@ export default function MarketMap({
     );
   };
 
+  const locateForPicker = () => {
+    if (!navigator.geolocation || !mapRef.current) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const geo: LngLat = [coords.longitude, coords.latitude];
+        mapRef.current?.flyTo({ center: geo, zoom: 17, duration: 900 });
+        if (!selectedMarker.current) {
+          const el = document.createElement("div");
+          el.setAttribute("aria-label", "Selected shop pickup location");
+          el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
+          selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(geo).addTo(mapRef.current!);
+          selectedMarker.current.on("dragend", () => {
+            const p = selectedMarker.current?.getLngLat();
+            if (p) locationSelectRef.current?.([p.lng, p.lat]);
+          });
+        } else selectedMarker.current.setLngLat(geo);
+        locationSelectRef.current?.(geo);
+      },
+      () => setGeoError("Could not get your location. You can still tap the map to place the shop pin."),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+    );
+  };
+
   const stopSharing = () => {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     watchId.current = null;
@@ -296,6 +392,11 @@ export default function MarketMap({
           <Layers size={15} aria-hidden="true" />
           {view === "satellite" ? "Map view" : "Satellite view"}
         </button>
+        {locationPicker && (
+          <button type="button" onClick={locateForPicker} className="absolute bottom-2 right-2 z-10 inline-flex h-10 items-center gap-1.5 rounded-full bg-white/95 px-3 text-xs font-semibold text-ink shadow-md hover:bg-white">
+            <Crosshair size={15} aria-hidden="true" /> Use my location
+          </button>
+        )}
       </div>
       {locate && (
         <div className="flex flex-wrap items-center justify-between gap-2 p-3">

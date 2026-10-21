@@ -1,6 +1,7 @@
 import { AlertTriangle, BadgeCheck, ClipboardList, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
+import { SellerShopLocation } from "@/components/dashboard/SellerShopLocation";
 import { fmt } from "@/i18n/config";
 import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
@@ -72,6 +73,22 @@ export default async function SellerDashboardPage() {
           </li>
         ))}
       </ul>
+
+      <SellerShopLocation
+        shopName={shop.name}
+        initialLocation={shop.lat !== null && shop.lng !== null ? [shop.lng, shop.lat] : null}
+        labels={{
+          title: s.locationTitle,
+          description: s.locationDescription,
+          mapLabel: s.locationMapLabel,
+          selected: s.locationSelected,
+          notSelected: s.locationNotSelected,
+          save: s.locationSave,
+          saving: s.saving,
+          remove: s.locationRemove,
+          saved: s.locationSaved,
+        }}
+      />
 
       <Card className="mt-8" aria-labelledby="inventory">
         <CardHeader id="inventory" title={s.inventory} action={<Link href="/seller/products" className="text-sm font-medium text-brand-700 hover:underline">{s.manageProducts}</Link>} />

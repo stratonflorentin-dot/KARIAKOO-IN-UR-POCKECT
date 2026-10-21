@@ -14,7 +14,7 @@ import { formatTzs } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Delivery" };
 
-const mapsLink = (address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Dar es Salaam, Tanzania`)}`;
+const mapsLink = (address: string, geo?: [number, number] | null) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(geo ? `${geo[1]},${geo[0]}` : `${address}, Dar es Salaam, Tanzania`)}`;
 
 export default async function RiderJobPage({ params, searchParams }: PageProps<"/[lang]/rider/jobs/[id]">) {
   const { id } = await params;
@@ -62,7 +62,7 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
               <p className="flex items-center gap-2 font-medium"><Store size={16} aria-hidden="true" /> {p.shopName}</p>
               <p className="mt-1 text-sm text-muted">{p.address} · {p.itemCount} {p.itemCount === 1 ? "item" : "items"}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <a href={mapsLink(p.address)} target="_blank" rel="noopener noreferrer" className={navLink}>
+                <a href={mapsLink(p.address, p.geo)} target="_blank" rel="noopener noreferrer" className={navLink}>
                   <Navigation size={16} aria-hidden="true" /> Navigate
                 </a>
                 <Badge tone={p.ready ? "success" : "warning"}>{p.ready ? "Ready for pickup" : "Shop still preparing"}</Badge>
