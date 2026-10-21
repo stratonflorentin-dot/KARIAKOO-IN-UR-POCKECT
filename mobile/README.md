@@ -131,11 +131,14 @@ package). To switch it on:
      SHA-1 above. The Web client already has the Supabase callback URI configured. Google
      will not reveal its existing client secret; create a replacement secret if needed,
      store it securely, and never commit it.
-2. In the [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
-   enable **Authentication > Providers > Google**, set its Web Client ID and secret,
-   and add all three iOS plus all three Android client IDs under **Authorized Client
-   IDs**. Keep **Confirm email** off if new accounts should be signed in immediately.
-3. For immediate sign-up, turn **Confirm email** off under Supabase **Authentication > Providers > Email**. The current dashboard setting has not been verified.
+2. Supabase configuration observed on 2026-10-21: Google provider was already enabled,
+   its Web Client ID and a saved (masked) client secret were present, and all three iOS
+   IDs were listed. The three Android IDs above were added and saved. **Confirm email**
+   was off. The dashboard displayed a technical-issue banner, and the provider settings
+   could not be checked again after reloading; verify they persisted when the dashboard
+   is healthy.
+3. For immediate sign-up, keep **Confirm email** off under Supabase
+   **Authentication > Providers > Email**.
 4. **iOS URL schemes are configured.** Each app Info.plist contains the reversed
    scheme for its iOS OAuth client. Android needs no extra manifest entry for Google
    sign-in; Google matches the Android client by package and SHA-1.
@@ -148,5 +151,5 @@ package). To switch it on:
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps
   only ever use the **publishable** key — never a service/secret key.
-- Supabase email confirmation must be off for immediate email sign-up; verify this setting in the dashboard.
+- Supabase email confirmation was observed off on 2026-10-21.
 - Maps use free OpenStreetMap/MapLibre tiles (`flutter_map`) — no paid Google Maps key.
