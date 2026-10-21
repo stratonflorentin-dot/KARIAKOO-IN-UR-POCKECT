@@ -57,6 +57,15 @@ export async function middleware(request: NextRequest) {
     const saved = request.cookies.get(LOCALE_COOKIE)?.value;
     const locale = isLocale(saved) ? saved : browserLocale(request.headers.get("accept-language")) ?? DEFAULT_LOCALE;
     const url = request.nextUrl.clone();
+    // Supabase can send provider-exchange failures to its configured Site URL
+    // instead of the app callback. Route that error to the existing friendly
+    // Google sign-in notice, and discard the provider's raw error/code values.
+    if (pathname === "/" && request.nextUrl.searchParams.get("error_code") === "unexpected_failure") {
+      url.pathname = `/${locale}/sign-in`;
+      url.search = "";
+      url.searchParams.set("error", "google");
+      return NextResponse.redirect(url);
+    }
     url.pathname = pathname === "/" ? `/${locale}` : `/${locale}${pathname}`;
     return NextResponse.redirect(url);
   }
