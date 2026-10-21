@@ -11,6 +11,9 @@
 // through this trusted path.
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { localizePath } from "@/i18n/config";
+import { dictionaryFor } from "@/i18n/dictionaries";
+import { getRequestLocale } from "@/i18n/server";
 import { ACTIVE_ROLE_COOKIE } from "@/lib/auth/active-role";
 import { getSession } from "@/lib/auth/session";
 import { getCategories } from "@/lib/catalog";
@@ -25,12 +28,14 @@ export interface ApplyState {
   values?: Record<string, string>;
 }
 
+type ApplyErrors = ReturnType<typeof dictionaryFor>["apply"]["errors"];
+
 /** Map the RPC's raised errors (by SQLSTATE where we can) to plain guidance. */
-function friendlyRpcError(code: string | undefined, message: string): string {
-  if (code === "42501") return "Please sign in first, then apply.";
-  if (code === "23503") return "Please choose a valid category.";
+function friendlyRpcError(code: string | undefined, message: string, e: ApplyErrors): string {
+  if (code === "42501") return e.signInFirst;
+  if (code === "23503") return e.validCategory;
   if (code === "23514") return message; // our own "required" messages are already clear
-  return "Something went wrong submitting your application. Please try again.";
+  return e.generic;
 }
 
 /** The current user must have an authenticated Supabase session. */
@@ -41,6 +46,8 @@ async function requireRealUser(): Promise<string | null> {
 }
 
 export async function applyAsSeller(_prev: ApplyState, formData: FormData): Promise<ApplyState> {
+  const locale = await getRequestLocale();
+  const e = dictionaryFor(locale).apply.errors;
   const values = {
     name: String(formData.get("name") ?? "").trim(),
     category: String(formData.get("category") ?? "").trim(),
@@ -49,14 +56,14 @@ export async function applyAsSeller(_prev: ApplyState, formData: FormData): Prom
   };
 
   if (!(await requireRealUser())) {
-    return { status: "error", message: "Please sign in to apply.", values };
+    return { status: "error", message: e.signInToApply, values };
   }
 
   const errors: Record<string, string> = {};
-  if (values.name.length < 2) errors.name = "Enter your shop or business name.";
-  if (!getCategories().some((c) => c.slug === values.category)) errors.category = "Choose the category you mostly sell.";
-  if (!SHOP_AREAS.some((a) => a.id === values.area)) errors.area = "Choose your trading area.";
-  if (values.address.length < 3) errors.address = "Enter your street, building or landmark.";
+  if (values.name.length < 2) errors.name = e.enterShopName;
+  if (!getCategories().some((c) => c.slug === values.category)) errors.category = e.chooseCategoryErr;
+  if (!SHOP_AREAS.some((a) => a.id === values.area)) errors.area = e.chooseAreaErr;
+  if (values.address.length < 3) errors.address = e.enterAddress;
   if (Object.keys(errors).length > 0) return { status: "error", errors, values };
 
   const sb = await createSupabaseServerClient();
@@ -67,16 +74,18 @@ export async function applyAsSeller(_prev: ApplyState, formData: FormData): Prom
     p_address: values.address,
   });
   if (error) {
-    return { status: "error", message: friendlyRpcError(error.code, error.message), values };
+    return { status: "error", message: friendlyRpcError(error.code, error.message, e), values };
   }
 
   // Grant takes effect immediately; switch the active role so they land on
   // their (pending) seller area and can see their application status.
   (await cookies()).set(ACTIVE_ROLE_COOKIE, "seller", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
-  redirect("/seller");
+  redirect(localizePath(locale, "/seller"));
 }
 
 export async function applyAsRider(_prev: ApplyState, formData: FormData): Promise<ApplyState> {
+  const locale = await getRequestLocale();
+  const e = dictionaryFor(locale).apply.errors;
   const values = {
     vehicle: String(formData.get("vehicle") ?? "").trim(),
     plate: String(formData.get("plate") ?? "").trim(),
@@ -84,13 +93,13 @@ export async function applyAsRider(_prev: ApplyState, formData: FormData): Promi
   };
 
   if (!(await requireRealUser())) {
-    return { status: "error", message: "Please sign in to apply.", values };
+    return { status: "error", message: e.signInToApply, values };
   }
 
   const errors: Record<string, string> = {};
-  if (values.vehicle.length < 2) errors.vehicle = "Tell us what you ride (e.g. Motorbike, Bajaji).";
-  if (values.plate.length < 2) errors.plate = "Enter your number plate.";
-  if (!deliveryZones.some((z) => z.id === values.base_zone)) errors.base_zone = "Choose the area you usually work in.";
+  if (values.vehicle.length < 2) errors.vehicle = e.enterVehicle;
+  if (values.plate.length < 2) errors.plate = e.enterPlate;
+  if (!deliveryZones.some((z) => z.id === values.base_zone)) errors.base_zone = e.chooseWorkArea;
   if (Object.keys(errors).length > 0) return { status: "error", errors, values };
 
   const sb = await createSupabaseServerClient();
@@ -100,9 +109,9 @@ export async function applyAsRider(_prev: ApplyState, formData: FormData): Promi
     p_base_zone: values.base_zone,
   });
   if (error) {
-    return { status: "error", message: friendlyRpcError(error.code, error.message), values };
+    return { status: "error", message: friendlyRpcError(error.code, error.message, e), values };
   }
 
   (await cookies()).set(ACTIVE_ROLE_COOKIE, "rider", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
-  redirect("/rider");
+  redirect(localizePath(locale, "/rider"));
 }

@@ -5,23 +5,23 @@ import { RiderApplyForm } from "@/components/apply/ApplyForms";
 import { ButtonLink } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { Notice } from "@/components/ui/States";
+import { getDictionary } from "@/i18n/server";
 import { getSession } from "@/lib/auth/session";
 import { deliveryZones } from "@/lib/delivery";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Apply to ride for KARIAKOO" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).apply.riderMeta };
+}
 
 // Reads the signed-in session (cookies), so this route renders per request.
 export const instant = false;
 
-const STATUS_COPY: Record<string, { tone: "info" | "warning" | "success"; text: string }> = {
-  pending: { tone: "warning", text: "Your rider application is under review. We'll let you know as soon as you're approved." },
-  approved: { tone: "success", text: "You're approved. Go online in your rider area to start accepting jobs." },
-  rejected: { tone: "warning", text: "Your application wasn't approved. Please contact support if you think this is a mistake." },
-  suspended: { tone: "warning", text: "Your rider account is currently suspended. Please contact support." },
-};
+const STATUS_TONE: Record<string, "info" | "warning" | "success"> = { pending: "warning", approved: "success", rejected: "warning", suspended: "warning" };
 
 export default async function RiderApplyPage() {
+  const t = await getDictionary();
+  const a = t.apply;
   const session = await getSession();
   const signedIn = Boolean(session);
 
@@ -38,31 +38,31 @@ export default async function RiderApplyPage() {
       <div className="mx-auto max-w-xl">
         <Logo href="/" />
         <span className="mt-6 grid h-12 w-12 place-items-center rounded-2xl bg-gold-500 text-night"><Bike aria-hidden="true" /></span>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">Ride for KARIAKOO</h1>
-        <p className="mt-2 text-muted">Accept delivery jobs across Dar es Salaam, follow pickup and drop-off, and earn. Tell us about your vehicle to get started.</p>
+        <h1 className="mt-4 text-3xl font-bold tracking-tight">{a.riderTitle}</h1>
+        <p className="mt-2 text-muted">{a.riderIntro}</p>
 
         {!signedIn ? (
           <div className="mt-6 space-y-4">
-            <Notice tone="info">You need a KARIAKOO account to apply. It&apos;s free and takes a minute.</Notice>
+            <Notice tone="info">{a.needAccount}</Notice>
             <div className="flex gap-3">
-              <ButtonLink href="/sign-up" variant="dark">Create an account</ButtonLink>
-              <ButtonLink href="/sign-in" variant="outline">Sign in</ButtonLink>
+              <ButtonLink href="/sign-up" variant="dark">{a.createAccount}</ButtonLink>
+              <ButtonLink href="/sign-in" variant="outline">{a.signIn}</ButtonLink>
             </div>
           </div>
         ) : existing ? (
           <div className="mt-6 space-y-4">
-            <Notice tone={STATUS_COPY[existing.status]?.tone ?? "info"}>
-              {STATUS_COPY[existing.status]?.text ?? "Your application has been received."}
+            <Notice tone={STATUS_TONE[existing.status] ?? "info"}>
+              {a.riderStatus[existing.status as keyof typeof a.riderStatus] ?? a.received}
             </Notice>
-            <ButtonLink href="/rider" variant="dark">Go to your rider area</ButtonLink>
+            <ButtonLink href="/rider" variant="dark">{a.goRiderArea}</ButtonLink>
           </div>
         ) : (
           <RiderApplyForm zones={deliveryZones} />
         )}
 
         <p className="mt-8 text-sm text-muted">
-          Want to sell instead?{" "}
-          <Link href="/apply/seller" className="font-semibold text-brand-700 underline">Apply to sell</Link>.
+          {a.wantSell}{" "}
+          <Link href="/apply/seller" className="font-semibold text-brand-700 underline">{a.applySell}</Link>.
         </p>
       </div>
     </main>
