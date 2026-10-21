@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { SectionHeading } from "@/components/customer/SectionHeading";
 import type { CustomerPromotion } from "@/lib/data/promotions";
 

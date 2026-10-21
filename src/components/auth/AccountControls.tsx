@@ -1,7 +1,7 @@
 // Account controls for a signed-in real user: switch between the roles they
 // hold, and sign out. These are plain forms posting to server actions, so they
 // work without client JavaScript.
-import { setActiveRole, signOut } from "@/app/(auth)/actions";
+import { setActiveRole, signOut } from "@/app/[lang]/(auth)/actions";
 import { buttonClasses } from "@/components/ui/Button";
 import type { Role } from "@/lib/types";
 

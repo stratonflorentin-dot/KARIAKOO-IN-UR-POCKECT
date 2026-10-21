@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateSellerFulfillment, type SellerFulfillmentState } from "@/app/seller/orders/actions";
+import { updateSellerFulfillment, type SellerFulfillmentState } from "@/app/[lang]/seller/orders/actions";
 import { FulfillmentBadge } from "@/components/orders/StatusBadges";
 import { Button } from "@/components/ui/Button";
 import type { FulfillmentStatus } from "@/lib/types";

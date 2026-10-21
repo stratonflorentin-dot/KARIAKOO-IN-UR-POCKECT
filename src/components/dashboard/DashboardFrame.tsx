@@ -1,6 +1,7 @@
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { Suspense, type ReactNode } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
 import type { Role } from "@/lib/types";
@@ -24,7 +25,10 @@ export function DashboardFrame({ role, title, tone, nav, searchable, children }:
             <Logo tone={dark ? "light" : "dark"} href={`/${role}`} />
             <p className={`mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${dark ? "text-brand-300" : "text-brand-700"}`}>{title}</p>
           </div>
-          <Link href="/customer" className={`text-sm lg:hidden ${dark ? "text-white/70" : "text-muted"}`}>Store</Link>
+          <div className="flex items-center gap-3 lg:mt-4">
+            <LanguageSwitcher tone={dark ? "dark" : "light"} />
+            <Link href="/customer" className={`text-sm lg:hidden ${dark ? "text-white/70" : "text-muted"}`}>Store</Link>
+          </div>
         </div>
         <div className="lg:flex-1 lg:overflow-y-auto">
           {/* The nav reads the URL to highlight the active item, so it streams in. */}

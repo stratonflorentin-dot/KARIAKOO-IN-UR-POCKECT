@@ -1,7 +1,7 @@
 "use client";
 
 import { History } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { useEffect } from "react";
 import { formatTzs } from "@/lib/format";
 import { recordRecentlyViewed, useRecentlyViewed } from "@/lib/preferences-store";

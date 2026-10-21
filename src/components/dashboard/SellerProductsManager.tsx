@@ -6,9 +6,9 @@
 // Photos are not uploaded yet — that's the next step — so new products publish
 // without a photo (a placeholder is shown).
 import { ChevronDown, Eye } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { Fragment, useState } from "react";
-import { createProduct, saveProductFields, setProductStatus } from "@/app/seller/products/actions";
+import { createProduct, saveProductFields, setProductStatus } from "@/app/[lang]/seller/products/actions";
 import { ProductImage } from "@/components/product/ProductImage";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";

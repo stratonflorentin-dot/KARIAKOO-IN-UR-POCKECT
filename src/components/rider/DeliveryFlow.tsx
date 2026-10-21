@@ -3,7 +3,7 @@
 import { KeyRound } from "lucide-react";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { advanceDelivery, acceptOffer, submitDeliveryPin, type PinState } from "@/app/rider/actions";
+import { advanceDelivery, acceptOffer, submitDeliveryPin, type PinState } from "@/app/[lang]/rider/actions";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { Button } from "@/components/ui/Button";
 import type { DeliveryStatus } from "@/lib/types";

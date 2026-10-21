@@ -1,8 +1,9 @@
 "use client";
 
 import { Bike, History, User, Wallet } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { usePathname } from "next/navigation";
+import { stripLocale } from "@/i18n/config";
 
 const tabs = [
   { href: "/rider", label: "Deliveries", Icon: Bike, exact: true },
@@ -13,7 +14,7 @@ const tabs = [
 
 /** Big, thumb-friendly tab bar for riders on the move. */
 export function RiderNav() {
-  const pathname = usePathname();
+  const pathname = stripLocale(usePathname());
   return (
     <nav aria-label="Rider" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-night pb-[env(safe-area-inset-bottom)]">
       <ul className="mx-auto grid max-w-md grid-cols-4">

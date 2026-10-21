@@ -2,8 +2,10 @@
 
 import { CircleCheck, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/client";
+import { localizePath } from "@/i18n/config";
 import { useActionState, useEffect, useState } from "react";
-import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/customer/checkout/actions";
+import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/[lang]/customer/checkout/actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Field, fieldAria, inputClass } from "@/components/ui/Field";
 import { EmptyState, Notice } from "@/components/ui/States";
@@ -33,6 +35,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const { lines, hydrated, clear } = useCart();
   const { zone: savedZone } = useDeliveryZone();
   const router = useRouter();
+  const { locale } = useI18n();
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(reviewCheckout, { status: "idle" });
   const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
   // A stable idempotency key per visit, so an accidental double-submit is deduped.
@@ -43,9 +46,9 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   useEffect(() => {
     if (placeState.status === "placed" && placeState.orderId) {
       clear();
-      router.push(`/customer/orders/${placeState.orderId}`);
+      router.push(localizePath(locale, `/customer/orders/${placeState.orderId}`));
     }
-  }, [placeState, clear, router]);
+  }, [placeState, clear, router, locale]);
 
   if (hydrated && lines.length === 0) {
     return <div className="mt-6"><EmptyState title="Your cart is empty" body="Add products before checking out." action={<ButtonLink href="/customer">Start shopping</ButtonLink>} /></div>;

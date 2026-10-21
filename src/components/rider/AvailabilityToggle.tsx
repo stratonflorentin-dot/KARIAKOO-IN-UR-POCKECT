@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { setRiderPresence } from "@/app/rider/actions";
+import { setRiderPresence } from "@/app/[lang]/rider/actions";
 
 export function AvailabilityToggle({ initialOnline }: { initialOnline: boolean }) {
   const [online, setOnline] = useState(initialOnline);

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Logo } from "@/components/ui/Logo";
 
 /**
@@ -27,8 +28,11 @@ export function AuthShell({
       <header className="relative h-[20rem] overflow-hidden text-white sm:h-[22rem]">
         <Image src="/brand/dar-city.webp" alt="" fill priority sizes="100vw" className="object-cover object-[50%_40%]" />
         <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-night/80 via-night/35 to-night/75" />
-        <div className="kk-auth-logo relative mx-auto flex h-full max-w-md flex-col px-6 pb-16 pt-8">
-          <div className="flex flex-col items-center text-center">
+        <div className="kk-auth-logo relative mx-auto flex h-full max-w-md flex-col px-6 pb-16 pt-4">
+          <div className="flex justify-end">
+            <LanguageSwitcher tone="dark" />
+          </div>
+          <div className="mt-1 flex flex-col items-center text-center">
             <Logo tone="light" href="/" tagline size="lg" />
             <p className="mt-2 text-xs font-semibold tracking-wide text-white/90">Kununua · Kupeleka · Kufaidika</p>
           </div>

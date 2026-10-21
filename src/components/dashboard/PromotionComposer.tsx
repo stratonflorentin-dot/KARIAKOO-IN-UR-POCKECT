@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { createPromotion, type PromotionActionState } from "@/app/seller/advertising/actions";
+import { createPromotion, type PromotionActionState } from "@/app/[lang]/seller/advertising/actions";
 import { Button } from "@/components/ui/Button";
 import { Field, inputClass } from "@/components/ui/Field";
 import type { SellerProductLive } from "@/lib/data/seller-live";

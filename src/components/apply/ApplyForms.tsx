@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { applyAsRider, applyAsSeller, type ApplyState } from "@/app/apply/actions";
+import { applyAsRider, applyAsSeller, type ApplyState } from "@/app/[lang]/apply/actions";
 import { Button } from "@/components/ui/Button";
 import { Field, fieldAria, inputClass } from "@/components/ui/Field";
 import { SHOP_AREAS } from "@/lib/shop-areas";

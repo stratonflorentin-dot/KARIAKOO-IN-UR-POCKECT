@@ -1,5 +1,5 @@
 import { BadgeCheck, MapPin, Star } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import type { Shop } from "@/lib/types";
 import { ShopKindBadge, ShopMark } from "./ShopMark";
 

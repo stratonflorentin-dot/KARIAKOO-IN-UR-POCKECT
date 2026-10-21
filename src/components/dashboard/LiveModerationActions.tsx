@@ -5,7 +5,7 @@
 // re-renders the page with the new status. The RPC audit-logs the actor and
 // the new status in the database.
 import { useActionState } from "react";
-import { moderateApplication, type ModerationResult } from "@/app/admin/actions";
+import { moderateApplication, type ModerationResult } from "@/app/[lang]/admin/actions";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";

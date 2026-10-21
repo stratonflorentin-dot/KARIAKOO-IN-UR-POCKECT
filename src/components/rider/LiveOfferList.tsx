@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { acceptOffer, declineOffer } from "@/app/rider/actions";
+import { useI18n } from "@/i18n/client";
+import { localizePath } from "@/i18n/config";
+import { acceptOffer, declineOffer } from "@/app/[lang]/rider/actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatTzs } from "@/lib/format";
@@ -11,6 +13,7 @@ export interface RiderOffer { orderId: string; payoutTzs: number; expiresAt: str
 
 export function LiveOfferList({ offers }: { offers: RiderOffer[] }) {
   const router = useRouter();
+  const { locale } = useI18n();
   const [busy, setBusy] = useState<string>();
   const [message, setMessage] = useState("");
 
@@ -20,7 +23,7 @@ export function LiveOfferList({ offers }: { offers: RiderOffer[] }) {
     const result = accept ? await acceptOffer(orderId) : await declineOffer(orderId);
     setBusy(undefined);
     if (!result.ok) return setMessage(result.message);
-    if (accept) router.push(`/rider/jobs/${orderId}`);
+    if (accept) router.push(localizePath(locale, `/rider/jobs/${orderId}`));
     router.refresh();
   }
 

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { isOnOffer } from "@/lib/product-utils";
 import type { Product } from "@/lib/types";
 import { Price } from "./Price";

@@ -24,8 +24,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { usePathname } from "next/navigation";
+import { stripLocale } from "@/i18n/config";
 import { useState } from "react";
 
 // Icons are referenced by name because Server Components can't pass
@@ -63,7 +64,7 @@ export interface NavItem {
 }
 
 export function SidebarNav({ items, tone, searchable = false }: { items: NavItem[]; tone: "light" | "dark"; searchable?: boolean }) {
-  const pathname = usePathname();
+  const pathname = stripLocale(usePathname());
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const dark = tone === "dark";

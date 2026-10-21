@@ -1,7 +1,7 @@
 "use client";
 
 import { ShoppingCart } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { QuantityStepper } from "./QuantityStepper";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/Link";
 import type { ComponentProps } from "react";
 
 type Variant = "primary" | "gold" | "dark" | "outline" | "ghost" | "danger" | "glass";

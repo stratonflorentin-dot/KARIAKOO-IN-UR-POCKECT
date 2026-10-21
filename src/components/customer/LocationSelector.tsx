@@ -2,6 +2,7 @@
 
 import { MapPin } from "lucide-react";
 import { useId } from "react";
+import { useI18n } from "@/i18n/client";
 import { deliveryZones } from "@/lib/delivery";
 import { useDeliveryZone } from "@/lib/preferences-store";
 import type { DeliveryZoneId } from "@/lib/types";
@@ -9,12 +10,13 @@ import type { DeliveryZoneId } from "@/lib/types";
 export function LocationSelector({ tone = "light" }: { tone?: "light" | "dark" }) {
   const { zone, setZone } = useDeliveryZone();
   const id = useId();
+  const { t } = useI18n();
   const dark = tone === "dark";
   return (
     <div className={`flex min-w-0 items-center gap-1.5 text-sm ${dark ? "text-white" : "text-ink"}`}>
       <MapPin size={16} className={dark ? "text-brand-300" : "text-brand-600"} aria-hidden="true" />
       <label htmlFor={id} className={`shrink-0 ${dark ? "text-white/70" : "text-muted"}`}>
-        Deliver to
+        {t.nav.deliverTo}
       </label>
       <select
         id={id}
