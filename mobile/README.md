@@ -119,16 +119,23 @@ package). To switch it on:
    - Create three **iOS** clients, one per app, with bundle IDs
      `com.kariakoo.customer`, `com.kariakoo.seller`, and `com.kariakoo.rider`.
      Record each iOS **Client ID** for the app's URL scheme and run configuration.
-   - Created IDs: Web `966761629099-tfuvmihotlbnrl9rv54vv4t63blb805r.apps.googleusercontent.com`;
-     customer iOS `966761629099-gctthm9jiqs13uen72opug1e5blmffh1.apps.googleusercontent.com`;
-     seller iOS `966761629099-8ipg37rlrtjg5vgsi8gdpp729mjsanjk.apps.googleusercontent.com`;
-     rider iOS `966761629099-k5f072ootlt6mld50a45328v2c99t2pj.apps.googleusercontent.com`.
-     Android clients still need their debug SHA-1 fingerprints.
+   - Verified Google Cloud project: `kariakoo-mobile-auth-2026` (**KARIAKOO Mobile**).
+     - Web: `966761629099-tfuvmihotlbnrl9rv54vv4t63blb805r.apps.googleusercontent.com`
+     - iOS customer: `966761629099-gctthm9jiqs13uen72opug1e5blmffh1.apps.googleusercontent.com`
+     - iOS seller: `966761629099-8ipg37rlrtjg5vgsi8gdpp729mjsanjk.apps.googleusercontent.com`
+     - iOS rider: `966761629099-k5f072ootlt6mld50a45328v2c99t2pj.apps.googleusercontent.com`
+     - Android customer: `966761629099-2tk3o4v1vp2svnjldnge6frr8n6en1js.apps.googleusercontent.com`
+     - Android seller: `966761629099-7d2ejre1622cqdjep1qpgdllqlaufuml.apps.googleusercontent.com`
+     - Android rider: `966761629099-f860p6q8l0kef1atuunef9mndm48s7kd.apps.googleusercontent.com`
+     The Android clients were checked against the matching package IDs and the debug
+     SHA-1 above. The Web client already has the Supabase callback URI configured. Google
+     will not reveal its existing client secret; create a replacement secret if needed,
+     store it securely, and never commit it.
 2. In the [KARIAKOO Supabase dashboard](https://supabase.com/dashboard/project/galecacpodrgshzsyitm/auth/providers),
    enable **Authentication > Providers > Google**, set its Web Client ID and secret,
    and add all three iOS plus all three Android client IDs under **Authorized Client
    IDs**. Keep **Confirm email** off if new accounts should be signed in immediately.
-3. **Immediate sign-up is enabled for testing.** Supabase **Authentication > Providers** currently has **Confirm email** off, so a new account can receive a session directly.
+3. For immediate sign-up, turn **Confirm email** off under Supabase **Authentication > Providers > Email**. The current dashboard setting has not been verified.
 4. **iOS URL schemes are configured.** Each app Info.plist contains the reversed
    scheme for its iOS OAuth client. Android needs no extra manifest entry for Google
    sign-in; Google matches the Android client by package and SHA-1.
@@ -141,5 +148,5 @@ package). To switch it on:
 
 - **Security** is enforced by Supabase Row Level Security (same as the web app). The apps
   only ever use the **publishable** key — never a service/secret key.
-- **Email confirmation is OFF** in Supabase for immediate sign-up during testing.
+- Supabase email confirmation must be off for immediate email sign-up; verify this setting in the dashboard.
 - Maps use free OpenStreetMap/MapLibre tiles (`flutter_map`) — no paid Google Maps key.
