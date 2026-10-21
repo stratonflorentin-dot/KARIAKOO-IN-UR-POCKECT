@@ -13,6 +13,8 @@ import { useCart } from "@/lib/cart-store";
 import { formatTzs } from "@/lib/format";
 import { useDeliveryZone } from "@/lib/preferences-store";
 import { formatTzPhone } from "@/lib/validation/checkout";
+import { MapLoader } from "@/components/map/MapLoader";
+import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
 
 export interface PaymentOption {
@@ -41,6 +43,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
   // A stable idempotency key per visit, so an accidental double-submit is deduped.
   const [idempotencyKey] = useState(() => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())));
+  const [dropoff, setDropoff] = useState<LngLat | null>(null);
   const v = state.values;
   const e = state.errors ?? {};
 
@@ -85,6 +88,15 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
           <Field id="instructions" label={c.instructions} error={e.instructions}>
             <input id="instructions" name="instructions" defaultValue={v?.instructions} placeholder={c.instructionsPlaceholder} className={inputClass} {...fieldAria("instructions", e.instructions)} />
           </Field>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{c.dropoffPin}</p>
+            <p className="text-sm text-muted">{c.dropoffPinHint}</p>
+            <MapLoader points={[]} ariaLabel={c.dropoffPin} selectedLocation={dropoff} onLocationSelect={setDropoff} locationPicker heightClass="h-64" />
+            {dropoff && <button type="button" className="text-sm font-semibold text-brand-700 underline" onClick={() => setDropoff(null)}>{c.clearDropoffPin}</button>}
+            {e.dropoffLat && <p role="alert" className="text-sm text-red-700">{e.dropoffLat}</p>}
+            <input type="hidden" name="dropoffLat" value={dropoff?.[1] ?? ""} />
+            <input type="hidden" name="dropoffLng" value={dropoff?.[0] ?? ""} />
+          </div>
         </fieldset>
 
         <fieldset aria-describedby={e.payment ? "payment-error" : "payment-note"}>
@@ -161,6 +173,8 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                 <input type="hidden" name="zone" value={v?.zone ?? ""} />
                 <input type="hidden" name="address" value={v?.address ?? ""} />
                 <input type="hidden" name="instructions" value={v?.instructions ?? ""} />
+                <input type="hidden" name="dropoffLat" value={v?.dropoffLat ?? ""} />
+                <input type="hidden" name="dropoffLng" value={v?.dropoffLng ?? ""} />
                 <input type="hidden" name="payment" value={v?.payment ?? ""} />
                 <input type="hidden" name="idempotency_key" value={idempotencyKey} />
                 {placeState.status === "error" && (

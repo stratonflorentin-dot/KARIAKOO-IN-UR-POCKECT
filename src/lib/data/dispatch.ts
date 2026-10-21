@@ -56,6 +56,15 @@ export async function setPresenceFor(session: Session | null, online: boolean, l
   return { ok: true };
 }
 
+/** Update an already-online rider's GPS without triggering another dispatch offer. */
+export async function updateRiderLocationFor(session: Session | null, lng: number, lat: number): Promise<DispatchResult> {
+  if (!isLiveRider(session)) return { ok: false, message: "Please sign in as a rider." };
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.rpc("rider_update_location", { p_lat: lat, p_lng: lng });
+  if (error) return { ok: false, message: friendly(error.message, "Could not update your live location.") };
+  return { ok: true };
+}
+
 export async function riderPresenceFor(session: Session | null): Promise<boolean> {
   if (!isLiveRider(session)) return false;
   const sb = await createSupabaseServerClient();

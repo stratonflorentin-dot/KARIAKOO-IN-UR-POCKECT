@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../widgets/live_rider_map.dart';
 
 /// Order tracking: delivery progress, the PIN, items and totals.
 class OrderDetailScreen extends ConsumerWidget {
@@ -13,7 +16,16 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(orderDetailProvider(orderId));
     return Scaffold(
-      appBar: AppBar(title: Text('Order $reference')),
+      appBar: AppBar(
+        title: Text('Order $reference'),
+        actions: [
+          IconButton(
+            tooltip: 'Get help with this order',
+            onPressed: () => _contactSupport(context),
+            icon: const Icon(Icons.support_agent_outlined),
+          ),
+        ],
+      ),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => RetryPanel(
@@ -32,6 +44,9 @@ class OrderDetailScreen extends ConsumerWidget {
                   children: [
                     _ProgressStrip(deliveryStatus: d.deliveryStatus),
                     const SizedBox(height: 16),
+                    if (const {'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT'}
+                        .contains(d.deliveryStatus))
+                      LiveRiderMap(orderId: orderId),
                     if (d.pin != null && d.deliveryStatus != 'DELIVERED')
                       _PinCard(pin: d.pin!),
                     _Card(
@@ -63,6 +78,24 @@ class OrderDetailScreen extends ConsumerWidget {
               ),
       ),
     );
+  }
+
+  Future<void> _contactSupport(BuildContext context) async {
+    final email = Uri(
+      scheme: 'mailto',
+      path: 'kariakooby@gmail.com',
+      queryParameters: {
+        'subject': 'Help with KARIAKOO order $reference',
+        'body':
+            'Hello KARIAKOO Support,\n\nI need help with order $reference.\n\n',
+      },
+    );
+    if (await launchUrl(email)) return;
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No email app is available on this device.'),
+      ));
+    }
   }
 }
 

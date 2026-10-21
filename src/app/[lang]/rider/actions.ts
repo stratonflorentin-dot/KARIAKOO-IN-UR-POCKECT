@@ -6,6 +6,7 @@ import {
   advanceDeliveryFor,
   declineOfferFor,
   setPresenceFor,
+  updateRiderLocationFor,
   type DispatchResult,
   type RiderAdvanceTo,
 } from "@/lib/data/dispatch";
@@ -72,4 +73,11 @@ export async function setRiderPresence(online: boolean, lng?: number, lat?: numb
   const session = await getSessionWithRole("rider");
   if (!session) return NOT_A_RIDER;
   return setPresenceFor(session, online, lng, lat);
+}
+
+/** Keep an online rider's location fresh for assigned customer tracking. */
+export async function updateRiderLocation(lng: number, lat: number): Promise<DispatchResult> {
+  const session = await getSessionWithRole("rider");
+  if (!session) return NOT_A_RIDER;
+  return updateRiderLocationFor(session, lng, lat);
 }

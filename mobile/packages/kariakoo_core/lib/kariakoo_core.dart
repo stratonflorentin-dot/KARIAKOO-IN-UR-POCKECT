@@ -3,6 +3,7 @@ library kariakoo_core;
 
 export 'package:supabase_flutter/supabase_flutter.dart'
     show User, AuthState, AuthException;
+export 'package:latlong2/latlong.dart' show LatLng;
 
 export 'src/config/env.dart';
 export 'src/supabase/supabase_init.dart';
@@ -20,6 +21,8 @@ export 'src/models/delivery_offer.dart';
 export 'src/models/rider_delivery.dart';
 export 'src/models/order.dart';
 export 'src/models/shop_promotion.dart';
+export 'src/models/seller_order.dart';
+export 'src/models/rider_job_record.dart';
 
 export 'src/auth/auth_repository.dart';
 export 'src/auth/session_controller.dart';
@@ -37,3 +40,4 @@ export 'src/screens/auth_screen.dart';
 export 'src/widgets/auth_gate.dart';
 export 'src/widgets/retry_panel.dart';
 export 'src/widgets/gold_button.dart';
+export 'src/widgets/kariakoo_map.dart';

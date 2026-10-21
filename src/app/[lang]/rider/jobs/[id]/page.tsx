@@ -24,10 +24,11 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
   // Not assigned to this rider → same as not existing.
   if (!job) notFound();
   const navLink = "inline-flex h-11 items-center gap-1.5 rounded-full bg-night px-4 text-sm font-semibold text-white";
-  // We plot the pickup shops; the drop-off is shown by address (no stored geo).
+  // Plot pickup shops and, when shared, the customer's drop-off pin.
   const stops: MapPoint[] = job.pickups.flatMap((p, i) =>
     p.geo ? [{ id: `pickup-${i}`, kind: "pickup" as const, badge: String(i + 1), label: `Pick up: ${p.shopName}`, geo: p.geo }] : [],
   );
+  if (job.dropoffGeo) stops.push({ id: "dropoff", kind: "dropoff", label: "Customer drop-off", geo: job.dropoffGeo });
   // Highlight the first pickup until the rider has collected the goods.
   const nextStop = ["ASSIGNED", "ACCEPTED"].includes(job.status) ? 0 : -1;
 
@@ -77,7 +78,7 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
         <p className="mt-2 flex gap-2 text-sm"><MapPin size={16} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" /> {job.dropoffAddress}, {getZone(job.zone).name}</p>
         {job.instructions && <p className="mt-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">“{job.instructions}”</p>}
         <div className="mt-3 flex flex-wrap gap-2">
-          <a href={mapsLink(job.dropoffAddress)} target="_blank" rel="noopener noreferrer" className={navLink}>
+          <a href={mapsLink(job.dropoffAddress, job.dropoffGeo)} target="_blank" rel="noopener noreferrer" className={navLink}>
             <Navigation size={16} aria-hidden="true" /> Navigate
           </a>
         </div>

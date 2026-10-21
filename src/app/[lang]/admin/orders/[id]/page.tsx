@@ -4,6 +4,8 @@ import Link from "@/components/i18n/Link";
 import { notFound } from "next/navigation";
 import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { Timeline } from "@/components/orders/Timeline";
+import { MapLoader } from "@/components/map/MapLoader";
+import type { MapPoint } from "@/components/map/MarketMap";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
@@ -25,11 +27,12 @@ export default async function AdminOrderPage({ params }: PageProps<"/[lang]/admi
   const sb = await createSupabaseServerClient();
   const shopIds = [...new Set(order.groups.map((group) => group.shopId))];
   const { data: profileRows, error: profileError } = await sb.from("profiles").select("id,full_name,phone").in("id", [order.customerId, ...(order.delivery.riderId ? [order.delivery.riderId] : [])]);
-  const { data: shopRows, error: shopError } = await sb.from("shops").select("id,name").in("id", shopIds);
+  const { data: shopRows, error: shopError } = await sb.from("shops").select("id,name,address,lat,lng").in("id", shopIds);
   const { data: riderRows, error: riderError } = order.delivery.riderId
     ? await sb.from("riders").select("id,plate").eq("id", order.delivery.riderId).limit(1)
     : { data: [], error: null };
-  if (profileError || shopError || riderError) throw new Error(`Could not load order contacts: ${profileError?.message ?? shopError?.message ?? riderError?.message}`);
+  const { data: mapLocationRows, error: mapLocationError } = await sb.rpc("admin_get_order_map_locations", { p_order_id: order.id });
+  if (profileError || shopError || riderError || mapLocationError) throw new Error(`Could not load order map and contacts: ${profileError?.message ?? shopError?.message ?? riderError?.message ?? mapLocationError?.message}`);
   const profiles = new Map(((profileRows ?? []) as { id: string; full_name: string; phone: string | null }[]).map((p) => [p.id, p]));
   const shops = new Map(((shopRows ?? []) as { id: string; name: string }[]).map((shop) => [shop.id, shop.name]));
   const riderInfo = (riderRows?.[0] ?? null) as { id: string; plate: string } | null;
@@ -38,6 +41,21 @@ export default async function AdminOrderPage({ params }: PageProps<"/[lang]/admi
   const rider = riderInfo ? profiles.get(riderInfo.id) : undefined;
   const shopName = (sid: string) => shops.get(sid) ?? "Shop";
   const finalised = order.status === "delivered" || order.status === "cancelled";
+  const shopsById = new Map(((shopRows ?? []) as { id: string; name: string; address: string; lat: number | null; lng: number | null }[]).map((shop) => [shop.id, shop]));
+  const locations = (mapLocationRows ?? []) as { kind: string; lat: number; lng: number }[];
+  const mapPoints: MapPoint[] = locations
+    .filter((location) => location.kind === "rider")
+    .map((location) => ({ id: "rider", kind: "pickup", badge: "R", label: "Assigned rider (recent GPS)", geo: [location.lng, location.lat] }));
+  for (const [index, group] of order.groups.entries()) {
+    const shop = shopsById.get(group.shopId);
+    if (shop?.lat != null && shop.lng != null) {
+      mapPoints.push({ id: `pickup-${index}`, kind: "pickup", badge: String(index + 1), label: `Pickup: ${shop.name} · ${shop.address}`, geo: [shop.lng, shop.lat] });
+    }
+  }
+  const dropoffPosition = locations.find((location) => location.kind === "dropoff");
+  if (dropoffPosition) {
+    mapPoints.push({ id: "dropoff", kind: "dropoff", badge: "D", label: "Customer delivery point", geo: [dropoffPosition.lng, dropoffPosition.lat] });
+  }
 
   return (
     <div className="space-y-5">
@@ -55,6 +73,16 @@ export default async function AdminOrderPage({ params }: PageProps<"/[lang]/admi
           <span className="flex gap-2"><Lock size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
             This order is finalised. Its financial records are read-only; corrections must use a recorded adjustment.</span>
         </Notice>
+      )}
+
+      {mapPoints.length > 0 && (
+        <MapLoader
+          points={mapPoints}
+          ariaLabel="Order map showing available pickup, delivery, and active rider locations"
+          route={mapPoints.length > 1}
+          heightClass="h-64 sm:h-80"
+          note="Only live rider GPS is shown for active deliveries with a recent location update. The line is a guide between pins, not a road route."
+        />
       )}
 
       <TableCard label="Items, prices and commission" minWidth="52rem">

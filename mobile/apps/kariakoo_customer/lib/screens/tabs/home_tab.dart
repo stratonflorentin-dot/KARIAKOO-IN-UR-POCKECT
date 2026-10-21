@@ -14,10 +14,12 @@ class HomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(featuredProductsProvider);
     final categories = ref.watch(categoriesProvider);
+    final shops = ref.watch(shopsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KARIAKOO', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+        title: const Text('KARIAKOO',
+            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -29,17 +31,23 @@ class HomeTab extends ConsumerWidget {
             const SliverToBoxAdapter(child: _Hero()),
             const SliverToBoxAdapter(child: StatusStrip()),
             SliverToBoxAdapter(child: _Categories(categories: categories)),
+            SliverToBoxAdapter(child: _NearbyShopMap(shops: shops)),
             products.when(
-              loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+              loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator())),
               error: (e, _) => const SliverFillRemaining(
-                child: Center(child: Text('Could not load the catalog. Pull to retry.')),
+                child: Center(
+                    child: Text('Could not load the catalog. Pull to retry.')),
               ),
               data: (items) => items.isEmpty
-                  ? const SliverFillRemaining(child: Center(child: Text('No products in the catalog yet.')))
+                  ? const SliverFillRemaining(
+                      child: Center(
+                          child: Text('No products in the catalog yet.')))
                   : SliverPadding(
                       padding: const EdgeInsets.all(16),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
@@ -52,7 +60,9 @@ class HomeTab extends ConsumerWidget {
                               product: p,
                               onTap: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => ProductDetailScreen(product: p)),
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        ProductDetailScreen(product: p)),
                               ),
                             );
                           },
@@ -68,6 +78,73 @@ class HomeTab extends ConsumerWidget {
   }
 }
 
+class _NearbyShopMap extends StatelessWidget {
+  const _NearbyShopMap({required this.shops});
+  final AsyncValue<List<Shop>> shops;
+
+  @override
+  Widget build(BuildContext context) => shops.maybeWhen(
+        data: (items) {
+          final located = items
+              .where((shop) => shop.lat != null && shop.lng != null)
+              .toList();
+          if (located.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Find shops on the map',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                KariakooMap(
+                  initialCenter: LatLng(located.first.lat!, located.first.lng!),
+                  pins: [
+                    for (final shop in located)
+                      KariakooMapPin(
+                        point: LatLng(shop.lat!, shop.lng!),
+                        label: '${shop.name} · ${shop.address}',
+                        icon: Icons.store,
+                        color: AppColors.brand700,
+                        onTap: () => showModalBottomSheet<void>(
+                          context: context,
+                          builder: (context) => SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(shop.name,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 8),
+                                  Text(shop.address),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                      '${shop.area} · ${shop.lat!.toStringAsFixed(5)}, ${shop.lng!.toStringAsFixed(5)}',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.muted)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                  height: 230,
+                ),
+              ],
+            ),
+          );
+        },
+        orElse: () => const SizedBox.shrink(),
+      );
+}
+
 class _Hero extends StatelessWidget {
   const _Hero();
   @override
@@ -79,11 +156,17 @@ class _Hero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Text('Karibu Kariakoo, online', style: TextStyle(color: AppColors.gold300, fontWeight: FontWeight.w600)),
+          Text('Karibu Kariakoo, online',
+              style: TextStyle(
+                  color: AppColors.gold300, fontWeight: FontWeight.w600)),
           SizedBox(height: 6),
           Text(
             "Dar's biggest market,\ndelivered to your door.",
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, height: 1.1),
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                height: 1.1),
           ),
         ],
       ),
@@ -111,7 +194,8 @@ class _Categories extends StatelessWidget {
               label: Text(c.name),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CategoryProductsScreen(category: c)),
+                MaterialPageRoute(
+                    builder: (_) => CategoryProductsScreen(category: c)),
               ),
             );
           },

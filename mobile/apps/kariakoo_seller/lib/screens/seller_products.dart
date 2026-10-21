@@ -5,6 +5,7 @@ import 'package:kariakoo_core/kariakoo_core.dart';
 
 import 'product_forms.dart';
 import 'promotions.dart';
+import 'seller_orders.dart';
 
 String _groupOf(Product p) {
   if (p.status == 'archived') return 'archived';
@@ -36,52 +37,40 @@ class SellerProductsScreen extends ConsumerStatefulWidget {
 class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
   String _tab = 'all';
   bool _sharingLocation = false;
+  LatLng? _shopLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shop.lat != null && widget.shop.lng != null) {
+      _shopLocation = LatLng(widget.shop.lat!, widget.shop.lng!);
+    }
+  }
 
   Future<void> _shareShopLocation() async {
     if (_sharingLocation) return;
-    final confirm = await showDialog<bool>(
+    final initial = _shopLocation ?? const LatLng(-6.7924, 39.2083);
+    final selected = await showModalBottomSheet<_ShopLocationSelection>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Share shop pickup location?'),
-        content: const Text(
-          'Use this only while you are at your shop entrance. The saved pin is shown to customers on your shop page and to riders assigned to collect orders.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
-          ),
-        ],
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _SellerLocationPicker(
+        initial: initial,
+        hasSavedLocation: _shopLocation != null,
       ),
     );
-    if (confirm != true || !mounted) return;
+    if (selected == null || !mounted) return;
     setState(() => _sharingLocation = true);
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        throw Exception('Turn on location services and try again.');
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        throw Exception('Allow location access to share your shop pickup point.');
-      }
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
       await ref.read(sellerRepositoryProvider).setShopLocation(
-            lat: position.latitude,
-            lng: position.longitude,
+            lat: selected.point?.latitude,
+            lng: selected.point?.longitude,
           );
       if (mounted) {
+        setState(() => _shopLocation = selected.point);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Shop pickup location shared with customers and assigned riders.'),
+          content: Text(
+              'Shop pickup location updated for customers and assigned riders.'),
         ));
         ref.invalidate(myShopProvider);
       }
@@ -112,7 +101,14 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Share shop pickup location',
+            tooltip: 'Orders and settlements',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => SellerOrdersScreen(shop: widget.shop),
+            )),
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
+          IconButton(
+            tooltip: 'Set shop pickup location on map',
             onPressed: _sharingLocation ? null : _shareShopLocation,
             icon: _sharingLocation
                 ? const SizedBox(
@@ -120,7 +116,7 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.my_location),
+                : const Icon(Icons.map_outlined),
           ),
           IconButton(
             tooltip: 'Advertise',
@@ -216,6 +212,185 @@ class _SellerProductsScreenState extends ConsumerState<SellerProductsScreen> {
       ),
     );
   }
+}
+
+class _SellerLocationPicker extends StatefulWidget {
+  const _SellerLocationPicker(
+      {required this.initial, required this.hasSavedLocation});
+  final LatLng initial;
+  final bool hasSavedLocation;
+
+  @override
+  State<_SellerLocationPicker> createState() => _SellerLocationPickerState();
+}
+
+class _SellerLocationPickerState extends State<_SellerLocationPicker> {
+  late LatLng _selected = widget.initial;
+  bool _gettingLocation = false;
+  String? _message;
+
+  Future<void> _useCurrentLocation() async {
+    setState(() {
+      _gettingLocation = true;
+      _message = null;
+    });
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        await _offerSettings(appSettings: false);
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        await _offerSettings(appSettings: true);
+        return;
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.unableToDetermine) {
+        setState(() => _message =
+            'Allow location access or tap the map to set the shop entrance.');
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 20));
+      if (mounted) {
+        setState(() {
+          _selected = LatLng(position.latitude, position.longitude);
+          _message =
+              'Current location selected. Drag the map or tap to adjust.';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _message =
+            'Could not read GPS. You can still tap the map to select the shop entrance.');
+      }
+    } finally {
+      if (mounted) setState(() => _gettingLocation = false);
+    }
+  }
+
+  Future<void> _offerSettings({required bool appSettings}) async {
+    setState(() => _message = appSettings
+        ? 'Location permission is blocked. Allow it in app settings or tap the map instead.'
+        : 'Turn on device location or tap the map to choose the shop entrance.');
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appSettings ? 'Allow location access' : 'Turn on location'),
+        content: Text(appSettings
+            ? 'Allow KARIAKOO location access in app settings, then return here.'
+            : 'Turn on device location to place the shop pin at your current position.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Choose on map')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Open settings')),
+        ],
+      ),
+    );
+    if (open == true) {
+      if (appSettings) {
+        await Geolocator.openAppSettings();
+      } else {
+        await Geolocator.openLocationSettings();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                16, 8, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Set shop pickup point',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text(
+                    'Tap the map to mark your shop entrance. Customers and assigned riders can see this pin.'),
+                const SizedBox(height: 12),
+                KariakooMap(
+                  key: ValueKey('${_selected.latitude}:${_selected.longitude}'),
+                  initialCenter: _selected,
+                  zoom: 16,
+                  height: 300,
+                  userAgentPackageName: 'com.kariakoo.seller',
+                  onTap: (point) => setState(() => _selected = point),
+                  pins: [
+                    KariakooMapPin(
+                      point: _selected,
+                      label: 'Shop pickup point',
+                      icon: Icons.store,
+                      color: AppColors.brand700,
+                    ),
+                  ],
+                ),
+                if (_message != null) ...[
+                  const SizedBox(height: 6),
+                  Text(_message!,
+                      style: const TextStyle(
+                          color: AppColors.muted, fontSize: 12)),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            _gettingLocation ? null : _useCurrentLocation,
+                        icon: _gettingLocation
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.my_location),
+                        label: const Text('Use my location'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.pop(
+                            context, _ShopLocationSelection(_selected)),
+                        icon: const Icon(Icons.save_outlined),
+                        label: const Text('Save pin'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (widget.hasSavedLocation)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => Navigator.pop(
+                          context, const _ShopLocationSelection(null)),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Remove saved location'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _ShopLocationSelection {
+  const _ShopLocationSelection(this.point);
+  final LatLng? point;
 }
 
 class _ProductRow extends StatelessWidget {

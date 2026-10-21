@@ -14,7 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { checkoutSchema } from "@/lib/validation/checkout";
 import type { CartLine, DeliveryZoneId } from "@/lib/types";
 
-type FieldName = "name" | "phone" | "zone" | "address" | "instructions" | "payment" | "cart";
+type FieldName = "name" | "phone" | "zone" | "address" | "instructions" | "dropoffLat" | "dropoffLng" | "payment" | "cart";
 
 export interface VerifiedGroup {
   shopName: string;
@@ -44,6 +44,8 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
     zone: String(formData.get("zone") ?? ""),
     address: String(formData.get("address") ?? ""),
     instructions: String(formData.get("instructions") ?? ""),
+    dropoffLat: String(formData.get("dropoffLat") ?? ""),
+    dropoffLng: String(formData.get("dropoffLng") ?? ""),
     payment: String(formData.get("payment") ?? ""),
   };
 
@@ -135,6 +137,8 @@ export async function placeOrder(_prev: PlaceState, formData: FormData): Promise
     zone: String(formData.get("zone") ?? ""),
     address: String(formData.get("address") ?? ""),
     instructions: String(formData.get("instructions") ?? ""),
+    dropoffLat: String(formData.get("dropoffLat") ?? ""),
+    dropoffLng: String(formData.get("dropoffLng") ?? ""),
     payment: String(formData.get("payment") ?? ""),
   };
   const parsed = checkoutSchema.safeParse(raw);
@@ -177,5 +181,13 @@ export async function placeOrder(_prev: PlaceState, formData: FormData): Promise
   }
   const result = data as { order_id?: string; reference?: string };
   if (!result?.order_id) return { status: "error", message: "Could not place the order. Please try again." };
+  if (parsed.data.dropoffLat && parsed.data.dropoffLng) {
+    const { error: locationError } = await sb.rpc("customer_set_order_dropoff_location", {
+      p_order_id: result.order_id,
+      p_lat: Number(parsed.data.dropoffLat),
+      p_lng: Number(parsed.data.dropoffLng),
+    });
+    if (locationError) return { status: "error", message: `Order ${result.reference} was placed, but its map pin could not be saved. Please update it from your order page or contact support.` };
+  }
   return { status: "placed", orderId: result.order_id, reference: result.reference };
 }

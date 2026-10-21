@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/product.dart';
+import '../models/seller_order.dart';
 import '../models/shop.dart';
 import '../supabase/supabase_init.dart';
 
@@ -14,9 +15,12 @@ class SellerRepository {
   Future<Shop?> myShop() async {
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) return null;
-    final rows = await supabase.from('shops').select().eq('owner_id', uid).limit(1);
+    final rows =
+        await supabase.from('shops').select().eq('owner_id', uid).limit(1);
     final list = rows as List;
-    return list.isEmpty ? null : Shop.fromJson(list.first as Map<String, dynamic>);
+    return list.isEmpty
+        ? null
+        : Shop.fromJson(list.first as Map<String, dynamic>);
   }
 
   Future<List<Product>> myProducts(String shopId) async {
@@ -25,10 +29,38 @@ class SellerRepository {
         .select()
         .eq('shop_id', shopId)
         .order('created_at', ascending: false);
-    return (rows as List).map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+    return (rows as List)
+        .map((e) => Product.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<void> setShopLocation({required double lat, required double lng}) async {
+  /// The database RPC returns only this shop's order lines and safe operational
+  /// fields; it deliberately excludes customer contact details and address.
+  Future<List<SellerOrder>> orders(String shopId) async {
+    final rows = await supabase.rpc('seller_order_feed', params: {
+      'p_shop': shopId,
+    }) as List;
+    return rows
+        .map((row) =>
+            SellerOrder.fromJson(Map<String, dynamic>.from(row as Map)))
+        .toList();
+  }
+
+  Future<String> updateFulfillment({
+    required String orderId,
+    required String status,
+    String? reason,
+  }) async {
+    final result = await supabase.rpc('seller_update_fulfillment', params: {
+      'p_order': orderId,
+      'p_to': status,
+      'p_reason': reason,
+    });
+    return result as String;
+  }
+
+  Future<void> setShopLocation(
+      {required double? lat, required double? lng}) async {
     await supabase.rpc('seller_set_shop_location', params: {
       'p_lat': lat,
       'p_lng': lng,
@@ -54,7 +86,8 @@ class SellerRepository {
     });
   }
 
-  Future<void> updateProduct(String id, {int? priceTzs, int? stock, String? status}) async {
+  Future<void> updateProduct(String id,
+      {int? priceTzs, int? stock, String? status}) async {
     final patch = <String, dynamic>{};
     if (priceTzs != null) patch['price_tzs'] = priceTzs;
     if (stock != null) patch['stock'] = stock;
@@ -76,7 +109,8 @@ class SellerRepository {
   }
 }
 
-final sellerRepositoryProvider = Provider<SellerRepository>((ref) => const SellerRepository());
+final sellerRepositoryProvider =
+    Provider<SellerRepository>((ref) => const SellerRepository());
 
 final myShopProvider = FutureProvider.autoDispose<Shop?>((ref) {
   return ref.read(sellerRepositoryProvider).myShop();
@@ -85,4 +119,9 @@ final myShopProvider = FutureProvider.autoDispose<Shop?>((ref) {
 final myProductsProvider =
     FutureProvider.autoDispose.family<List<Product>, String>((ref, shopId) {
   return ref.read(sellerRepositoryProvider).myProducts(shopId);
+});
+
+final sellerOrdersProvider =
+    FutureProvider.autoDispose.family<List<SellerOrder>, String>((ref, shopId) {
+  return ref.read(sellerRepositoryProvider).orders(shopId);
 });

@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/RoleGate";
 import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { Timeline } from "@/components/orders/Timeline";
 import { TrackSteps } from "@/components/orders/TrackSteps";
+import { LiveRiderMap } from "@/components/orders/LiveRiderMap";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice, Skeleton } from "@/components/ui/States";
 import { fmt } from "@/i18n/config";
@@ -100,6 +101,10 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
               <Timeline events={order.history} upcoming={upcomingSteps(order, d)} />
             </div>
           </Card>
+
+          {["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(order.delivery.status) && (
+            <LiveRiderMap orderId={order.id} />
+          )}
 
           <Card aria-labelledby="items-heading">
             <CardHeader id="items-heading" title={d.items} />

@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:kariakoo_core/kariakoo_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/location.dart';
+import 'rider_earnings.dart';
 
 /// The rider's working screen: go online (real GPS → rider_set_presence),
 /// see live job offers (accept/decline), and move an accepted delivery forward.
@@ -21,7 +24,12 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
   bool _online = false;
   bool _busy = false;
   String? _note;
+  LocationSettingsTarget? _locationSettingsTarget;
   Timer? _offersRefreshTimer;
+  Timer? _locationHeartbeat;
+  StreamSubscription<Position>? _locationSubscription;
+  bool _locationUpdateInProgress = false;
+  LatLng? _lastLocation;
 
   @override
   void initState() {
@@ -34,6 +42,8 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
   @override
   void dispose() {
     _offersRefreshTimer?.cancel();
+    _locationHeartbeat?.cancel();
+    _locationSubscription?.cancel();
     super.dispose();
   }
 
@@ -43,25 +53,33 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
     setState(() {
       _busy = true;
       _note = null;
+      _locationSettingsTarget = null;
     });
     final dispatch = ref.read(dispatchRepositoryProvider);
     try {
       if (value) {
         final fix = await getCurrentFix();
         if (fix.error != null) {
-          setState(() => _note = fix.error);
+          setState(() {
+            _note = fix.error;
+            _locationSettingsTarget = fix.settingsTarget;
+          });
           return;
         }
         await dispatch.setPresence(online: true, lng: fix.lng, lat: fix.lat);
+        _startLocationSharing();
         setState(() {
           _online = true;
+          _lastLocation = LatLng(fix.lat!, fix.lng!);
           _note = 'You are online. Watching for jobs near you.';
         });
         ref.invalidate(myOffersProvider);
       } else {
+        await _stopLocationSharing();
         await dispatch.setPresence(online: false);
         setState(() {
           _online = false;
+          _lastLocation = null;
           _note = 'You are offline.';
         });
       }
@@ -69,6 +87,67 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
       setState(() => _note = 'Could not update your availability.');
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _startLocationSharing() {
+    _locationSubscription?.cancel();
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 20,
+      ),
+    ).listen((position) {
+      if (mounted) {
+        setState(() =>
+            _lastLocation = LatLng(position.latitude, position.longitude));
+      }
+      _sendLocation(position.latitude, position.longitude);
+    }, onError: (_) {
+      if (mounted) {
+        setState(() => _note =
+            'Live GPS updates paused. Check that location remains enabled.');
+      }
+    });
+    _locationHeartbeat?.cancel();
+    _locationHeartbeat = Timer.periodic(const Duration(seconds: 45), (_) async {
+      final fix = await getCurrentFix();
+      if (fix.lat != null && fix.lng != null) {
+        if (mounted) {
+          setState(() => _lastLocation = LatLng(fix.lat!, fix.lng!));
+        }
+        await _sendLocation(fix.lat!, fix.lng!);
+      }
+    });
+  }
+
+  Future<void> _stopLocationSharing() async {
+    _locationHeartbeat?.cancel();
+    _locationHeartbeat = null;
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+  }
+
+  Future<void> _sendLocation(double lat, double lng) async {
+    if (!_online && !_busy || _locationUpdateInProgress) return;
+    _locationUpdateInProgress = true;
+    try {
+      await ref
+          .read(dispatchRepositoryProvider)
+          .updateLocation(lat: lat, lng: lng);
+    } catch (_) {
+      // Keep the rider's screen usable; a later GPS tick retries the update.
+    } finally {
+      _locationUpdateInProgress = false;
+    }
+  }
+
+  Future<void> _openLocationSettings() async {
+    if (_locationSettingsTarget == LocationSettingsTarget.appPermission) {
+      await Geolocator.openAppSettings();
+    } else if (_locationSettingsTarget ==
+        LocationSettingsTarget.deviceLocation) {
+      await Geolocator.openLocationSettings();
     }
   }
 
@@ -114,6 +193,29 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
       _snack('Delivery completed. Nice work!');
     } catch (e) {
       _snack(_clean(e));
+    }
+  }
+
+  Future<void> _navigateForDelivery(
+      RiderDelivery delivery, PickupStop? pickup) async {
+    final lat = pickup != null ? pickup.lat : delivery.dropoffLat;
+    final lng = pickup != null ? pickup.lng : delivery.dropoffLng;
+    final address = pickup != null
+        ? (pickup.address.isNotEmpty ? pickup.address : pickup.name)
+        : delivery.dropoffAddress;
+    if ((lat == null || lng == null) && address.trim().isEmpty) {
+      _snack('No destination address or map pin is available yet.');
+      return;
+    }
+    final destination = lat != null && lng != null ? '$lat,$lng' : address;
+    final uri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+      'travelmode': 'driving',
+    });
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      _snack('Could not open maps on this device.');
     }
   }
 
@@ -166,6 +268,13 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
             style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
+            tooltip: 'Earnings and delivery history',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => RiderEarningsScreen(riderId: _riderId),
+            )),
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+          ),
+          IconButton(
             tooltip: 'Sign out',
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
             icon: const Icon(Icons.logout),
@@ -198,6 +307,18 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
                 child: Text(_note!,
                     style: const TextStyle(color: AppColors.brand900)),
               ),
+              if (_locationSettingsTarget != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _openLocationSettings,
+                    icon: const Icon(Icons.settings_outlined),
+                    label: Text(_locationSettingsTarget ==
+                            LocationSettingsTarget.appPermission
+                        ? 'Open app settings'
+                        : 'Turn on device location'),
+                  ),
+                ),
             ],
             const SizedBox(height: 24),
             const _SectionTitle('Active delivery'),
@@ -218,8 +339,10 @@ class _RiderDashboardState extends ConsumerState<RiderDashboard> {
                       'No active delivery. Go online to receive jobs.')
                   : _ActiveDeliveryCard(
                       delivery: d,
+                      currentLocation: _lastLocation,
                       onAdvance: () => _advance(d),
-                      onComplete: () => _complete(d)),
+                      onComplete: () => _complete(d),
+                      onNavigate: (pickup) => _navigateForDelivery(d, pickup)),
             ),
             const SizedBox(height: 24),
             const _SectionTitle('Job offers'),
@@ -298,15 +421,49 @@ class _OnlineCard extends StatelessWidget {
 class _ActiveDeliveryCard extends StatelessWidget {
   const _ActiveDeliveryCard(
       {required this.delivery,
+      required this.currentLocation,
       required this.onAdvance,
-      required this.onComplete});
+      required this.onComplete,
+      required this.onNavigate});
   final RiderDelivery delivery;
+  final LatLng? currentLocation;
   final VoidCallback onAdvance;
   final VoidCallback onComplete;
+  final ValueChanged<PickupStop?> onNavigate;
 
   @override
   Widget build(BuildContext context) {
     final canAdvance = delivery.nextStep != null;
+    final mapPins = <KariakooMapPin>[
+      if (currentLocation != null)
+        KariakooMapPin(
+          point: currentLocation!,
+          label: 'Your current position',
+          icon: Icons.delivery_dining,
+          color: AppColors.brand700,
+        ),
+      for (var i = 0;
+          delivery.status == 'ACCEPTED' && i < delivery.pickups.length;
+          i++)
+        if (delivery.pickups[i].lat != null && delivery.pickups[i].lng != null)
+          KariakooMapPin(
+            point: LatLng(delivery.pickups[i].lat!, delivery.pickups[i].lng!),
+            label: 'Pickup ${i + 1}: ${delivery.pickups[i].name}',
+            icon: Icons.store,
+            color: AppColors.brand600,
+          ),
+      if (delivery.dropoffLat != null && delivery.dropoffLng != null)
+        KariakooMapPin(
+          point: LatLng(delivery.dropoffLat!, delivery.dropoffLng!),
+          label: 'Customer drop-off',
+          icon: Icons.location_on,
+          color: AppColors.danger,
+        ),
+    ];
+    final mapCenter = currentLocation ??
+        (mapPins.isNotEmpty
+            ? mapPins.first.point
+            : const LatLng(-6.7924, 39.2083));
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -346,6 +503,62 @@ class _ActiveDeliveryCard extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 26,
                   fontWeight: FontWeight.w800)),
+          if (mapPins.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            KariakooMap(
+              key: ValueKey(
+                  '${currentLocation?.latitude}:${currentLocation?.longitude}:${delivery.orderId}'),
+              initialCenter: mapCenter,
+              pins: mapPins,
+              height: 250,
+              zoom: 13,
+              showGuideLine: mapPins.length > 1,
+              userAgentPackageName: 'com.kariakoo.rider',
+            ),
+          ],
+          if (delivery.status == 'ACCEPTED' && delivery.pickups.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Pickup: ${delivery.pickups.first.name}',
+                style: const TextStyle(color: Colors.white70)),
+            if (delivery.pickups.first.address.isNotEmpty)
+              Text(delivery.pickups.first.address,
+                  style: const TextStyle(color: Colors.white60, fontSize: 12)),
+          ] else if (delivery.dropoffAddress.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Drop-off: ${delivery.dropoffAddress}',
+                style: const TextStyle(color: Colors.white70)),
+          ],
+          if (delivery.status == 'ACCEPTED' && delivery.pickups.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final pickup in delivery.pickups)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => onNavigate(pickup),
+                  icon: const Icon(Icons.directions),
+                  label: Text('Navigate to ${pickup.name} pickup'),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: .4))),
+                ),
+              ),
+          ] else if (delivery.dropoffAddress.isNotEmpty ||
+              (delivery.dropoffLat != null && delivery.dropoffLng != null)) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => onNavigate(null),
+                icon: const Icon(Icons.directions),
+                label: const Text('Navigate to customer'),
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side:
+                        BorderSide(color: Colors.white.withValues(alpha: .4))),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           if (canAdvance)
             SizedBox(

@@ -15,6 +15,7 @@ export interface RiderJobView {
   pickups: { shopId: string; shopName: string; address: string; itemCount: number; items: { name: string; quantity: number }[]; ready: boolean; geo?: [number, number] }[];
   zone: Order["zone"];
   dropoffAddress: string;
+  dropoffGeo?: [number, number];
   instructions?: string;
   history: Order["history"];
   deliveredAt?: string;
@@ -47,7 +48,14 @@ export async function riderJobs(session: Session | null): Promise<RiderJobView[]
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb.from("orders").select(ORDER_SELECT).order("created_at", { ascending: false });
   if (error) throw new Error(`Could not load rider deliveries: ${error.message}`);
-  const orders = (data ?? []).map((row) => mapOrder(row as never)).filter((order) => order.delivery.riderId === session.userId);
+  const rows = (data ?? []) as unknown as ({ id: string } & Record<string, unknown>)[];
+  const orders = rows.map((row) => mapOrder(row as never)).filter((order) => order.delivery.riderId === session.userId);
+  const orderIds = orders.map((order) => order.id);
+  const { data: dropoffRows, error: dropoffError } = orderIds.length
+    ? await sb.from("order_dropoff_locations").select("order_id,lat,lng").in("order_id", orderIds)
+    : { data: [], error: null };
+  if (dropoffError) throw new Error(`Could not load delivery locations: ${dropoffError.message}`);
+  const dropoffByOrderId = new Map(((dropoffRows ?? []) as { order_id: string; lat: number; lng: number }[]).map((row) => [row.order_id, [row.lng, row.lat] as [number, number]]));
   const shopIds = [...new Set(orders.flatMap((order) => order.groups.map((group) => group.shopId)))];
   const { data: shopRows, error: shopError } = shopIds.length
     ? await sb.from("shops").select("id,name,address,lat,lng").in("id", shopIds)
@@ -76,6 +84,7 @@ export async function riderJobs(session: Session | null): Promise<RiderJobView[]
     }),
     zone: order.zone,
     dropoffAddress: order.address,
+    dropoffGeo: dropoffByOrderId.get(order.id),
     instructions: order.instructions,
     history: order.history,
     deliveredAt: order.delivery.status === "DELIVERED" ? [...order.history].reverse().find((event) => event.label.toLowerCase().includes("deliver"))?.at : undefined,
