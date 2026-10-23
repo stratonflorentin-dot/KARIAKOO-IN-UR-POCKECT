@@ -26,7 +26,7 @@ export function RiderStopNavigation({ stop, kind }: { stop: Stop; kind: "pickup"
   }, []);
 
   if (!stop.geo) {
-    return <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-800"><MapPin size={14} aria-hidden="true" /> {kind === "dropoff" ? "Exact customer map pin unavailable. Ask the customer to add one or contact support." : "This shop has no saved map pin. Contact support to update its pickup location."}</p>;
+    return <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-800"><MapPin size={14} aria-hidden="true" /> {kind === "dropoff" ? "Exact customer map pin unavailable. Ask the customer to add one or contact support." : "This shop has no saved map pin. Ask the seller to save its pickup location in the Seller dashboard."}</p>;
   }
 
   function toggleNavigation() {

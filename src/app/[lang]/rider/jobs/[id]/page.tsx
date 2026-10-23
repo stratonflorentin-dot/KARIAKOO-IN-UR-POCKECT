@@ -6,6 +6,7 @@ import { Timeline } from "@/components/orders/Timeline";
 import { DeliveryFlow } from "@/components/rider/DeliveryFlow";
 import { RiderStopNavigation } from "@/components/rider/RiderStopNavigation";
 import { DeliveryVoiceCall } from "@/components/orders/DeliveryVoiceCall";
+import { OrderStatusPoller } from "@/components/orders/OrderStatusPoller";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
 import { Badge } from "@/components/ui/Badge";
@@ -34,6 +35,7 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
 
   return (
     <div className="space-y-4">
+      <OrderStatusPoller />
       <Link href="/rider" className="text-sm font-medium text-brand-700">← Deliveries</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{job.reference}</h1>

@@ -9,6 +9,7 @@ import { Timeline } from "@/components/orders/Timeline";
 import { TrackSteps } from "@/components/orders/TrackSteps";
 import { LiveRiderMap } from "@/components/orders/LiveRiderMap";
 import { DeliveryVoiceCall } from "@/components/orders/DeliveryVoiceCall";
+import { OrderStatusPoller } from "@/components/orders/OrderStatusPoller";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice, Skeleton } from "@/components/ui/States";
 import { fmt } from "@/i18n/config";
@@ -48,13 +49,26 @@ export default async function OrderDetailPage({ params }: PageProps<"/[lang]/cus
 
 function upcomingSteps(o: Order, d: Dictionary["orderDetail"]): string[] {
   if (o.status === "cancelled" || o.status === "delivered") return [];
-  const steps: Record<string, string[]> = {
-    placed: [d.shopConfirms, d.riderCollects, d.deliveredStep],
-    confirmed: [d.riderCollects, d.deliveredStep],
-    preparing: [d.riderCollects, d.deliveredStep],
-    out_for_delivery: [d.deliveredStep],
-  };
-  return steps[o.status] ?? [];
+  const shopStillNeedsToConfirm = o.groups.length > 0
+    ? o.groups.some((group) => group.status === "awaiting_seller")
+    : o.status === "placed";
+  const riderStillNeedsToCollect = !["PICKED_UP", "IN_TRANSIT", "DELIVERED", "FAILED", "CANCELLED"].includes(o.delivery.status)
+    && o.status !== "out_for_delivery";
+  return [
+    ...(shopStillNeedsToConfirm ? [d.shopConfirms] : []),
+    ...(riderStillNeedsToCollect ? [d.riderCollects] : []),
+    d.deliveredStep,
+  ];
+}
+
+function progressStatus(o: Order): Order["status"] {
+  if (o.status === "cancelled" || o.delivery.status === "CANCELLED") return "cancelled";
+  if (o.status === "delivered" || o.delivery.status === "DELIVERED") return "delivered";
+  if (["PICKED_UP", "IN_TRANSIT"].includes(o.delivery.status)) return "out_for_delivery";
+  if (o.status !== "placed") return o.status;
+  if (o.groups.some((group) => ["preparing", "ready_for_pickup", "picked_up", "delivered"].includes(group.status))) return "preparing";
+  if (o.groups.some((group) => group.status === "accepted")) return "confirmed";
+  return o.status;
 }
 
 async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[id]">, "params">) {
@@ -72,9 +86,10 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
 
   return (
     <div className="mt-4 space-y-5">
+      <OrderStatusPoller />
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-2 text-2xl font-bold tracking-tight">{d.order} {order.reference}</h1>
-        <OrderStatusBadge status={order.status} />
+        <OrderStatusBadge status={progressStatus(order)} />
         <PaymentStatusBadge status={order.paymentStatus} />
       </div>
       <p className="text-sm text-muted">{fmt(d.placed, { date: formatDateTime(order.placedAt) })}</p>
@@ -97,7 +112,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
         <div className="space-y-5">
           <Card aria-labelledby="track-heading">
             <CardHeader id="track-heading" title={d.progress} subtitle={d.progressSub} />
-            <TrackSteps status={order.status} />
+            <TrackSteps status={progressStatus(order)} />
             <div className="mt-5 border-t border-line pt-4">
               <Timeline events={order.history} upcoming={upcomingSteps(order, d)} />
             </div>
