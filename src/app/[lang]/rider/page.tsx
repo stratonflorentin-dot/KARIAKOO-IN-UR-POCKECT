@@ -1,6 +1,6 @@
 import { Bike, ClipboardList, DollarSign, MapPin, Truck, Wallet } from "lucide-react";
 import Link from "@/components/i18n/Link";
-import { LiveOfferList } from "@/components/rider/LiveOfferList";
+import { JobOfferModal } from "@/components/rider/JobOfferModal";
 import { RiderDispatchPoller } from "@/components/rider/RiderDispatchPoller";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
@@ -39,7 +39,7 @@ export default async function RiderDashboardPage() {
         description="Live delivery activity assigned to your rider account."
       />
 
-      <div className="mb-6"><LiveOfferList offers={offers} /></div>
+      <JobOfferModal offers={offers} />
 
       {/* Top metrics row. */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

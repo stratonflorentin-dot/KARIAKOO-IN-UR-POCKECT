@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { advanceDelivery, acceptOffer, submitDeliveryPin, type PinState } from "@/app/[lang]/rider/actions";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
+import { SwipeToConfirm } from "@/components/rider/SwipeToConfirm";
 import { Button } from "@/components/ui/Button";
 import type { DeliveryStatus } from "@/lib/types";
 
@@ -29,9 +30,10 @@ export function DeliveryFlow({ orderId, initial }: { orderId: string; initial: D
 
   return <section aria-labelledby="delivery-flow" className="rounded-3xl bg-white p-4">
     <div className="flex items-center justify-between gap-2"><h2 id="delivery-flow" className="font-semibold">Delivery status</h2><DeliveryStatusBadge status={status} /></div>
-    {status === "ASSIGNED" && <Button className="mt-4" full disabled={pending} onClick={() => transition(() => acceptOffer(orderId))}>{pending ? "Saving…" : "Accept delivery"}</Button>}
-    {status === "ACCEPTED" && <Button className="mt-4" full disabled={pending} onClick={() => transition(() => advanceDelivery(orderId, "PICKED_UP"))}>{pending ? "Saving…" : "Confirm goods picked up"}</Button>}
-    {status === "PICKED_UP" && <Button className="mt-4" full disabled={pending} onClick={() => transition(() => advanceDelivery(orderId, "IN_TRANSIT"))}>{pending ? "Saving…" : "Start trip to customer"}</Button>}
+    {/* Each stage is a deliberate swipe, so a pocket tap can't advance a delivery. */}
+    {status === "ASSIGNED" && <div className="mt-4"><SwipeToConfirm label={pending ? "Saving…" : "Swipe to accept delivery"} disabled={pending} tone="brand" onConfirm={() => transition(() => acceptOffer(orderId))} /></div>}
+    {status === "ACCEPTED" && <div className="mt-4"><SwipeToConfirm label={pending ? "Saving…" : "Swipe: picked up at shop"} disabled={pending} tone="dark" onConfirm={() => transition(() => advanceDelivery(orderId, "PICKED_UP"))} /></div>}
+    {status === "PICKED_UP" && <div className="mt-4"><SwipeToConfirm label={pending ? "Saving…" : "Swipe: on the way to customer"} disabled={pending} tone="success" onConfirm={() => transition(() => advanceDelivery(orderId, "IN_TRANSIT"))} /></div>}
     {status === "IN_TRANSIT" && <form action={pinAction} className="mt-4 space-y-2">
       <input type="hidden" name="orderId" value={orderId} />
       <label htmlFor="delivery-pin" className="flex items-center gap-2 text-sm font-medium"><KeyRound size={16} aria-hidden="true" /> Customer&apos;s 4-digit delivery PIN</label>

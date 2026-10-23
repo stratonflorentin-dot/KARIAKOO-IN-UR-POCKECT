@@ -179,8 +179,18 @@ regression test `supabase/tests/stock_restoration.sql`:
   / `rider_settled_at` added and stamped on completion. Verified: rider-ops test
   10/10 pass; typecheck + unit suite green.
 
-**Still open:** P2-6 (migration drift) — low priority. Rider UI (job modal / swipe
-/ MapTiler) and credential-gated payment webhooks remain per the brief.
+**Shipped** — `src/components/rider/JobOfferModal.tsx`, `DeliveryFlow` + rider
+dashboard updated:
+
+- ✅ **Rider dispatch UX (brief §1)** — a Bolt-style job-offer modal with a ticking
+  countdown ring and Accept/Decline (replaces the plain offer list); the delivery
+  flow now advances through accessible swipe-to-confirm steps (accept → picked up →
+  on the way → PIN). Pickup/drop-off stay hidden until accept (RLS-correct). The map
+  already falls back to free CARTO tiles when no MapTiler key is set — no paid
+  license needed for rendering. Typecheck + 92 unit tests green.
+
+**Still open:** P2-6 (migration drift) — low priority. Credential-gated payment
+webhooks + live operator adapters remain per the brief.
 
 ## Remaining production blockers (beyond this pass)
 
