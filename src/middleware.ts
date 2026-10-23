@@ -23,7 +23,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 const DEFAULT_ADMIN_DOMAIN = "kariakoo-admin-nine.vercel.app";
 
 /** Paths an admin-domain visitor reaches as-is rather than under /admin. */
-const ADMIN_DOMAIN_PASSTHROUGH = ["/admin", "/staff", "/forgot-password", "/reset-password"];
+const ADMIN_DOMAIN_PASSTHROUGH = ["/admin", "/staff", "/sign-in", "/forgot-password", "/reset-password"];
 
 function isAdminDomain(host: string | null, adminDomain: string | undefined): boolean {
   if (!adminDomain || !host) return false;
