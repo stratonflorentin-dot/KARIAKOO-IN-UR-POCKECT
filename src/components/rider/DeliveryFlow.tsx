@@ -1,8 +1,10 @@
 "use client";
 
 import { KeyRound } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/client";
+import { localizePath } from "@/i18n/config";
 import { advanceDelivery, acceptOffer, submitDeliveryPin, type PinState } from "@/app/[lang]/rider/actions";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { SwipeToConfirm } from "@/components/rider/SwipeToConfirm";
@@ -13,10 +15,17 @@ export interface FlowPickup { shopName: string; items: { name: string; quantity:
 
 export function DeliveryFlow({ orderId, initial }: { orderId: string; initial: DeliveryStatus; pickups: FlowPickup[] }) {
   const router = useRouter();
+  const { locale } = useI18n();
   const [status, setStatus] = useState(initial);
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [pinState, pinAction, pinPending] = useActionState<PinState, FormData>(submitDeliveryPin, { status: "idle" });
+
+  useEffect(() => {
+    if (pinState.status !== "ok") return;
+    const nextJobTimer = window.setTimeout(() => router.replace(localizePath(locale, "/rider")), 1200);
+    return () => window.clearTimeout(nextJobTimer);
+  }, [pinState.status, locale, router]);
 
   async function transition(action: () => Promise<{ ok: boolean; message?: string; status?: DeliveryStatus }>) {
     setPending(true);

@@ -4,7 +4,7 @@ import { JobOfferModal } from "@/components/rider/JobOfferModal";
 import { RiderDispatchPoller } from "@/components/rider/RiderDispatchPoller";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/States";
+import { EmptyState, Notice } from "@/components/ui/States";
 import { TrendBars, lastSevenDays } from "@/components/dashboard/TrendBars";
 import { requireRole } from "@/lib/auth/session";
 import { riderJobs, riderOffers } from "@/lib/data/rider-live";
@@ -40,6 +40,12 @@ export default async function RiderDashboardPage() {
       />
 
       <JobOfferModal offers={offers} />
+
+      {active.length > 0 && offers.length === 0 && (
+        <div className="mt-4">
+          <Notice>Your next delivery offer will arrive after you complete this active delivery.</Notice>
+        </div>
+      )}
 
       {/* Top metrics row. */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
