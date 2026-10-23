@@ -135,8 +135,21 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
     setMessage("");
     try {
       if (!window.isSecureContext) throw new Error("Voice calls require a secure HTTPS connection.");
-      const { data, error } = await client.rpc("delivery_call_start", { p_order_id: orderId, p_as_role: role });
-      if (error || !data) throw new Error(error?.message ?? "Could not start the call.");
+      let { data, error } = await client.rpc("delivery_call_start", { p_order_id: orderId, p_as_role: role });
+      // Older deployed databases still expose the original one-argument RPC
+      // until the role-aware migration is applied and PostgREST reloads its schema.
+      if (error?.code === "PGRST202") {
+        const legacy = await client.rpc("delivery_call_start", { p_order_id: orderId });
+        data = legacy.data;
+        error = legacy.error;
+      }
+      if (error?.code === "23514" && error.message.includes("delivery_calls_check")) {
+        throw new Error("This delivery is assigned to your own account. The customer and rider must use different accounts to call.");
+      }
+      if (error || !data) {
+        if (error?.code === "PGRST202") throw new Error("Voice calling is being updated. Please try again shortly.");
+        throw new Error(error?.message ?? "Could not start the call.");
+      }
       const callId = String(data);
       const call: CallRow = { id: callId, order_id: orderId, caller_id: userId, recipient_id: "", state: "ringing", created_at: new Date().toISOString() };
       updateActive(call);
