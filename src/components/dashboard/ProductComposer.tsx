@@ -13,6 +13,8 @@ import { useI18n } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { apparelCategories, audiences, productTypes } from "@/lib/departments";
 import { IMAGE_TYPES, productDraftSchema, validateImageFile } from "@/lib/validation/product";
+import { PRODUCT_IMAGES_BUCKET, productImagePath } from "@/lib/storage";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Audience, Category, CategorySlug, ProductType } from "@/lib/types";
 
 export interface PublishedDraft {
@@ -33,9 +35,10 @@ export interface PublishResult {
 
 type Errors = Partial<Record<"name" | "priceTzs" | "stock" | "description" | "photo", string>>;
 
-export function ProductComposer({ categories, shopName, onPublish }: {
+export function ProductComposer({ categories, shopName, shopId, onPublish }: {
   categories: Category[];
   shopName: string;
+  shopId: string;
   onPublish: (draft: PublishedDraft) => Promise<PublishResult>;
 }) {
   const { t } = useI18n();
@@ -50,6 +53,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File>();
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
@@ -76,6 +80,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
     probe.onload = () => {
       setErrors((e) => ({ ...e, photo: undefined }));
       setPhotoUrl(url);
+      setPhotoFile(file);
     };
     probe.onerror = () => {
       URL.revokeObjectURL(url);
@@ -87,6 +92,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
   function reset() {
     setName(""); setPrice(""); setStock(""); setDescription(""); setAudience(""); setProductType("");
     setPhotoUrl(undefined);
+    setPhotoFile(undefined);
     if (fileInput.current) fileInput.current.value = "";
   }
 
@@ -107,7 +113,25 @@ export function ProductComposer({ categories, shopName, onPublish }: {
     if (!parsed.success) return;
     setBusy(true);
     setSubmitError(undefined);
-    const res = await onPublish({ ...(parsed.data as PublishedDraft) });
+
+    // Upload the photo to Supabase Storage first; the public URL is saved with
+    // the product. Storage RLS allows writes only under this shop's folder.
+    let imageUrl: string | undefined;
+    if (photoFile) {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const path = productImagePath(shopId, photoFile.type);
+        const { error: upErr } = await sb.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, photoFile, { contentType: photoFile.type, upsert: false });
+        if (upErr) throw upErr;
+        imageUrl = sb.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
+      } catch {
+        setBusy(false);
+        setErrors((e) => ({ ...e, photo: c.uploadFailed }));
+        return;
+      }
+    }
+
+    const res = await onPublish({ ...(parsed.data as PublishedDraft), imageUrl });
     setBusy(false);
     if (res.ok) reset();
     else setSubmitError(res.error ?? t.sellerProducts.couldNotSave);
@@ -149,7 +173,7 @@ export function ProductComposer({ categories, shopName, onPublish }: {
                 </label>
                 <p>{c.photoHint}</p>
                 {photoUrl && (
-                  <button type="button" onClick={() => { setPhotoUrl(undefined); if (fileInput.current) fileInput.current.value = ""; }} className="mt-1 inline-flex items-center gap-1 text-red-700 hover:underline">
+                  <button type="button" onClick={() => { setPhotoUrl(undefined); setPhotoFile(undefined); if (fileInput.current) fileInput.current.value = ""; }} className="mt-1 inline-flex items-center gap-1 text-red-700 hover:underline">
                     <X size={12} aria-hidden="true" /> {c.remove}
                   </button>
                 )}

@@ -41,7 +41,7 @@ function groupOf(r: Row): Exclude<Tab, "all"> {
   return "active";
 }
 
-export function SellerProductsManager({ initialProducts, categories, shopName }: { initialProducts: Row[]; categories: Category[]; shopName: string }) {
+export function SellerProductsManager({ initialProducts, categories, shopName, shopId }: { initialProducts: Row[]; categories: Category[]; shopName: string; shopId: string }) {
   const { t } = useI18n();
   const sp = t.sellerProducts;
   const [rows, setRows] = useState<Row[]>(initialProducts);
@@ -65,9 +65,10 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
     fd.set("priceTzs", String(d.priceTzs));
     fd.set("stock", String(d.stock));
     fd.set("description", d.description);
+    if (d.imageUrl) fd.set("imageUrl", d.imageUrl);
     const res = await createProduct(fd);
     if (res.ok && res.id) {
-      setRows((rs) => [{ id: res.id!, slug: res.slug ?? "", status: "active", name: d.name, category: d.category, priceTzs: d.priceTzs, stock: d.stock, description: d.description, audience: d.audience, productType: d.productType, imageUrl: undefined }, ...rs]);
+      setRows((rs) => [{ id: res.id!, slug: res.slug ?? "", status: "active", name: d.name, category: d.category, priceTzs: d.priceTzs, stock: d.stock, description: d.description, audience: d.audience, productType: d.productType, imageUrl: d.imageUrl }, ...rs]);
       setMessage(fmt(sp.savedProduct, { name: d.name }));
       return { ok: true };
     }
@@ -100,7 +101,7 @@ export function SellerProductsManager({ initialProducts, categories, shopName }:
 
   return (
     <>
-      <ProductComposer categories={categories} shopName={shopName} onPublish={publish} />
+      <ProductComposer categories={categories} shopName={shopName} shopId={shopId} onPublish={publish} />
       <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-emerald-800">{message}</p>
 
       <div role="tablist" aria-label={sp.filterLabel} className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">

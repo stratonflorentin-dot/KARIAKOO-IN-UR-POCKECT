@@ -9,7 +9,9 @@
 // step. Products publish without a photo for now (a placeholder is shown).
 import { revalidatePath } from "next/cache";
 import { getSessionWithRole } from "@/lib/auth/session";
+import { productImagePublicPrefix } from "@/lib/storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import { productDraftSchema } from "@/lib/validation/product";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -61,6 +63,17 @@ export async function createProduct(formData: FormData): Promise<ProductActionRe
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the product details." };
   const d = parsed.data;
 
+  // An optional image must be a public URL under THIS shop's storage folder —
+  // the browser uploads it under product-images/{shopId}/ (enforced by storage
+  // RLS), and we refuse anything else so a seller can't attach an arbitrary URL.
+  const rawImage = String(formData.get("imageUrl") ?? "").trim();
+  let imageUrl: string | null = null;
+  if (rawImage) {
+    const prefix = productImagePublicPrefix(getSupabasePublicEnv().url, shop.shopId);
+    if (!rawImage.startsWith(prefix)) return { ok: false, error: "That photo could not be verified. Please re-upload it." };
+    imageUrl = rawImage;
+  }
+
   const slug = await uniqueProductSlug(sb, d.name);
   const { data, error } = await sb
     .from("products")
@@ -74,6 +87,7 @@ export async function createProduct(formData: FormData): Promise<ProductActionRe
       description: d.description,
       audience: d.audience ?? null,
       product_type: d.productType ?? null,
+      image_url: imageUrl,
       status: "active",
       is_demo: false,
     })

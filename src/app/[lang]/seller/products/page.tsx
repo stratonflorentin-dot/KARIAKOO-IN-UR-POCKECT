@@ -41,7 +41,7 @@ export default async function SellerProductsPage() {
           <Notice tone="warning">{sp.notApproved}</Notice>
         </div>
       )}
-      <SellerProductsManager initialProducts={products} categories={getCategories()} shopName={shop.name} />
+      <SellerProductsManager initialProducts={products} categories={getCategories()} shopName={shop.name} shopId={shop.id} />
     </>
   );
 }

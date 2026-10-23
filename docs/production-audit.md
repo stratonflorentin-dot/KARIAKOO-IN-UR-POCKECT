@@ -154,6 +154,19 @@ regression test `supabase/tests/stock_restoration.sql`:
   reconciliation path. Verified: ledger test 6/6, status unit tests pass.
   Webhook routes + per-operator adapters remain credential-gated.
 
+**Shipped** — migration `20261023160000_storage_product_images.sql`, code in
+`src/lib/storage.ts` + seller composer wiring:
+
+- ✅ **Product image uploads (brief §3)** — public `product-images` and
+  `store-banners` buckets with owner-scoped storage RLS (a seller can write only
+  under `product-images/{shop_id}/…`, enforced by `private.owns_shop` on the path;
+  admins may moderate; public read). The seller composer now uploads the chosen
+  photo to Storage and saves the public URL; `createProduct` validates the URL is
+  under the shop's own folder before saving. `shops.banner_url` column added.
+  Verified: buckets + 8 policies exist, storage helper unit tests pass, typecheck
+  clean. Note: full upload e2e (logged-in seller + file picker) not run here;
+  Storage image transformation/CDN resizing is a Pro-plan add-on if wanted later.
+
 **Still open:** P2-6 (migration drift) — low priority.
 
 ## Remaining production blockers (beyond this pass)
