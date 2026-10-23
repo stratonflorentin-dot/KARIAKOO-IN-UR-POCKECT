@@ -3,6 +3,7 @@
 import { getSessionWithRole } from "@/lib/auth/session";
 import {
   acceptOfferFor,
+  claimDeliveryFor,
   advanceDeliveryFor,
   declineOfferFor,
   setPresenceFor,
@@ -81,6 +82,13 @@ export async function acceptOffer(orderId: string): Promise<DispatchResult> {
   const session = await getSessionWithRole("rider");
   if (!session) return NOT_A_RIDER;
   return acceptOfferFor(session, orderId);
+}
+
+/** Atomically claim a delivery from the shared available-jobs board. */
+export async function claimDelivery(orderId: string): Promise<DispatchResult> {
+  const session = await getSessionWithRole("rider");
+  if (!session) return NOT_A_RIDER;
+  return claimDeliveryFor(session, orderId);
 }
 
 /** Decline an offered job so it returns to dispatch. */

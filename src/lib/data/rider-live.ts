@@ -23,6 +23,34 @@ export interface RiderJobView {
 }
 
 export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt: string }
+export interface RiderAvailableDelivery {
+  orderId: string;
+  reference: string;
+  placedAt: string;
+  payoutTzs: number;
+  pickupNames: string;
+  distanceKm: number | null;
+  canClaim: boolean;
+}
+
+export async function riderAvailableDeliveries(session: Session | null): Promise<RiderAvailableDelivery[]> {
+  assertRole(session, "rider");
+  const sb = await createSupabaseServerClient();
+  const { data, error } = await sb.rpc("rider_available_deliveries");
+  if (error) throw new Error(`Could not load available deliveries: ${error.message}`);
+  return ((data ?? []) as {
+    order_id: string; reference: string; placed_at: string; payout_tzs: number | string;
+    pickup_names: string; distance_km: number | null; can_claim: boolean;
+  }[]).map((row) => ({
+    orderId: row.order_id,
+    reference: row.reference,
+    placedAt: row.placed_at,
+    payoutTzs: Number(row.payout_tzs),
+    pickupNames: row.pickup_names,
+    distanceKm: row.distance_km === null ? null : Number(row.distance_km),
+    canClaim: row.can_claim,
+  }));
+}
 
 export async function riderOffers(session: Session | null): Promise<RiderOfferView[]> {
   assertRole(session, "rider");

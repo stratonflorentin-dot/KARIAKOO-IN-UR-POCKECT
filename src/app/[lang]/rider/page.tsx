@@ -1,13 +1,14 @@
 import { Bike, ClipboardList, DollarSign, MapPin, Truck, Wallet } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { JobOfferModal } from "@/components/rider/JobOfferModal";
+import { AvailableDeliveries } from "@/components/rider/AvailableDeliveries";
 import { RiderDispatchPoller } from "@/components/rider/RiderDispatchPoller";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
 import { EmptyState, Notice } from "@/components/ui/States";
 import { TrendBars, lastSevenDays } from "@/components/dashboard/TrendBars";
 import { requireRole } from "@/lib/auth/session";
-import { riderJobs, riderOffers } from "@/lib/data/rider-live";
+import { riderAvailableDeliveries, riderJobs, riderOffers } from "@/lib/data/rider-live";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import { darDate } from "@/lib/rider-earnings";
 
@@ -17,6 +18,7 @@ export default async function RiderDashboardPage() {
   const session = await requireRole("rider");
   const jobs = await riderJobs(session);
   const offers = await riderOffers(session);
+  const available = await riderAvailableDeliveries(session);
 
   const active = jobs.filter((j) => ACTIVE.includes(j.status));
   // Assigned (just offered/accepted) + active jobs — what the rider acts on now.
@@ -40,6 +42,7 @@ export default async function RiderDashboardPage() {
       />
 
       <JobOfferModal offers={offers} />
+      <AvailableDeliveries deliveries={available} />
 
       {active.length > 0 && offers.length === 0 && (
         <div className="mt-4">

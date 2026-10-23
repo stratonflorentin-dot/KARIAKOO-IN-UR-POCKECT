@@ -28,6 +28,14 @@ export async function acceptOfferFor(session: Session | null, orderId: string): 
   return { ok: true, status: data as DeliveryStatus };
 }
 
+export async function claimDeliveryFor(session: Session | null, orderId: string): Promise<DispatchResult> {
+  if (!isLiveRider(session)) return { ok: false, message: "Please sign in as a rider." };
+  const sb = await createSupabaseServerClient();
+  const { data, error } = await sb.rpc("rider_claim_delivery", { p_order: orderId });
+  if (error) return { ok: false, message: friendly(error.message, "Could not claim this delivery. It may have been taken.") };
+  return { ok: true, status: data as DeliveryStatus };
+}
+
 export async function declineOfferFor(session: Session | null, orderId: string): Promise<DispatchResult> {
   if (!isLiveRider(session)) return { ok: false, message: "Please sign in as a rider." };
   const sb = await createSupabaseServerClient();
