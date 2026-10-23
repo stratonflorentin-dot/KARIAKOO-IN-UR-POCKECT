@@ -167,7 +167,20 @@ regression test `supabase/tests/stock_restoration.sql`:
   clean. Note: full upload e2e (logged-in seller + file picker) not run here;
   Storage image transformation/CDN resizing is a Pro-plan add-on if wanted later.
 
-**Still open:** P2-6 (migration drift) — low priority.
+**Shipped** — migration `20261023170000_rider_incidents_settlements.sql`, test
+`supabase/tests/rider_incidents_settlements.sql`, SafetyButton wired:
+
+- ✅ **Rider SOS + settlement (brief §1 backend)** — `rider_incidents` table with
+  `rider_report_incident` (rider-only) + `admin_update_incident` (validated
+  open→acknowledged→resolved); the SafetyButton now files a DB-backed SOS alert
+  (with best-effort GPS) instead of only showing call links. `rider_settlements`
+  table + `admin_settle_rider_day` (idempotent daily reconciliation of DELIVERED
+  payouts, one per rider/day) + `admin_mark_settlement_paid`; `deliveries.delivered_at`
+  / `rider_settled_at` added and stamped on completion. Verified: rider-ops test
+  10/10 pass; typecheck + unit suite green.
+
+**Still open:** P2-6 (migration drift) — low priority. Rider UI (job modal / swipe
+/ MapTiler) and credential-gated payment webhooks remain per the brief.
 
 ## Remaining production blockers (beyond this pass)
 

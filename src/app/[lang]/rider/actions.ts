@@ -48,6 +48,29 @@ export async function submitDeliveryPin(_prev: PinState, formData: FormData): Pr
   return { status: "error", message: messages.incorrect };
 }
 
+/* ------------------------------ Safety ------------------------------ */
+
+export interface SosResult {
+  ok: boolean;
+  message?: string;
+}
+
+/** File a database-backed SOS incident for the signed-in rider (dispatch sees it). */
+export async function reportSosIncident(lat?: number, lng?: number): Promise<SosResult> {
+  const session = await getSessionWithRole("rider");
+  if (!session) return { ok: false, message: "Please sign in as a rider." };
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.rpc("rider_report_incident", {
+    p_kind: "sos",
+    p_note: "SOS triggered from the rider app",
+    p_order: null,
+    p_lat: typeof lat === "number" && Number.isFinite(lat) ? lat : null,
+    p_lng: typeof lng === "number" && Number.isFinite(lng) ? lng : null,
+  });
+  if (error) return { ok: false, message: "Couldn't reach dispatch. Please call emergency services now." };
+  return { ok: true, message: "Alert sent to dispatch. Stay safe — call emergency services if you're in danger." };
+}
+
 /* ----------------------------- Dispatch ----------------------------- */
 
 // Dispatch actions operate on the signed-in Supabase rider's records.
