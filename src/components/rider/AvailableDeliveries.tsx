@@ -9,7 +9,7 @@ import { localizePath } from "@/i18n/config";
 import { formatDateTime, formatTzs } from "@/lib/format";
 import type { RiderAvailableDelivery } from "@/lib/data/rider-live";
 
-export function AvailableDeliveries({ deliveries }: { deliveries: RiderAvailableDelivery[] }) {
+export function AvailableDeliveries({ deliveries, unavailable = false }: { deliveries: RiderAvailableDelivery[]; unavailable?: boolean }) {
   const router = useRouter();
   const { locale } = useI18n();
   const [claiming, setClaiming] = useState("");
@@ -39,11 +39,12 @@ export function AvailableDeliveries({ deliveries }: { deliveries: RiderAvailable
         <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">{deliveries.length} open</span>
       </div>
       {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
-      {deliveries.length === 0 ? (
+      {unavailable && <p role="status" className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">The delivery board is temporarily unavailable while dispatch is being updated. Your current deliveries are still available below. Refresh this page shortly.</p>}
+      {deliveries.length === 0 && !unavailable ? (
         <div className="rounded-2xl border border-dashed border-line bg-white p-5 text-sm text-muted">
           No open deliveries right now. Keep the app online; new jobs will appear here automatically.
         </div>
-      ) : (
+      ) : deliveries.length > 0 ? (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {deliveries.map((delivery) => (
             <li key={delivery.orderId}>
@@ -73,7 +74,7 @@ export function AvailableDeliveries({ deliveries }: { deliveries: RiderAvailable
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </section>
   );
 }

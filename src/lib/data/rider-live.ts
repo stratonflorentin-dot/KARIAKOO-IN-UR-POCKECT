@@ -33,12 +33,17 @@ export interface RiderAvailableDelivery {
   canClaim: boolean;
 }
 
-export async function riderAvailableDeliveries(session: Session | null): Promise<RiderAvailableDelivery[]> {
+export async function riderAvailableDeliveries(session: Session | null): Promise<{
+  deliveries: RiderAvailableDelivery[];
+  unavailable: boolean;
+}> {
   assertRole(session, "rider");
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb.rpc("rider_available_deliveries");
-  if (error) throw new Error(`Could not load available deliveries: ${error.message}`);
-  return ((data ?? []) as {
+  // Keep the entire rider dashboard usable during a staggered frontend / DB
+  // deploy. The board appears as soon as this RPC migration is applied.
+  if (error) return { deliveries: [], unavailable: true };
+  const deliveries = ((data ?? []) as {
     order_id: string; reference: string; placed_at: string; payout_tzs: number | string;
     pickup_names: string; distance_km: number | null; can_claim: boolean;
   }[]).map((row) => ({
@@ -50,6 +55,7 @@ export async function riderAvailableDeliveries(session: Session | null): Promise
     distanceKm: row.distance_km === null ? null : Number(row.distance_km),
     canClaim: row.can_claim,
   }));
+  return { deliveries, unavailable: false };
 }
 
 export async function riderOffers(session: Session | null): Promise<RiderOfferView[]> {

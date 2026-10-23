@@ -42,7 +42,7 @@ export default async function RiderDashboardPage() {
       />
 
       <JobOfferModal offers={offers} />
-      <AvailableDeliveries deliveries={available} />
+      <AvailableDeliveries deliveries={available.deliveries} unavailable={available.unavailable} />
 
       {active.length > 0 && offers.length === 0 && (
         <div className="mt-4">
