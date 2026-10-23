@@ -142,6 +142,18 @@ regression test `supabase/tests/stock_restoration.sql`:
   customer must read it to hand it over); RLS + the rate limit are the controls.
   Verified: rate-limit test 6/6 pass; web typecheck 0 errors; vitest 84/84.
 
+**Shipped** — migration `20261023150000_payment_transactions.sql`, code under
+`src/lib/payments/`, tests `supabase/tests/payments_reconciliation.sql` +
+`src/lib/payments/status.test.ts`, doc `docs/payments.md`:
+
+- ✅ **Payments foundation (brief §9)** — an immutable, RLS-scoped
+  `payment_transactions` ledger (idempotent on `(provider, provider_ref)`), an
+  admin-only `record_payment_transaction` RPC that advances `orders.payment_status`
+  through a validated state machine, a typed `PaymentAdapter` interface with a safe
+  **disabled** registry (no live credentials, no fabricated success), and a COD
+  reconciliation path. Verified: ledger test 6/6, status unit tests pass.
+  Webhook routes + per-operator adapters remain credential-gated.
+
 **Still open:** P2-6 (migration drift) — low priority.
 
 ## Remaining production blockers (beyond this pass)

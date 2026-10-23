@@ -1,21 +1,28 @@
 import "server-only";
 
-// Mobile-money methods stay unavailable until the server has a real provider
-// adapter, webhook verification and settlement handling. Keys alone do not
-// activate a payment flow.
+import { paymentAdapters, type PaymentProviderId } from "./adapter";
+
+// Mobile-money methods stay unavailable until a real provider adapter, webhook
+// verification and settlement handling exist — keys alone do not activate a
+// payment flow. The mobile-money entries are derived from the adapter registry
+// (all disabled today); cash on delivery is always available and reconciled
+// through the payment ledger when the rider collects.
 export interface PaymentProviderStatus {
-  id: "mpesa" | "mixx" | "airtelmoney" | "halopesa" | "cod";
+  id: PaymentProviderId | "cod";
   label: string;
   configured: boolean;
   note: string;
 }
 
 export function getPaymentProviders(): PaymentProviderStatus[] {
+  const mobileMoney: PaymentProviderStatus[] = Object.values(paymentAdapters).map((a) => ({
+    id: a.id,
+    label: a.label,
+    configured: a.isConfigured(),
+    note: a.isConfigured() ? "Pay from your mobile money account" : "Payment integration unavailable",
+  }));
   return [
-    { id: "mpesa", label: "M-Pesa", configured: false, note: "Payment integration unavailable" },
-    { id: "mixx", label: "Mixx by Yas", configured: false, note: "Payment integration unavailable" },
-    { id: "airtelmoney", label: "Airtel Money", configured: false, note: "Payment integration unavailable" },
-    { id: "halopesa", label: "HaloPesa", configured: false, note: "Payment integration unavailable" },
+    ...mobileMoney,
     { id: "cod", label: "Cash on delivery", configured: true, note: "Pay the rider on arrival" },
   ];
 }
