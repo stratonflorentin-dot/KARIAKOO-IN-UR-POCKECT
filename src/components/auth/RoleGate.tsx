@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { SignOutButton, SwitchToRoleButton } from "@/components/auth/AccountControls";
 import { ButtonLink } from "@/components/ui/Button";
 import { getSession } from "@/lib/auth/session";
+import { getLocale } from "@/i18n/server";
+import { redirect } from "next/navigation";
 import type { Role } from "@/lib/types";
 
 const roleName: Record<Role, string> = { customer: "customer", seller: "business owner", rider: "rider", admin: "admin" };
@@ -15,6 +17,7 @@ const roleName: Record<Role, string> = { customer: "customer", seller: "business
 export async function RoleGate({ role, children }: { role: Role; children: ReactNode }) {
   const session = await getSession();
   if (session?.role === role) return <>{children}</>;
+  if (role === "admin" && !session) redirect(`/${await getLocale()}/staff`);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">

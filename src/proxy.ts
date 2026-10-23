@@ -23,7 +23,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 const DEFAULT_ADMIN_DOMAIN = "kariakoo-admin-nine.vercel.app";
 
 /** Paths an admin-domain visitor reaches as-is rather than under /admin. */
-const ADMIN_DOMAIN_PASSTHROUGH = ["/admin", "/staff", "/sign-in", "/forgot-password", "/reset-password"];
+const ADMIN_DOMAIN_PASSTHROUGH = ["/", "/admin", "/staff", "/sign-in", "/forgot-password", "/reset-password"];
 
 function isAdminDomain(host: string | null, adminDomain: string | undefined): boolean {
   if (!adminDomain || !host) return false;
@@ -49,8 +49,19 @@ function browserLocale(header: string | null): Locale | null {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const first = pathname.split("/")[1];
+  const adminDomain = process.env.ADMIN_DOMAIN?.trim() || DEFAULT_ADMIN_DOMAIN;
   // Route handlers outside the localized app (e.g. /auth/callback) keep their path.
   const localized = !pathname.startsWith("/auth/");
+
+  // The admin site's bare URL is its dedicated staff login. Do this before
+  // locale negotiation, which would otherwise send `/` to the public home page.
+  if (localized && pathname === "/" && isAdminDomain(request.headers.get("host"), adminDomain)) {
+    const saved = request.cookies.get(LOCALE_COOKIE)?.value;
+    const locale = isLocale(saved) ? saved : browserLocale(request.headers.get("accept-language")) ?? DEFAULT_LOCALE;
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}/staff`;
+    return NextResponse.redirect(url);
+  }
 
   // 1. Send unprefixed paths to the visitor's language.
   if (localized && !isLocale(first)) {
@@ -72,17 +83,13 @@ export async function proxy(request: NextRequest) {
 
   // 2. Admin domain routing.
   let rewriteTo: URL | null = null;
-  const adminDomain = process.env.ADMIN_DOMAIN?.trim() || DEFAULT_ADMIN_DOMAIN;
-  // The admin deployment's root must open its own overview, not the public
-  // storefront (or a missing unlocalized route).
-  if (localized && pathname === "/" && isAdminDomain(request.headers.get("host"), adminDomain)) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${isLocale(request.cookies.get(LOCALE_COOKIE)?.value) ? request.cookies.get(LOCALE_COOKIE)!.value : browserLocale(request.headers.get("accept-language")) ?? DEFAULT_LOCALE}/admin`;
-    return NextResponse.redirect(url);
-  }
   if (localized && isLocale(first)) {
     const rest = pathname.slice(first.length + 1) || "/";
     if (isAdminDomain(request.headers.get("host"), adminDomain)) {
+      if (rest === "/") {
+        rewriteTo = request.nextUrl.clone();
+        rewriteTo.pathname = `/${first}/staff`;
+      }
       if (!ADMIN_DOMAIN_PASSTHROUGH.some((p) => rest === p || rest.startsWith(`${p}/`))) {
         rewriteTo = request.nextUrl.clone();
         rewriteTo.pathname = `/${first}/admin${rest === "/" ? "" : rest}`;

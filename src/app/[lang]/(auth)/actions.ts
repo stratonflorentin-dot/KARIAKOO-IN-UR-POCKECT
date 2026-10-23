@@ -198,10 +198,12 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
 
 export async function signOut() {
   const locale = await getRequestLocale();
+  const cookieStore = await cookies();
+  const signedOutRole = cookieStore.get(ACTIVE_ROLE_COOKIE)?.value;
   const sb = await createSupabaseServerClient();
   await sb.auth.signOut();
-  (await cookies()).delete(ACTIVE_ROLE_COOKIE);
-  redirect(localizePath(locale, "/"));
+  cookieStore.delete(ACTIVE_ROLE_COOKIE);
+  redirect(localizePath(locale, signedOutRole === "admin" ? "/staff" : "/"));
 }
 
 /** Pick which of the caller's roles is active (for users who hold more than one). */
