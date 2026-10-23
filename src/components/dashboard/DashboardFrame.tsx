@@ -4,6 +4,7 @@ import { RoleGate } from "@/components/auth/RoleGate";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Logo } from "@/components/ui/Logo";
 import { PageSkeleton } from "@/components/ui/States";
+import { SignOutButton } from "@/components/auth/AccountControls";
 import { getDictionary } from "@/i18n/server";
 import type { Role } from "@/lib/types";
 import { SidebarNav, type NavItem } from "./SidebarNav";
@@ -41,6 +42,11 @@ export async function DashboardFrame({ role, title, tone, nav, searchable, child
         <div className={`hidden px-5 py-4 text-sm lg:block ${dark ? "text-white/60" : "text-muted"}`}>
           <Link href="/customer" className="hover:underline">{t.dash.backToStore}</Link>
         </div>
+        {role === "admin" && (
+          <div className="border-t border-white/10 px-4 py-4">
+            <SignOutButton variant="glass" />
+          </div>
+        )}
       </aside>
       <div className="min-w-0 flex-1">
         <main id="main" className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-9">

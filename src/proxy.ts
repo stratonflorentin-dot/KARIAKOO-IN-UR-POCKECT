@@ -46,7 +46,7 @@ function browserLocale(header: string | null): Locale | null {
   return ranked.map((x) => x.lang).find(isLocale) ?? null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const first = pathname.split("/")[1];
   // Route handlers outside the localized app (e.g. /auth/callback) keep their path.
@@ -73,6 +73,13 @@ export async function middleware(request: NextRequest) {
   // 2. Admin domain routing.
   let rewriteTo: URL | null = null;
   const adminDomain = process.env.ADMIN_DOMAIN?.trim() || DEFAULT_ADMIN_DOMAIN;
+  // The admin deployment's root must open its own overview, not the public
+  // storefront (or a missing unlocalized route).
+  if (localized && pathname === "/" && isAdminDomain(request.headers.get("host"), adminDomain)) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${isLocale(request.cookies.get(LOCALE_COOKIE)?.value) ? request.cookies.get(LOCALE_COOKIE)!.value : browserLocale(request.headers.get("accept-language")) ?? DEFAULT_LOCALE}/admin`;
+    return NextResponse.redirect(url);
+  }
   if (localized && isLocale(first)) {
     const rest = pathname.slice(first.length + 1) || "/";
     if (isAdminDomain(request.headers.get("host"), adminDomain)) {

@@ -7,7 +7,7 @@ import type { Role } from "@/lib/types";
 
 const roleLabel: Record<Role, string> = { customer: "Customer", seller: "Seller", rider: "Rider", admin: "Admin" };
 
-export function SignOutButton({ variant = "outline" }: { variant?: "outline" | "ghost" }) {
+export function SignOutButton({ variant = "outline" }: { variant?: "outline" | "ghost" | "glass" }) {
   return (
     <form action={signOut}>
       <button type="submit" className={buttonClasses({ variant })}>Sign out</button>
