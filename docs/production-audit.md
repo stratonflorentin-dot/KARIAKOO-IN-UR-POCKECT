@@ -123,7 +123,15 @@ regression test `supabase/tests/stock_restoration.sql`:
 - Verified: stock-restoration test 5/5 pass; existing `place_order` test still 5/5 pass
   (oversell still refused as `check_violation`); baseline vitest unchanged (no TS touched).
 
-**Still open:** P0-2 (demo RLS), P1-3 (PIN rate-limit/expiry), P2-6 (migration drift).
+**Shipped** — migration `20261023130000_public_read_excludes_demo.sql`, test
+`supabase/tests/public_demo_isolation.sql`:
+
+- ✅ **P0-2** — the `shops`/`products` public-read policies now require
+  `is_demo = false`, so demo rows are no longer reachable via the public API.
+  Verified: anon visibility dropped from 51 demo products / 14 demo shops to **0 / 0**,
+  real approved rows still visible; isolation test 4/4 pass.
+
+**Still open:** P1-3 (PIN rate-limit/expiry), P2-6 (migration drift).
 
 ## Remaining production blockers (beyond this pass)
 
