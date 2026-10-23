@@ -662,7 +662,7 @@ const sw: Dictionary = {
     deliveryArea: "Eneo la kuletewa",
     address: "Mtaa, jengo au alama",
     dropoffPin: "Eneo la kupeleka kwenye ramani (linahitajika)",
-    dropoffPinHint: "Weka eneo sahihi atakalofikishiwa mteja. Gusa ramani kuweka alama au tumia eneo ulipo sasa.",
+    dropoffPinHint: "Tunatambua eneo lako kiotomatiki. Sogeza alama kurekebisha sehemu ya kupeleka.",
     useMyLocation: "Tumia eneo nilipo sasa",
     clearDropoffPin: "Ondoa alama ya ramani",
     instructions: "Maelekezo kwa dereva (hiari)",

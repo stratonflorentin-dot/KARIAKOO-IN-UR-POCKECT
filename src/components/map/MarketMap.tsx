@@ -333,6 +333,7 @@ export default function MarketMap({
       el.setAttribute("aria-label", "Selected shop pickup location");
       el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
       selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(selectedLocation).addTo(map);
+      map.flyTo({ center: selectedLocation, zoom: 17, duration: 700 });
       selectedMarker.current.on("dragend", () => {
         const p = selectedMarker.current?.getLngLat();
         if (p) locationSelectRef.current?.([p.lng, p.lat]);

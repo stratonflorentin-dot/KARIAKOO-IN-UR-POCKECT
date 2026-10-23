@@ -663,7 +663,7 @@ const fr: Dictionary = {
     deliveryArea: "Zone de livraison",
     address: "Rue, bâtiment ou point de repère",
     dropoffPin: "Point de livraison sur la carte (obligatoire)",
-    dropoffPinHint: "Indiquez l’endroit exact où le livreur doit livrer. Touchez la carte ou utilisez votre position actuelle.",
+    dropoffPinHint: "Votre position est détectée automatiquement. Déplacez le repère pour ajuster le point de livraison.",
     useMyLocation: "Utiliser ma position actuelle",
     clearDropoffPin: "Effacer le point",
     instructions: "Instructions pour le livreur (facultatif)",

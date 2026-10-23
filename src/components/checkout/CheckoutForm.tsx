@@ -4,7 +4,7 @@ import { CircleCheck, LocateFixed, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/[lang]/customer/checkout/actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Field, fieldAria, inputClass } from "@/components/ui/Field";
@@ -39,15 +39,32 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const { zone: savedZone } = useDeliveryZone();
   const router = useRouter();
   const { locale, t } = useI18n();
-  const { position } = useAppLocation();
+  const { position, requestLocation } = useAppLocation();
   const c = t.checkout;
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(reviewCheckout, { status: "idle" });
   const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
   // A stable idempotency key per visit, so an accidental double-submit is deduped.
   const [idempotencyKey] = useState(() => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())));
   const [dropoff, setDropoff] = useState<LngLat | null>(null);
+  const dropoffWasManuallyPlaced = useRef(false);
   const v = state.values;
   const e = state.errors ?? {};
+
+  useEffect(() => {
+    if (!position || dropoffWasManuallyPlaced.current) return;
+    setDropoff([position.lng, position.lat]);
+  }, [position]);
+
+  function selectDropoff(location: LngLat) {
+    dropoffWasManuallyPlaced.current = true;
+    setDropoff(location);
+  }
+
+  function useCurrentLocation() {
+    dropoffWasManuallyPlaced.current = false;
+    if (position) setDropoff([position.lng, position.lat]);
+    else requestLocation();
+  }
 
   useEffect(() => {
     if (placeState.status === "placed" && placeState.orderId) {
@@ -93,12 +110,12 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
           <div className="space-y-2">
             <p className="text-sm font-medium">{c.dropoffPin}</p>
             <p className="text-sm text-muted">{c.dropoffPinHint}</p>
-            <button type="button" disabled={!position} onClick={() => position && setDropoff([position.lng, position.lat])} className="inline-flex h-10 items-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-brand-800 disabled:opacity-50">
+            <button type="button" onClick={useCurrentLocation} className="inline-flex h-10 items-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-brand-800">
               <LocateFixed size={16} aria-hidden="true" /> {c.useMyLocation}
             </button>
-            <MapLoader points={[]} ariaLabel={c.dropoffPin} selectedLocation={dropoff} onLocationSelect={setDropoff} locationPicker heightClass="h-64" />
-            {dropoff && <button type="button" className="text-sm font-semibold text-brand-700 underline" onClick={() => setDropoff(null)}>{c.clearDropoffPin}</button>}
-            {e.dropoffLat && <p role="alert" className="text-sm text-red-700">{e.dropoffLat}</p>}
+            <MapLoader points={[]} ariaLabel={c.dropoffPin} selectedLocation={dropoff} onLocationSelect={selectDropoff} locationPicker heightClass="h-64" />
+            {dropoff && <button type="button" className="text-sm font-semibold text-brand-700 underline" onClick={() => { dropoffWasManuallyPlaced.current = true; setDropoff(null); }}>{c.clearDropoffPin}</button>}
+            {e.dropoffLat && !dropoff && <p role="alert" className="text-sm text-red-700">{e.dropoffLat}</p>}
             <input type="hidden" name="dropoffLat" value={dropoff?.[1] ?? ""} />
             <input type="hidden" name="dropoffLng" value={dropoff?.[0] ?? ""} />
           </div>
