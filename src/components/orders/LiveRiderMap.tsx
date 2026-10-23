@@ -14,7 +14,7 @@ type RiderPosition = {
 type DropoffPosition = { lat: number; lng: number };
 
 /** Customer-only live view; the RPC checks order ownership and rider freshness. */
-export function LiveRiderMap({ orderId }: { orderId: string }) {
+export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderName?: string }) {
   const client = useMemo(() => createSupabaseBrowserClient(), []);
   const [position, setPosition] = useState<RiderPosition | null>(null);
   const [dropoff, setDropoff] = useState<DropoffPosition | null>(null);
@@ -70,7 +70,7 @@ export function LiveRiderMap({ orderId }: { orderId: string }) {
 
   return (
     <section aria-label="Live rider location" className="rounded-3xl border border-line bg-white p-4">
-      <h2 className="font-semibold">Live rider location</h2>
+      <h2 className="font-semibold">{riderName ? `Your rider: ${riderName}` : "Your rider’s live location"}</h2>
       <div className="mt-3">
         <MapLoader
           points={points}

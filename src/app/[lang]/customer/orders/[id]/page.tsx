@@ -8,6 +8,7 @@ import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusB
 import { Timeline } from "@/components/orders/Timeline";
 import { TrackSteps } from "@/components/orders/TrackSteps";
 import { LiveRiderMap } from "@/components/orders/LiveRiderMap";
+import { DeliveryVoiceCall } from "@/components/orders/DeliveryVoiceCall";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice, Skeleton } from "@/components/ui/States";
 import { fmt } from "@/i18n/config";
@@ -103,7 +104,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
           </Card>
 
           {["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(order.delivery.status) && (
-            <LiveRiderMap orderId={order.id} />
+            <LiveRiderMap orderId={order.id} riderName={riderName ?? undefined} />
           )}
 
           <Card aria-labelledby="items-heading">
@@ -143,6 +144,11 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
               <Bike size={16} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" />
               {riderName ? fmt(d.rider, { name: riderName }) : d.riderPending}
             </p>
+            {session && order.delivery.riderId && ["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(order.delivery.status) && (
+              <div className="mt-4">
+                <DeliveryVoiceCall orderId={order.id} userId={session.userId} role="customer" peerName={riderName ?? "your rider"} />
+              </div>
+            )}
           </Card>
 
           <Card aria-labelledby="help-heading">

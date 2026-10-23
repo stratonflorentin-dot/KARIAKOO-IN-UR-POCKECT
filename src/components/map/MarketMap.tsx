@@ -138,6 +138,8 @@ export default function MarketMap({
   ariaLabel,
   route = false,
   locate = false,
+  routeFromMe = false,
+  deviceLocation,
   nextIndex,
   heightClass = "h-72 sm:h-80",
   note,
@@ -152,6 +154,10 @@ export default function MarketMap({
   route?: boolean;
   /** Offer opt-in "Share my location" with distance to the next point. */
   locate?: boolean;
+  /** Draw a live in-app guide from the device position to the first destination. */
+  routeFromMe?: boolean;
+  /** Rider position supplied by a parent that starts watching from a button tap. */
+  deviceLocation?: LngLat | null;
   nextIndex?: number;
   heightClass?: string;
   note?: string;
@@ -170,6 +176,7 @@ export default function MarketMap({
   const selectedLocationRef = useRef(selectedLocation);
   const isLocationPicker = Boolean(onLocationSelect);
   const watchId = useRef<number | null>(null);
+  const meRef = useRef<LngLat | null>(null);
   const [me, setMe] = useState<LngLat | null>(null);
   const [geoError, setGeoError] = useState("");
   const [view, setView] = useState<"satellite" | "streets">("satellite");
@@ -184,6 +191,24 @@ export default function MarketMap({
   useEffect(() => {
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
+
+  useEffect(() => {
+    if (!deviceLocation) return;
+    meRef.current = deviceLocation;
+    const map = mapRef.current;
+    if (!map) return;
+    const target = (JSON.parse(pointsKey) as MapPoint[])[0];
+    const firstFix = !meMarker.current;
+    if (firstFix) meMarker.current = new maplibregl.Marker({ element: meDot() }).setLngLat(deviceLocation).addTo(map);
+    else meMarker.current?.setLngLat(deviceLocation);
+    if (routeFromMe && target) {
+      const source = map.getSource("rider-route") as maplibregl.GeoJSONSource | undefined;
+      source?.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [deviceLocation, target.geo] } });
+      if (firstFix) {
+        map.fitBounds(new maplibregl.LngLatBounds(deviceLocation, deviceLocation).extend(target.geo), { padding: 64, maxZoom: 16, duration: 500 });
+      }
+    }
+  }, [deviceLocation, routeFromMe, pointsKey]);
 
   useEffect(() => {
     const pts: MapPoint[] = JSON.parse(pointsKey);
@@ -271,6 +296,15 @@ export default function MarketMap({
         map.addSource("guide", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map((p) => p.geo) } } });
         map.addLayer({ id: "guide", type: "line", source: "guide", paint: { "line-color": "#059669", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 } });
       }
+      if (routeFromMe && pts.length > 0) {
+        map.addSource("rider-route", {
+          type: "geojson",
+          data: meRef.current
+            ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [meRef.current, pts[0].geo] } }
+            : { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({ id: "rider-route", type: "line", source: "rider-route", paint: { "line-color": "#2563eb", "line-width": 5, "line-opacity": 0.9 } });
+      }
       if (pts.length > 1) {
         const bounds = new maplibregl.LngLatBounds(pts[0].geo, pts[0].geo);
         pts.forEach((p) => bounds.extend(p.geo));
@@ -284,7 +318,7 @@ export default function MarketMap({
       meMarker.current = null;
       selectedMarker.current = null;
     };
-  }, [pointsKey, heatKey, route, isLocationPicker]);
+  }, [pointsKey, heatKey, route, routeFromMe, isLocationPicker]);
 
   useEffect(() => {
     if (!mapRef.current || !locationSelectRef.current) return;
@@ -332,14 +366,24 @@ export default function MarketMap({
       setGeoError("This phone or browser does not support location.");
       return;
     }
-    setGeoError("");
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         const here: LngLat = [pos.coords.longitude, pos.coords.latitude];
+        meRef.current = here;
         setMe(here);
         if (!mapRef.current) return;
-        if (!meMarker.current) meMarker.current = new maplibregl.Marker({ element: meDot() }).setLngLat(here).addTo(mapRef.current);
-        else meMarker.current.setLngLat(here);
+        const map = mapRef.current;
+        const firstFix = !meMarker.current;
+        if (firstFix) meMarker.current = new maplibregl.Marker({ element: meDot() }).setLngLat(here).addTo(map);
+        else meMarker.current?.setLngLat(here);
+        if (routeFromMe && points.length > 0) {
+          const source = map.getSource("rider-route") as maplibregl.GeoJSONSource | undefined;
+          source?.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [here, points[0].geo] } });
+          if (firstFix) {
+            const bounds = new maplibregl.LngLatBounds(here, here).extend(points[0].geo);
+            map.fitBounds(bounds, { padding: 64, maxZoom: 16, duration: 500 });
+          }
+        }
       },
       (err) => setGeoError(err.code === err.PERMISSION_DENIED ? "Location permission was denied." : "Could not get your location."),
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
@@ -375,6 +419,9 @@ export default function MarketMap({
     meMarker.current?.remove();
     meMarker.current = null;
     setMe(null);
+    meRef.current = null;
+    const routeSource = mapRef.current?.getSource("rider-route") as maplibregl.GeoJSONSource | undefined;
+    routeSource?.setData({ type: "FeatureCollection", features: [] });
   };
 
   const next = nextIndex !== undefined && nextIndex >= 0 ? points[nextIndex] : undefined;
