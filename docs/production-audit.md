@@ -108,6 +108,23 @@ timestamps (e.g. file `20261019160000_place_order` vs DB `20261020061115`). A fr
 - **Fix:** reconcile `supabase_migrations.schema_migrations` with the files, and adopt
   one application path going forward.
 
+## Phase 2 progress (2026-10-23)
+
+**Shipped** — migration `20261023120000_stock_restoration_and_order_hardening.sql`,
+regression test `supabase/tests/stock_restoration.sql`:
+
+- ✅ **P0-1** — `restore_group_stock()` trigger on `fulfillment_groups` restores
+  reserved stock exactly once when a group goes to `rejected`/`cancelled`, from any
+  path, and records a `system` audit row.
+- ✅ **P1-4** — `place_order` now rejects a blank/whitespace idempotency key (`22023`).
+- ✅ **P2-5** — `place_order` locks each product row (`FOR UPDATE`) and decrements with a
+  guarded `UPDATE ... WHERE stock >= qty`, so a concurrency loser gets a clear
+  "Not enough stock" message.
+- Verified: stock-restoration test 5/5 pass; existing `place_order` test still 5/5 pass
+  (oversell still refused as `check_violation`); baseline vitest unchanged (no TS touched).
+
+**Still open:** P0-2 (demo RLS), P1-3 (PIN rate-limit/expiry), P2-6 (migration drift).
+
 ## Remaining production blockers (beyond this pass)
 
 - **Payments:** no live Tanzanian provider adapter (M-Pesa / Mixx by Yas / Airtel /
