@@ -663,6 +663,7 @@ const sw: Dictionary = {
     address: "Mtaa, jengo au alama",
     dropoffPin: "Eneo la kupeleka kwenye ramani (linahitajika)",
     dropoffPinHint: "Weka eneo sahihi atakalofikishiwa mteja. Gusa ramani kuweka alama au tumia eneo ulipo sasa.",
+    useMyLocation: "Tumia eneo nilipo sasa",
     clearDropoffPin: "Ondoa alama ya ramani",
     instructions: "Maelekezo kwa dereva (hiari)",
     instructionsPlaceholder: "mf. Piga nikiwa getini",

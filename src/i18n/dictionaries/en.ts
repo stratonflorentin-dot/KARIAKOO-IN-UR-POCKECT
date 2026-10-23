@@ -662,6 +662,7 @@ const en = {
     address: "Street, building or landmark",
     dropoffPin: "Delivery point on the map (required)",
     dropoffPinHint: "Set the exact place for the rider to deliver. Tap the map pin or use your current location.",
+    useMyLocation: "Use my current location",
     clearDropoffPin: "Clear map pin",
     instructions: "Instructions for the rider (optional)",
     instructionsPlaceholder: "e.g. Call when at the gate",

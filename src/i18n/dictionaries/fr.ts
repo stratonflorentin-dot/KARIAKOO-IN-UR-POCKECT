@@ -664,6 +664,7 @@ const fr: Dictionary = {
     address: "Rue, bâtiment ou point de repère",
     dropoffPin: "Point de livraison sur la carte (obligatoire)",
     dropoffPinHint: "Indiquez l’endroit exact où le livreur doit livrer. Touchez la carte ou utilisez votre position actuelle.",
+    useMyLocation: "Utiliser ma position actuelle",
     clearDropoffPin: "Effacer le point",
     instructions: "Instructions pour le livreur (facultatif)",
     instructionsPlaceholder: "ex. Appelez en arrivant au portail",

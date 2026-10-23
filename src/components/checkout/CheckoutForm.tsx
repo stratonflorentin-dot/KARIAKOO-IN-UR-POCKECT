@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Lock } from "lucide-react";
+import { CircleCheck, LocateFixed, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
@@ -13,6 +13,7 @@ import { useCart } from "@/lib/cart-store";
 import { formatTzs } from "@/lib/format";
 import { useDeliveryZone } from "@/lib/preferences-store";
 import { formatTzPhone } from "@/lib/validation/checkout";
+import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
@@ -38,6 +39,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const { zone: savedZone } = useDeliveryZone();
   const router = useRouter();
   const { locale, t } = useI18n();
+  const { position } = useAppLocation();
   const c = t.checkout;
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(reviewCheckout, { status: "idle" });
   const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
@@ -91,6 +93,9 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
           <div className="space-y-2">
             <p className="text-sm font-medium">{c.dropoffPin}</p>
             <p className="text-sm text-muted">{c.dropoffPinHint}</p>
+            <button type="button" disabled={!position} onClick={() => position && setDropoff([position.lng, position.lat])} className="inline-flex h-10 items-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-brand-800 disabled:opacity-50">
+              <LocateFixed size={16} aria-hidden="true" /> {c.useMyLocation}
+            </button>
             <MapLoader points={[]} ariaLabel={c.dropoffPin} selectedLocation={dropoff} onLocationSelect={setDropoff} locationPicker heightClass="h-64" />
             {dropoff && <button type="button" className="text-sm font-semibold text-brand-700 underline" onClick={() => setDropoff(null)}>{c.clearDropoffPin}</button>}
             {e.dropoffLat && <p role="alert" className="text-sm text-red-700">{e.dropoffLat}</p>}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { I18nProvider } from "@/i18n/client";
+import { AppLocationProvider } from "@/components/location/AppLocationProvider";
 import { LOCALES } from "@/i18n/config";
 import { dictionaryFor } from "@/i18n/dictionaries";
 import { getDictionary, getLocale } from "@/i18n/server";
@@ -38,7 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           {t.common.skipToContent}
         </a>
         <I18nProvider locale={locale} dict={t}>
-          {children}
+          <AppLocationProvider>{children}</AppLocationProvider>
         </I18nProvider>
       </body>
     </html>
