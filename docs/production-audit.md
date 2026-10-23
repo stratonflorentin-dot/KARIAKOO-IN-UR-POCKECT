@@ -131,7 +131,18 @@ regression test `supabase/tests/stock_restoration.sql`:
   Verified: anon visibility dropped from 51 demo products / 14 demo shops to **0 / 0**,
   real approved rows still visible; isolation test 4/4 pass.
 
-**Still open:** P1-3 (PIN rate-limit/expiry), P2-6 (migration drift).
+**Shipped** — migration `20261023140000_pin_rate_limit.sql`, test
+`supabase/tests/pin_rate_limit.sql`, callers updated
+(`src/app/[lang]/rider/actions.ts`, `mobile/.../dispatch_repository.dart`):
+
+- ✅ **P1-3** — `rider_complete_delivery` now locks the PIN after 5 wrong attempts
+  for 15 minutes and resets on success. It returns jsonb (`{ok,error,...}`) instead
+  of raising on a wrong/locked PIN, because a `RAISE` would roll the attempt counter
+  back; authorization/state errors still raise. PIN stays plaintext by necessity (the
+  customer must read it to hand it over); RLS + the rate limit are the controls.
+  Verified: rate-limit test 6/6 pass; web typecheck 0 errors; vitest 84/84.
+
+**Still open:** P2-6 (migration drift) — low priority.
 
 ## Remaining production blockers (beyond this pass)
 

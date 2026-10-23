@@ -22,6 +22,7 @@ const messages = {
   wrong_status: "This delivery is not in transit on the server, so it cannot be completed yet.",
   invalid_format: "Enter the 4-digit PIN from the customer.",
   incorrect: "That PIN is not correct.",
+  locked: "Too many incorrect PINs. Please wait a few minutes before trying again.",
 } as const;
 
 /** Server-side PIN check and delivery completion through the database authority. */
@@ -33,13 +34,18 @@ export async function submitDeliveryPin(_prev: PinState, formData: FormData): Pr
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) return { status: "error", message: messages.not_found };
   if (!/^\d{4}$/.test(pin)) return { status: "error", message: messages.invalid_format };
   const sb = await createSupabaseServerClient();
-  const { error } = await sb.rpc("rider_complete_delivery", { p_order: orderId, p_pin: pin });
-  if (!error) return { status: "ok", message: "PIN verified. Delivery confirmed." };
-  const detail = error.message.toLowerCase();
-  if (detail.includes("pin")) return { status: "error", message: messages.incorrect };
-  if (detail.includes("in transit")) return { status: "error", message: messages.wrong_status };
-  if (detail.includes("assigned")) return { status: "error", message: messages.not_found };
-  return { status: "error", message: "Could not confirm delivery. Please try again." };
+  const { data, error } = await sb.rpc("rider_complete_delivery", { p_order: orderId, p_pin: pin });
+  // Authorisation/state problems still raise; PIN outcomes come back as data.
+  if (error) {
+    const detail = error.message.toLowerCase();
+    if (detail.includes("in transit")) return { status: "error", message: messages.wrong_status };
+    if (detail.includes("assigned")) return { status: "error", message: messages.not_found };
+    return { status: "error", message: "Could not confirm delivery. Please try again." };
+  }
+  const res = (data ?? {}) as { ok?: boolean; error?: string };
+  if (res.ok) return { status: "ok", message: "PIN verified. Delivery confirmed." };
+  if (res.error === "locked") return { status: "error", message: messages.locked };
+  return { status: "error", message: messages.incorrect };
 }
 
 /* ----------------------------- Dispatch ----------------------------- */

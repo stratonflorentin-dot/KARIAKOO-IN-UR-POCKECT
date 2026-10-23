@@ -64,10 +64,19 @@ class DispatchRepository {
   }
 
   /// Finish an in-transit delivery by entering the customer's PIN.
+  ///
+  /// The RPC returns a jsonb result ({ok, error}) rather than raising on a
+  /// wrong/locked PIN, so the server can count attempts. We translate a
+  /// non-ok result into an exception for the UI's existing catch handler.
   Future<String> completeDelivery(String orderId, String pin) async {
     final res = await supabase.rpc('rider_complete_delivery',
         params: {'p_order': orderId, 'p_pin': pin});
-    return res is String ? res : 'DELIVERED';
+    final map = res is Map ? Map<String, dynamic>.from(res) : const <String, dynamic>{};
+    if (map['ok'] == true) return 'DELIVERED';
+    if (map['error'] == 'locked') {
+      throw Exception('Too many incorrect PINs. Please wait a few minutes before trying again.');
+    }
+    throw Exception('That PIN is not correct.');
   }
 
   /// The rider's current in-progress delivery, if any.
