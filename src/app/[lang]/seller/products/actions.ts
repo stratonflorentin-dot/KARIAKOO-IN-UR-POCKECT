@@ -5,9 +5,7 @@
 // RLS policies, which are the real authority — we also look the shop up by
 // owner_id so a seller can only ever touch their own shop's products.
 //
-// Photos are not uploaded yet: image upload to Supabase Storage is the next
-// step. Products publish without a photo for now (a placeholder is shown).
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getSessionWithRole } from "@/lib/auth/session";
 import { productImagePublicPrefix } from "@/lib/storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,6 +21,13 @@ export interface ProductActionResult {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function refreshProductListings() {
+  updateTag("public-catalog");
+  revalidatePath("/[lang]/customer", "page");
+  revalidatePath("/[lang]/customer/search", "page");
+  revalidatePath("/[lang]/seller/products", "page");
+}
 
 /** A unique products.slug (^[a-z0-9-]{3,120}$) from the product name. */
 async function uniqueProductSlug(sb: SupabaseClient, name: string): Promise<string> {
@@ -95,7 +100,7 @@ export async function createProduct(formData: FormData): Promise<ProductActionRe
     .limit(1);
   if (error || !data?.[0]) return { ok: false, error: error?.message ?? "Could not save the product." };
 
-  revalidatePath("/[lang]/seller/products", "page");
+  refreshProductListings();
   return { ok: true, id: String((data[0] as { id: string }).id), slug: String((data[0] as { slug: string }).slug) };
 }
 
@@ -114,7 +119,7 @@ export async function saveProductFields(formData: FormData): Promise<ProductActi
 
   const { error } = await sb.from("products").update({ price_tzs: priceTzs, stock }).eq("id", id).eq("shop_id", shop.shopId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/[lang]/seller/products", "page");
+  refreshProductListings();
   return { ok: true };
 }
 
@@ -131,6 +136,6 @@ export async function setProductStatus(formData: FormData): Promise<ProductActio
 
   const { error } = await sb.from("products").update({ status }).eq("id", id).eq("shop_id", shop.shopId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/[lang]/seller/products", "page");
+  refreshProductListings();
   return { ok: true };
 }

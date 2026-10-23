@@ -27,10 +27,13 @@ export function SwitchToRoleButton({ role }: { role: Role }) {
 
 /** Pills for every role the user holds; the active one is highlighted. */
 export function RoleSwitcher({ roles, active }: { roles: Role[]; active: Role }) {
-  if (roles.length < 2) return null;
+  // Staff uses a separate hostname and login session; user-facing role switches
+  // stay within the customer, seller and rider areas.
+  const switchableRoles = roles.filter((role) => role !== "admin");
+  if (switchableRoles.length < 2) return null;
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label="Switch role">
-      {roles.map((r) => (
+      {switchableRoles.map((r) => (
         <form key={r} action={setActiveRole}>
           <input type="hidden" name="role" value={r} />
           <button

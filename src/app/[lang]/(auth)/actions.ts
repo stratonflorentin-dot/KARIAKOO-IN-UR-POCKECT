@@ -8,6 +8,7 @@ import { getRequestLocale } from "@/i18n/server";
 import { ACTIVE_ROLE_COOKIE } from "@/lib/auth/active-role";
 import { isRole } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Role } from "@/lib/types";
 
 export interface AuthState {
   status: "idle" | "error" | "ok";
@@ -39,23 +40,38 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { status: "error", message: e.enterEmailPassword };
 
-  const as = String(formData.get("as") ?? "customer");
+  const requested = String(formData.get("as") ?? "customer");
+  const as = requested === "seller" || requested === "rider" ? requested : "customer";
 
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error || !data.user) return { status: "error", message: friendlyAuthError(error?.message ?? "", e) };
 
+  const { data: roleRows, error: rolesError } = await sb.from("user_roles").select("role").eq("user_id", data.user.id);
+  if (rolesError) {
+    await sb.auth.signOut();
+    return { status: "error", message: e.generic };
+  }
+  const roles = ((roleRows ?? []) as { role: unknown }[]).map((row) => row.role).filter(isRole);
+  const activeRole: Role | undefined = roles.includes(as)
+    ? as
+    : roles.includes("customer") ? "customer"
+    : roles.includes("seller") ? "seller"
+    : roles.includes("rider") ? "rider"
+    : undefined;
+  const cookieStore = await cookies();
+  if (activeRole) cookieStore.set(ACTIVE_ROLE_COOKIE, activeRole, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  else cookieStore.delete(ACTIVE_ROLE_COOKIE);
+
   // Seller / rider logins land in that area when the account holds the role;
   // otherwise on the application page, which shows their status or the form.
   if (as === "seller" || as === "rider") {
-    const { data: roleRows } = await sb.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", as).limit(1);
-    if (roleRows && roleRows.length > 0) {
-      (await cookies()).set(ACTIVE_ROLE_COOKIE, as, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
-      redirect(localizePath(locale, `/${as}`));
-    }
+    if (roles.includes(as)) redirect(localizePath(locale, `/${as}`));
     redirect(localizePath(locale, `/apply/${as}`));
   }
-  redirect(localizePath(locale, "/customer"));
+  if (roles.includes("customer")) redirect(localizePath(locale, "/customer"));
+  if (activeRole) redirect(localizePath(locale, `/${activeRole}`));
+  redirect(localizePath(locale, "/welcome"));
 }
 
 /** Start the Supabase-hosted Google OAuth flow for the selected app role. */
@@ -126,7 +142,16 @@ export async function updatePassword(_prev: AuthState, formData: FormData): Prom
   if (!auth.user) return { status: "error", message: e.resetExpired };
   const { error } = await sb.auth.updateUser({ password });
   if (error) return { status: "error", message: friendlyAuthError(error.message, e) };
-  redirect(localizePath(locale, "/customer"));
+  const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", auth.user.id);
+  const available = ((roles ?? []) as { role: unknown }[]).map((row) => row.role).filter(isRole);
+  const activeRole = available.includes("customer") ? "customer" : available.includes("seller") ? "seller" : available.includes("rider") ? "rider" : undefined;
+  const cookieStore = await cookies();
+  if (activeRole) {
+    cookieStore.set(ACTIVE_ROLE_COOKIE, activeRole, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+    redirect(localizePath(locale, `/${activeRole}`));
+  }
+  cookieStore.delete(ACTIVE_ROLE_COOKIE);
+  redirect(localizePath(locale, "/sign-in"));
 }
 
 /**
@@ -193,6 +218,13 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (error) return { status: "error", message: friendlyAuthError(error.message, e) };
   // When email confirmation is on, there is no session yet.
   if (!data.session) return { status: "ok", message: e.accountCreated };
+  if (!data.user) return { status: "error", message: e.generic };
+  const { data: roleRows } = await sb.from("user_roles").select("role").eq("user_id", data.user.id);
+  const roles = ((roleRows ?? []) as { role: unknown }[]).map((row) => row.role).filter(isRole);
+  const activeRole = roles.includes("customer") ? "customer" : roles.includes("seller") ? "seller" : roles.includes("rider") ? "rider" : undefined;
+  const cookieStore = await cookies();
+  if (activeRole) cookieStore.set(ACTIVE_ROLE_COOKIE, activeRole, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  else cookieStore.delete(ACTIVE_ROLE_COOKIE);
   redirect(localizePath(locale, as === "customer" ? "/customer" : `/apply/${as}`));
 }
 
@@ -210,8 +242,11 @@ export async function signOut() {
 export async function setActiveRole(formData: FormData) {
   const role = formData.get("role");
   if (!isRole(role)) throw new Error("Unknown role.");
-  // getSession only honours this cookie if the signed-in user actually holds
-  // the role, so setting it is safe even without re-checking here.
+  const sb = await createSupabaseServerClient();
+  const { data: auth } = await sb.auth.getUser();
+  if (!auth.user) redirect(localizePath(await getRequestLocale(), "/sign-in"));
+  const { data: roleRows, error } = await sb.from("user_roles").select("role").eq("user_id", auth.user.id).eq("role", role).limit(1);
+  if (error || !roleRows?.length) throw new Error("This account does not have that role.");
   (await cookies()).set(ACTIVE_ROLE_COOKIE, role, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
   redirect(localizePath(await getRequestLocale(), `/${role}`));
 }

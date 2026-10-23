@@ -48,7 +48,7 @@ async function Profile() {
       <ButtonLink href="/customer/orders" variant="outline">{p.viewOrders}</ButtonLink>
     </Card>
 
-    {session.roles && session.roles.length > 1 && <Card aria-labelledby="roles-heading"><CardHeader id="roles-heading" title={p.yourRoles} subtitle={p.rolesNote} /><RoleSwitcher roles={session.roles} active={session.role} /></Card>}
+    {session.roles && session.roles.filter((role) => role !== "admin").length > 1 && <Card aria-labelledby="roles-heading"><CardHeader id="roles-heading" title={p.yourRoles} subtitle={p.rolesNote} /><RoleSwitcher roles={session.roles} active={session.role} /></Card>}
     <SignOutButton />
   </div>;
 }

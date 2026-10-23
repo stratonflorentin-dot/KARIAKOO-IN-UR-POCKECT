@@ -34,6 +34,9 @@ export function PromotionComposer({ products }: { products: SellerProductLive[] 
       <Field id="imageUrl" label={ad.imageUrl} hint={ad.imageUrlHint}>
         <input id="imageUrl" name="imageUrl" type="url" inputMode="url" className={inputClass} placeholder={ad.imageUrlPlaceholder} />
       </Field>
+      <Field id="imageFile" label={ad.uploadImage} hint={ad.uploadImageHint}>
+        <input id="imageFile" name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" className={inputClass} />
+      </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="linkProductId" label={ad.linkProduct} hint={ad.linkProductHint}>
           <select id="linkProductId" name="linkProductId" defaultValue="" className={inputClass}>

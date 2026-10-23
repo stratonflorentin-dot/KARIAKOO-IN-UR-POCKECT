@@ -7,7 +7,7 @@ import "server-only";
 // decides what is returned: only approved shops and their active products.
 // Results are cached ("use cache") and refreshed about once a minute.
 import { createClient } from "@supabase/supabase-js";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { createCatalog, getCategories, type Catalog, type CatalogData } from "@/lib/catalog";
 import { isAudience, isProductType } from "@/lib/departments";
 import type { CategorySlug, Product, Shop, ShopArea } from "@/lib/types";
@@ -66,6 +66,7 @@ interface ProductRow {
 async function loadFromSupabase(): Promise<LoadResult> {
   "use cache";
   cacheLife("minutes");
+  cacheTag("public-catalog");
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

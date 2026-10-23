@@ -1,7 +1,6 @@
 "use client";
 
-// "Add a product" form with a customer-facing preview. Product details save
-// to Supabase; photo upload is explicitly unavailable until storage is wired.
+// "Add a product" form with a customer-facing preview and Supabase Storage upload.
 import { ImagePlus, Store, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Price } from "@/components/product/Price";
@@ -58,8 +57,7 @@ export function ProductComposer({ categories, shopName, shopId, onPublish }: {
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
 
-  // The photo is a local preview only (not uploaded yet), so free its memory
-  // whenever it changes or the form unmounts.
+  // Keep the preview URL alive while selected, then release it when replaced.
   useEffect(() => () => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
   }, [photoUrl]);

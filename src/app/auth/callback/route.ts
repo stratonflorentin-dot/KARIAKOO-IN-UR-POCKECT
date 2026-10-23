@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { ACTIVE_ROLE_COOKIE } from "@/lib/auth/active-role";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isRole } from "@/lib/auth/session";
 
 /**
  * Landing point for links Supabase emails (password reset, email confirm).
@@ -27,29 +28,30 @@ export async function GET(request: NextRequest) {
       if (auth.user) {
         let destination = safeNext;
         const cookieStore = await cookies();
-        if (role === "customer") {
-          cookieStore.set(ACTIVE_ROLE_COOKIE, "customer", {
+        const { data: roleRows } = await sb.from("user_roles").select("role").eq("user_id", auth.user.id);
+        const roles = ((roleRows ?? []) as { role: unknown }[]).map((row) => row.role).filter(isRole);
+        const activeRole = roles.includes(role)
+          ? role
+          : roles.includes("customer") ? "customer"
+          : roles.includes("seller") ? "seller"
+          : roles.includes("rider") ? "rider"
+          : undefined;
+        if (activeRole) {
+          cookieStore.set(ACTIVE_ROLE_COOKIE, activeRole, {
             httpOnly: true,
             sameSite: "lax",
             path: "/",
             maxAge: 60 * 60 * 24 * 30,
           });
         } else {
-          const { data: roles } = await sb
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", auth.user.id)
-            .eq("role", role)
-            .limit(1);
-          if (roles?.length) {
-            cookieStore.set(ACTIVE_ROLE_COOKIE, role, {
-              httpOnly: true,
-              sameSite: "lax",
-              path: "/",
-              maxAge: 60 * 60 * 24 * 30,
-            });
-            destination = safeNext.replace(new RegExp(`/apply/${role}/?$`), `/${role}`);
-          }
+          cookieStore.delete(ACTIVE_ROLE_COOKIE);
+        }
+        if ((role === "seller" || role === "rider") && !roles.includes(role)) {
+          destination = safeNext;
+        } else if (!roles.includes(role) && activeRole) {
+          destination = `/${activeRole}`;
+        } else if (role !== "customer") {
+          destination = safeNext.replace(new RegExp(`/apply/${role}/?$`), `/${role}`);
         }
         return NextResponse.redirect(new URL(destination, origin));
       }

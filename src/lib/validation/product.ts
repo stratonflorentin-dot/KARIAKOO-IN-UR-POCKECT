@@ -2,8 +2,7 @@ import { z } from "zod";
 import { categories } from "@/data/categories";
 import { audiences, productTypes } from "@/lib/departments";
 
-// Shared rules for a seller's product. Used by the browser form now and by
-// the server action (with Supabase Storage uploads) once sellers can sign in.
+// Shared rules for a seller's product form and its Supabase Storage uploads.
 
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

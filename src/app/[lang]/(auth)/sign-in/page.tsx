@@ -28,10 +28,20 @@ export default async function SignInPage({ searchParams }: PageProps<"/[lang]/si
   const as: LoginRole = params.as === "seller" || params.as === "rider" ? params.as : "customer";
   const copy = t.auth[as];
   const { Icon, href } = LOGINS[as];
-  const others = (Object.keys(LOGINS) as LoginRole[]).filter((r) => r !== as);
+  const loginRoles = Object.keys(LOGINS) as LoginRole[];
 
   return (
     <AuthShell greeting={copy.greeting} intro={copy.intro} title={copy.title} subtitle={copy.subtitle} icon={<Icon size={22} aria-hidden="true" />}>
+      <nav aria-label="Sign in to a role" className="mb-5 grid grid-cols-3 gap-2">
+        {loginRoles.map((role) => {
+          const RoleIcon = LOGINS[role].Icon;
+          const href = role === "customer" ? "/sign-in" : `/sign-in?as=${role}`;
+          return <Link key={role} href={href} aria-current={role === as ? "page" : undefined}
+            className={`flex min-h-12 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-xs font-semibold transition sm:text-sm ${role === as ? "border-brand-600 bg-brand-50 text-brand-800" : "border-line text-muted hover:border-brand-300 hover:text-ink"}`}>
+            <RoleIcon size={16} aria-hidden="true" />{t.auth[role].title}
+          </Link>;
+        })}
+      </nav>
       {params.error === "link" && (
         <div className="mb-4"><Notice tone="warning">{t.auth.linkExpired}</Notice></div>
       )}
@@ -46,16 +56,6 @@ export default async function SignInPage({ searchParams }: PageProps<"/[lang]/si
       <p className="mt-5 text-center text-sm text-muted">
         {copy.footerLead}{" "}
         <Link href={href} className="font-semibold text-brand-700 hover:underline">{copy.footerLink}</Link>
-      </p>
-      <p className="mt-3 text-center text-xs text-muted">
-        {others.map((r, i) => (
-          <span key={r}>
-            {i > 0 && " · "}
-            <Link href={r === "customer" ? "/sign-in" : `/sign-in?as=${r}`} className="font-medium text-ink underline-offset-2 hover:underline">
-              {t.auth[r].title}
-            </Link>
-          </span>
-        ))}
       </p>
     </AuthShell>
   );
