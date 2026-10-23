@@ -135,7 +135,7 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
     setMessage("");
     try {
       if (!window.isSecureContext) throw new Error("Voice calls require a secure HTTPS connection.");
-      const { data, error } = await client.rpc("delivery_call_start", { p_order_id: orderId });
+      const { data, error } = await client.rpc("delivery_call_start", { p_order_id: orderId, p_as_role: role });
       if (error || !data) throw new Error(error?.message ?? "Could not start the call.");
       const callId = String(data);
       const call: CallRow = { id: callId, order_id: orderId, caller_id: userId, recipient_id: "", state: "ringing", created_at: new Date().toISOString() };
