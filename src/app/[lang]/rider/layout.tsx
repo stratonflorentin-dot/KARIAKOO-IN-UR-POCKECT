@@ -28,13 +28,13 @@ export default async function RiderLayout({ children }: LayoutProps<"/[lang]/rid
   return (
     <div className="flex min-h-full flex-1 flex-col bg-stone-100">
       <header className="sticky top-0 z-30 bg-night text-white">
-        <div className="mx-auto flex h-16 max-w-md items-center justify-between px-4">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto flex w-full max-w-md flex-col gap-2.5 px-4 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-0">
+          <div className="flex shrink-0 items-center gap-2">
             <Logo tone="light" href="/rider" compact />
             <span className="text-sm font-bold tracking-wide">RIDER</span>
           </div>
           {rider && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none">
               <SafetyButton />
               <AvailabilityToggle initialOnline={online} />
             </div>

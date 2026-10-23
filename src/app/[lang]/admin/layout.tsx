@@ -24,12 +24,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/[lang]/adm
     { label: a.customers, icon: "customers", href: "/admin/customers" },
     { label: a.products, icon: "products", href: "/admin/products" },
     { label: a.commission, icon: "commission", href: "/admin/commission" },
-    { label: a.payments, icon: "payments", phase: 5 },
-    { label: a.delivery, icon: "delivery", phase: 6 },
-    { label: a.disputes, icon: "disputes", phase: 5 },
-    { label: a.analytics, icon: "analytics", phase: 5 },
-    { label: a.settings, icon: "settings", phase: 5 },
-    { label: a.security, icon: "security", phase: 2 },
+    { label: a.payments, icon: "payments", href: "/admin/payments" },
+    { label: a.delivery, icon: "delivery", href: "/admin/delivery" },
+    { label: a.disputes, icon: "disputes", href: "/admin/disputes" },
+    { label: a.analytics, icon: "analytics", href: "/admin/analytics" },
+    { label: a.security, icon: "security", href: "/admin/security" },
   ];
   return (
     <DashboardFrame role="admin" title={t.dash.adminCentre} tone="dark" nav={nav} searchable>

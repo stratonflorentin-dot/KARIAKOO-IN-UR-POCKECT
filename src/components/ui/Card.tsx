@@ -14,9 +14,9 @@ export function Card({ children, className = "", as: Tag = "section", ...rest }:
 
 export function CardHeader({ title, id, action, subtitle }: { title: string; id?: string; action?: ReactNode; subtitle?: string }) {
   return (
-    <div className="mb-3 flex items-start justify-between gap-3">
-      <div>
-        <h2 id={id} className="font-semibold tracking-tight text-ink">{title}</h2>
+    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h2 id={id} className="break-words font-semibold tracking-tight text-ink">{title}</h2>
         {subtitle && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{subtitle}</p>}
       </div>
       {action}
@@ -44,7 +44,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
         <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">{title}</h1>
         {description && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }

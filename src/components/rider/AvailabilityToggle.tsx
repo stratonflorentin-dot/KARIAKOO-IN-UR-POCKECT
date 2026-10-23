@@ -136,12 +136,12 @@ export function AvailabilityToggle({ initialOnline }: { initialOnline: boolean }
     }
   }
 
-  return <div className="flex flex-wrap items-center gap-2">
-    <button type="button" onClick={toggle} disabled={pending} aria-pressed={online} className={`flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-60 ${online ? "bg-emerald-600 text-white" : "bg-white/15 text-white/85"}`}>
+  return <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
+    <button type="button" onClick={toggle} disabled={pending} aria-pressed={online} className={`flex h-11 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-semibold disabled:opacity-60 sm:px-4 sm:text-sm ${online ? "bg-emerald-600 text-white" : "bg-white/15 text-white/85"}`}>
       <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-white" : "bg-white/50"}`} aria-hidden="true" />
       {pending ? "Saving…" : online ? "Online" : "Offline"}
     </button>
-    {online && !tracking && <button type="button" disabled={pending} onClick={enableTracking} className="h-11 rounded-full border border-white/30 px-4 text-sm font-semibold text-white disabled:opacity-60">Share live location</button>}
+    {online && !tracking && <button type="button" disabled={pending} onClick={enableTracking} className="h-11 shrink-0 whitespace-nowrap rounded-full border border-white/30 px-3 text-xs font-semibold text-white disabled:opacity-60 sm:px-4 sm:text-sm">Share live location</button>}
     <span role="status" aria-live="polite" className="sr-only">{message}</span>
   </div>;
 }

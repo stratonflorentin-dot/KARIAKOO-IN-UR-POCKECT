@@ -29,6 +29,10 @@ export function AppLocationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestLocation = useCallback(() => {
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setError("unsupported");
+      return;
+    }
     if (!navigator.geolocation) {
       setError("unsupported");
       return;
@@ -46,18 +50,15 @@ export function AppLocationProvider({ children }: { children: ReactNode }) {
   }, [stop]);
 
   useEffect(() => {
-    if (!window.isSecureContext) {
-      setError("unsupported");
-      return;
-    }
     // Start promptly so the browser can request permission on first app use.
-    requestLocation();
+    const initial = window.setTimeout(requestLocation, 0);
     const onVisibility = () => {
       if (document.visibilityState === "visible") requestLocation();
       else stop();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      window.clearTimeout(initial);
       document.removeEventListener("visibilitychange", onVisibility);
       stop();
     };
