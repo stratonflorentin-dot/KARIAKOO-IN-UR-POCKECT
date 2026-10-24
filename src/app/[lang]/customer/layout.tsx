@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { CustomerBottomNav } from "@/components/customer/CustomerBottomNav";
 import { CustomerFooter } from "@/components/customer/CustomerFooter";
 import { CustomerHeader } from "@/components/customer/CustomerHeader";
+import { IncomingDeliveryCallNotice } from "@/components/orders/IncomingDeliveryCallNotice";
 
 export default function CustomerLayout({ children }: LayoutProps<"/[lang]/customer">) {
   return (
@@ -11,6 +12,7 @@ export default function CustomerLayout({ children }: LayoutProps<"/[lang]/custom
         {children}
       </main>
       <CustomerFooter />
+      <IncomingDeliveryCallNotice />
       <Suspense fallback={null}>
         <CustomerBottomNav />
       </Suspense>
