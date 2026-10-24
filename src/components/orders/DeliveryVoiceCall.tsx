@@ -85,7 +85,7 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         setMicrophoneBlocked(true);
-        throw new Error("Safari cannot use your microphone yet. Allow microphone access for this website, then retry the call.");
+        throw new Error("Microphone access is blocked. Allow it in your browser, then retry.");
       }
       if (name === "NotFoundError" || name === "DevicesNotFoundError") {
         throw new Error("No microphone was found on this device.");
@@ -344,15 +344,16 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
           </div>
         )}
       </div>
-      {message && !activeCall && <div className="mt-2 text-sm text-muted">
+      {message && !activeCall && <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
         <p role="status">{message}</p>
-        {microphoneBlocked && <div className="mt-2 rounded-xl bg-white p-3">
-          <p className="font-semibold text-ink">Allow microphone to call</p>
-          <p className="mt-1">Safari: tap <strong>aA</strong> by the address bar → Website Settings → Microphone → Allow.</p>
-          <p className="mt-1">Opened in another app? Open this page in Safari.</p>
-          <button type="button" onClick={() => void (incoming ? answerCall() : startCall())} disabled={working} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-night px-4 font-semibold text-white disabled:opacity-60">
-            {working ? "Checking microphone…" : incoming ? "Retry and answer" : "Retry call"}
+        {microphoneBlocked && <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => void (incoming ? answerCall() : startCall())} disabled={working} className="inline-flex min-h-10 items-center rounded-full bg-night px-4 font-semibold text-white disabled:opacity-60">
+            {working ? "Checking…" : incoming ? "Retry and answer" : "Retry call"}
           </button>
+          <details className="text-xs">
+            <summary className="cursor-pointer font-semibold text-ink">How to allow access</summary>
+            <p className="mt-1 max-w-xs">Safari: aA by the address bar → Website Settings → Microphone → Allow. If opened inside another app, open this page in Safari.</p>
+          </details>
         </div>}
       </div>}
     </section>
