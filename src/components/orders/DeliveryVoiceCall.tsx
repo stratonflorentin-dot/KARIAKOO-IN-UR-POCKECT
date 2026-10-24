@@ -73,9 +73,23 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
     if (error) throw new Error(error.message);
   }
 
-  async function preparePeer(callId: string) {
+  async function requestMicrophone() {
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw new Error("Voice calling is not supported by this browser.");
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        throw new Error("Microphone permission is blocked. In iPhone Settings, allow Microphone for Safari, then reload this page and call again.");
+      }
+      if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        throw new Error("No microphone was found on this device.");
+      }
+      throw error;
+    }
+  }
+
+  async function preparePeer(callId: string, stream: MediaStream) {
     streamRef.current = stream;
     const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peerRef.current = peer;
@@ -133,8 +147,12 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
   async function startCall() {
     setWorking(true);
     setMessage("");
+    let microphone: MediaStream | null = null;
     try {
       if (!window.isSecureContext) throw new Error("Voice calls require a secure HTTPS connection.");
+      // Ask before creating the server call row so a denied microphone leaves
+      // no ringing call behind for the other participant.
+      microphone = await requestMicrophone();
       let { data, error } = await client.rpc("delivery_call_start", { p_order_id: orderId, p_as_role: role });
       // Older deployed databases still expose the original one-argument RPC
       // until the role-aware migration is applied and PostgREST reloads its schema.
@@ -148,18 +166,23 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
       }
       if (error || !data) {
         if (error?.code === "PGRST202") throw new Error("Voice calling is being updated. Please try again shortly.");
+        if (error?.code === "42501" && error.message.toLowerCase().includes("permission denied")) {
+          throw new Error("The voice call service is missing server permissions. Please contact support to enable delivery calls.");
+        }
         throw new Error(error?.message ?? "Could not start the call.");
       }
       const callId = String(data);
       const call: CallRow = { id: callId, order_id: orderId, caller_id: userId, recipient_id: "", state: "ringing", created_at: new Date().toISOString() };
       updateActive(call);
       setMessage(`Calling ${peerName}…`);
-      const peer = await preparePeer(callId);
+      const peer = await preparePeer(callId, microphone);
+      microphone = null;
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       if (!peer.localDescription) throw new Error("Could not create the audio connection.");
       await sendSignal(callId, "offer", peer.localDescription.toJSON());
     } catch (error) {
+      microphone?.getTracks().forEach((track) => track.stop());
       const call = activeRef.current;
       if (call) await finishCall(call, "fail");
       setMessage(error instanceof Error ? error.message : "Could not start the voice call.");
@@ -177,7 +200,7 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
       if (error) throw new Error(error.message);
       updateIncoming(null);
       updateActive({ ...call, state: "accepted" });
-      const peer = await preparePeer(call.id);
+      const peer = await preparePeer(call.id, await requestMicrophone());
       let offerSignal: SignalRow | undefined;
       for (let i = 0; i < 12 && !offerSignal; i += 1) {
         const { data, error: signalError } = await client.from("delivery_call_signals").select("id,call_id,sender_id,signal_type,signal_data").eq("call_id", call.id).eq("signal_type", "offer").order("id", { ascending: true }).limit(1);
