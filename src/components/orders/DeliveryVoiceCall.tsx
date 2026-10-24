@@ -30,6 +30,7 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
   const [incoming, setIncoming] = useState<CallRow | null>(null);
   const [activeCall, setActiveCall] = useState<CallRow | null>(null);
   const [message, setMessage] = useState("");
+  const [microphoneBlocked, setMicrophoneBlocked] = useState(false);
   const [working, setWorking] = useState(false);
   const [muted, setMuted] = useState(false);
   const peerRef = useRef<RTCPeerConnection | null>(null);
@@ -74,16 +75,23 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
   }
 
   async function requestMicrophone() {
-    if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw new Error("Voice calling is not supported by this browser.");
+    if (!window.isSecureContext) throw new Error("Voice calls need a secure HTTPS connection. Open this page in Safari using its https:// address.");
+    if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw new Error("This browser cannot start voice calls. Open this page in Safari or another browser that supports WebRTC calls.");
     try {
-      return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+      setMicrophoneBlocked(false);
+      return stream;
     } catch (error) {
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        throw new Error("Microphone permission is blocked. In iPhone Settings, allow Microphone for Safari, then reload this page and call again.");
+        setMicrophoneBlocked(true);
+        throw new Error("Safari cannot use your microphone yet. Allow microphone access for this website, then retry the call.");
       }
       if (name === "NotFoundError" || name === "DevicesNotFoundError") {
         throw new Error("No microphone was found on this device.");
+      }
+      if (name === "NotReadableError" || name === "TrackStartError") {
+        throw new Error("Your microphone is busy or unavailable. Close other apps using it, then retry the call.");
       }
       throw error;
     }
@@ -149,7 +157,6 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
     setMessage("");
     let microphone: MediaStream | null = null;
     try {
-      if (!window.isSecureContext) throw new Error("Voice calls require a secure HTTPS connection.");
       // Ask before creating the server call row so a denied microphone leaves
       // no ringing call behind for the other participant.
       microphone = await requestMicrophone();
@@ -195,12 +202,17 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
     const call = incomingRef.current;
     if (!call) return;
     setWorking(true);
+    let microphone: MediaStream | null = null;
     try {
+      // Ask permission from the Answer tap before changing the call to accepted.
+      // If iOS Safari blocks access, the rider can fix the site setting and retry.
+      microphone = await requestMicrophone();
       const { error } = await client.rpc("delivery_call_respond", { p_call_id: call.id, p_action: "accept" });
       if (error) throw new Error(error.message);
       updateIncoming(null);
       updateActive({ ...call, state: "accepted" });
-      const peer = await preparePeer(call.id, await requestMicrophone());
+      const peer = await preparePeer(call.id, microphone);
+      microphone = null;
       let offerSignal: SignalRow | undefined;
       for (let i = 0; i < 12 && !offerSignal; i += 1) {
         const { data, error: signalError } = await client.from("delivery_call_signals").select("id,call_id,sender_id,signal_type,signal_data").eq("call_id", call.id).eq("signal_type", "offer").order("id", { ascending: true }).limit(1);
@@ -218,8 +230,11 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
       await sendSignal(call.id, "answer", peer.localDescription.toJSON());
       setMessage(`Connecting to ${peerName}…`);
     } catch (error) {
-      const failedCall = activeRef.current ?? call;
-      await finishCall(failedCall, "fail");
+      microphone?.getTracks().forEach((track) => track.stop());
+      if (!microphoneBlocked) {
+        const failedCall = activeRef.current ?? call;
+        await finishCall(failedCall, "fail");
+      }
       setMessage(error instanceof Error ? error.message : "Could not answer the call.");
     } finally {
       setWorking(false);
@@ -329,7 +344,20 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
           </div>
         )}
       </div>
-      {message && !activeCall && <p role="status" className="mt-2 text-sm text-muted">{message}</p>}
+      {message && !activeCall && <div className="mt-2 text-sm text-muted">
+        <p role="status">{message}</p>
+        {microphoneBlocked && <div className="mt-2 rounded-xl bg-white p-3">
+          <p className="font-semibold text-ink">Allow microphone on iPhone</p>
+          <ol className="mt-1 list-inside list-decimal space-y-1">
+            <li>In Safari, open the website settings from the address bar and set Microphone to Allow.</li>
+            <li>If this page opened inside WhatsApp or another app, choose Open in Safari first.</li>
+            <li>Reload this page, then tap Call again. You can also check iPhone Settings → Apps → Safari → Microphone.</li>
+          </ol>
+          <button type="button" onClick={() => void (incoming ? answerCall() : startCall())} disabled={working} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-night px-4 font-semibold text-white disabled:opacity-60">
+            {working ? "Checking microphone…" : incoming ? "Retry and answer" : "Retry call"}
+          </button>
+        </div>}
+      </div>}
     </section>
   );
 }
