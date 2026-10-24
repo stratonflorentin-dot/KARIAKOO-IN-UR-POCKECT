@@ -347,12 +347,9 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
       {message && !activeCall && <div className="mt-2 text-sm text-muted">
         <p role="status">{message}</p>
         {microphoneBlocked && <div className="mt-2 rounded-xl bg-white p-3">
-          <p className="font-semibold text-ink">Allow microphone on iPhone</p>
-          <ol className="mt-1 list-inside list-decimal space-y-1">
-            <li>In Safari, open the website settings from the address bar and set Microphone to Allow.</li>
-            <li>If this page opened inside WhatsApp or another app, choose Open in Safari first.</li>
-            <li>Reload this page, then tap Call again. You can also check iPhone Settings → Apps → Safari → Microphone.</li>
-          </ol>
+          <p className="font-semibold text-ink">Allow microphone to call</p>
+          <p className="mt-1">Safari: tap <strong>aA</strong> by the address bar → Website Settings → Microphone → Allow.</p>
+          <p className="mt-1">Opened in another app? Open this page in Safari.</p>
           <button type="button" onClick={() => void (incoming ? answerCall() : startCall())} disabled={working} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-night px-4 font-semibold text-white disabled:opacity-60">
             {working ? "Checking microphone…" : incoming ? "Retry and answer" : "Retry call"}
           </button>
