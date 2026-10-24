@@ -245,8 +245,12 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
   useEffect(() => {
     let alive = true;
     const refresh = async () => {
-      const { data } = await client.from("delivery_calls").select("id,order_id,caller_id,recipient_id,state,created_at").eq("order_id", orderId).in("state", ["ringing", "accepted"]).order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await client.rpc("delivery_call_poll", { p_order_id: orderId });
       if (!alive) return;
+      if (error) {
+        setMessage("Could not check for incoming calls. Refresh this order and try again.");
+        return;
+      }
       const call = (data as CallRow[] | null)?.[0];
       if (call?.state === "ringing" && call.recipient_id === userId && !activeRef.current && Date.now() - new Date(call.created_at).getTime() < 45_000) updateIncoming(call);
       if (call?.state === "accepted" && call.caller_id === userId && activeRef.current?.id === call.id) updateActive(call);
@@ -321,6 +325,7 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
   }
 
   return (
+    <>
     <section aria-label="Private delivery voice call" className="rounded-2xl border border-line bg-subtle p-3">
       <audio ref={remoteAudio} autoPlay playsInline className="hidden" />
       <div className="flex flex-wrap items-center gap-2">
@@ -328,13 +333,6 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
           <button type="button" onClick={() => void startCall()} disabled={working} className="inline-flex h-11 items-center gap-2 rounded-full bg-night px-4 text-sm font-semibold text-white disabled:opacity-60">
             <Phone size={16} aria-hidden="true" /> {working ? "Starting call…" : `Call ${role === "customer" ? "rider" : "customer"}`}
           </button>
-        )}
-        {incoming && !activeCall && (
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <p className="mr-auto flex items-center gap-2 text-sm font-medium"><PhoneIncoming size={17} aria-hidden="true" /> Incoming voice call from {peerName}</p>
-            <button type="button" disabled={working} onClick={() => void answerCall()} className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white"><Phone size={15} aria-hidden="true" /> Answer</button>
-            <button type="button" disabled={working} onClick={() => void finishCall(incoming, "decline")} className="inline-flex h-10 items-center gap-2 rounded-full bg-rose-700 px-4 text-sm font-semibold text-white"><PhoneOff size={15} aria-hidden="true" /> Decline</button>
-          </div>
         )}
         {activeCall && (
           <div className="flex w-full flex-wrap items-center gap-2">
@@ -357,5 +355,17 @@ export function DeliveryVoiceCall({ orderId, userId, role, peerName }: { orderId
         </div>}
       </div>}
     </section>
+    {incoming && !activeCall && <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]" role="alertdialog" aria-modal="true" aria-labelledby="incoming-call-title" aria-describedby="incoming-call-description">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl">
+        <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800"><PhoneIncoming size={18} aria-hidden="true" /> Incoming delivery call</p>
+        <h2 id="incoming-call-title" className="mt-2 text-xl font-bold">{peerName} is calling</h2>
+        <p id="incoming-call-description" className="mt-1 text-sm text-muted">Answer to speak about this delivery.</p>
+        <div className="mt-5 flex gap-3">
+          <button type="button" disabled={working} onClick={() => void answerCall()} className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 font-semibold text-white disabled:opacity-60"><Phone size={16} aria-hidden="true" /> Answer</button>
+          <button type="button" disabled={working} onClick={() => void finishCall(incoming, "decline")} className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-rose-700 px-4 font-semibold text-white disabled:opacity-60"><PhoneOff size={16} aria-hidden="true" /> Decline</button>
+        </div>
+      </div>
+    </div>}
+    </>
   );
 }
