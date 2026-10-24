@@ -11,10 +11,10 @@ theoretical risk.
 
 | Check | Command | Result |
 |-------|---------|--------|
-| Typecheck | `npx tsc --noEmit` | ✅ 0 errors |
-| Unit tests | `npx vitest run` | ✅ 84 passed / 11 files |
-| Lint | `eslint` | not yet run this pass |
-| Prod build | `next build` | not run (Windows C:-drive space constraint; run with `TMPDIR=/d/tmp`) |
+| Typecheck | `npm run typecheck` | ✅ passed on 2026-10-24 |
+| Unit tests | `npx vitest run` | ✅ 84 passed / 11 files (last recorded run) |
+| Lint | `npm run lint` | ✅ passed on 2026-10-24 |
+| Prod build | `npm run build` | ✅ passed on 2026-10-24 |
 | RLS isolation suite | `supabase/tests/*.sql` | present; run only against a test DB, never prod |
 
 Stack confirmed: Next.js 16.4.1 (App Router, Turbopack), React 19, TypeScript strict,
@@ -167,6 +167,10 @@ regression test `supabase/tests/stock_restoration.sql`:
   clean. Note: full upload e2e (logged-in seller + file picker) not run here;
   Storage image transformation/CDN resizing is a Pro-plan add-on if wanted later.
 
+**Hardened** — migration `20261024180000_storage_upload_constraints.sql` also
+enforces a 5 MB per-file limit and JPEG/PNG/WebP content types in both Storage
+buckets; client-side file checks alone are not treated as a security boundary.
+
 **Shipped** — migration `20261023170000_rider_incidents_settlements.sql`, test
 `supabase/tests/rider_incidents_settlements.sql`, SafetyButton wired:
 
@@ -186,32 +190,29 @@ dashboard updated:
   countdown ring and Accept/Decline (replaces the plain offer list); the delivery
   flow now advances through accessible swipe-to-confirm steps (accept → picked up →
   on the way → PIN). Pickup/drop-off stay hidden until accept (RLS-correct). The map
-  already falls back to free CARTO tiles when no MapTiler key is set — no paid
-  license needed for rendering. Typecheck + 92 unit tests green.
+  falls back to CARTO when no MapTiler key is set; confirm the provider's current
+  commercial terms before production use. Typecheck + 92 unit tests green.
 
 **Still open:** P2-6 (migration drift) — low priority. Credential-gated payment
 webhooks + live operator adapters remain per the brief.
 
-## Remaining production blockers (beyond this pass)
+## Remaining production blockers
 
 - **Payments:** no live Tanzanian provider adapter (M-Pesa / Mixx by Yas / Airtel /
   HaloPesa) is wired — the abstraction exists but orders are COD/pending only. Needs
   verified credentials + sandbox verification + signed, replay-protected webhooks.
-- **Product image uploads:** Supabase Storage buckets/policies not yet audited; verify
-  MIME/size validation and owner-scoped Storage policies before enabling.
+- **Maps:** select a tile provider and plan whose terms cover production use; restrict
+  any browser API key to the deployed domains.
 - **E2E suite:** Playwright specs exist but were not run this pass (need a seeded test
   environment, never production).
-- **Lint + prod build:** run both to completion in an environment with adequate temp
-  space.
+- **Operational readiness:** complete a production-like security drill, backups/restore
+  drill, monitoring and accessibility review.
 
-## Recommended Phase 2 order
+## Follow-up
 
-1. **P0-1 stock restoration** + **P1-4/P2-5 `place_order` hardening** (one migration,
-   with DB regression tests). _Core integrity._
-2. **P0-2 demo RLS** (`is_demo=false` on public policies) — one small migration.
-3. **P1-3 PIN rate-limit/expiry** — one migration + test.
-4. Payments adapter interface + Storage policy audit (larger, separate tracks).
-
-Each fix ships as a new timestamped migration (no destructive changes, no data reset),
-with the application types/queries updated where the schema changes, and a regression
-test added before the change is considered done.
+- Reconcile migration history between the connected Supabase project and this repo
+  before the next production migration (`P2-6`).
+- Integrate mobile-money providers only with real provider credentials, sandbox
+  evidence, signed webhooks and idempotent reconciliation.
+- Complete the production security, backup/restore, monitoring and accessibility
+  reviews listed in [the launch checklist](production-launch-checklist.md).

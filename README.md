@@ -55,7 +55,7 @@ The RLS isolation script is `supabase/tests/rls_isolation.sql`. It uses transact
 
 - Never expose Supabase secret keys or payment credentials through `NEXT_PUBLIC_` variables.
 - Cash on delivery is available. Mobile-money adapters and signed payment webhooks still need provider integration before enabling M-Pesa, Mixx, Airtel Money or HaloPesa credentials.
-- Seller product photos are not uploaded to Storage yet. The product form explains this and saves the listing with a placeholder image.
-- Rider SOS currently provides emergency call links. Incident reports and settlement reconciliation need persistent server endpoints before launch.
-- Map tiles and satellite imagery need a commercial licence for production. Configure `NEXT_PUBLIC_MAPTILER_API_KEY` for a licensed tile plan.
-- Before launch, finish the security review, backups/restore drill, monitoring, accessibility review and payment-provider verification.
+- Seller product photos upload to the shop's Supabase Storage folder under owner-scoped policies with a 5 MB JPEG/PNG/WebP limit; products without a photo use a category placeholder.
+- Rider SOS includes emergency call links and persisted incident reports; rider settlements are reconciled through admin operations.
+- Choose a map-tile provider whose terms cover production use. The CARTO fallback is intended for development; configure a domain-restricted MapTiler key or another licensed provider for production.
+- Before launch, complete the security review, backups/restore drill, monitoring, accessibility review and payment-provider verification. See [the production launch checklist](docs/production-launch-checklist.md).

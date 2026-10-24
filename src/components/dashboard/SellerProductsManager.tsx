@@ -3,8 +3,8 @@
 // The seller's product manager, wired to the live products table. Publishing,
 // price/stock edits and archive/restore each call a server action that writes
 // under RLS (owner-scoped); the UI updates optimistically and reverts on error.
-// Photos are not uploaded yet — that's the next step — so new products publish
-// without a photo (a placeholder is shown).
+// Product photos can be uploaded to the shop's Supabase Storage folder from
+// ProductComposer. Products without an uploaded photo use a category placeholder.
 import { ChevronDown, Eye } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { Fragment, useState } from "react";
