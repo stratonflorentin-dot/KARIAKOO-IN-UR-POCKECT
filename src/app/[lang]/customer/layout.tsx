@@ -12,7 +12,9 @@ export default function CustomerLayout({ children }: LayoutProps<"/[lang]/custom
         {children}
       </main>
       <CustomerFooter />
-      <IncomingDeliveryCallNotice />
+      <Suspense fallback={null}>
+        <IncomingDeliveryCallNotice />
+      </Suspense>
       <Suspense fallback={null}>
         <CustomerBottomNav />
       </Suspense>
