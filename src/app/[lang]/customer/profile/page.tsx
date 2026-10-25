@@ -1,4 +1,4 @@
-import { Phone, User } from "lucide-react";
+import { Bike, Phone, Store, User } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RoleSwitcher, SignOutButton } from "@/components/auth/AccountControls";
@@ -46,6 +46,20 @@ async function Profile() {
     <Card aria-labelledby="addresses-heading">
       <CardHeader id="addresses-heading" title={p.deliveryAddresses} subtitle={p.addressesNote} />
       <ButtonLink href="/customer/orders" variant="outline">{p.viewOrders}</ButtonLink>
+    </Card>
+
+    <Card aria-labelledby="partner-heading">
+      <CardHeader id="partner-heading" title="Partner with Kariakoo" subtitle="Expand your business as a shop seller or earn on deliveries as a rider." />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ButtonLink href="/apply/seller" variant="outline">
+          <Store size={16} className="text-brand-600" aria-hidden="true" />
+          <span>Seller Portal</span>
+        </ButtonLink>
+        <ButtonLink href="/apply/rider" variant="outline">
+          <Bike size={16} className="text-brand-600" aria-hidden="true" />
+          <span>Rider Portal</span>
+        </ButtonLink>
+      </div>
     </Card>
 
     {session.roles && session.roles.filter((role) => role !== "admin").length > 1 && <Card aria-labelledby="roles-heading"><CardHeader id="roles-heading" title={p.yourRoles} subtitle={p.rolesNote} /><RoleSwitcher roles={session.roles} active={session.role} /></Card>}

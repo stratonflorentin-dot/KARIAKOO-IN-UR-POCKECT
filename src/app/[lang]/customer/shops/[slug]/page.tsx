@@ -7,6 +7,7 @@ import { ProductGrid } from "@/components/product/ProductCard";
 import { directionsUrl } from "@/lib/maps";
 import { ShopKindBadge, ShopMark } from "@/components/shop/ShopMark";
 import { buttonClasses } from "@/components/ui/Button";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { compactInputClass } from "@/components/ui/Field";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import { fmt } from "@/i18n/config";
@@ -45,24 +46,33 @@ async function ShopContent({ params, searchParams }: PageProps<"/[lang]/customer
     <>
       <section className="relative overflow-hidden bg-night text-white">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_20rem_at_90%_0%,rgba(16,185,129,0.4),transparent_60%)]" />
-        <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6 sm:py-12">
-          <ShopMark shop={shop} size="lg" />
-          <div className="min-w-0">
-            <ShopKindBadge shop={shop} />
-            <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
-              {shop.name}
-              {shop.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-brand-200">
-                  <BadgeCheck size={14} aria-hidden="true" /> {d.verified}
-                </span>
-              )}
-            </h1>
-            <p className="mt-1 flex items-center gap-1 text-white/75"><MapPin size={14} aria-hidden="true" /> {shop.address} · {shopAreaLabel[shop.area]}</p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
-              <span className="inline-flex items-center gap-1"><Star size={14} className="fill-brand-400 text-brand-400" aria-hidden="true" /> {shop.rating.toFixed(1)} ({fmt(t.shops.reviews, { count: shop.reviewCount })})</span>
-              <span className="inline-flex items-center gap-1"><Clock size={14} aria-hidden="true" /> {shop.openingHours}</span>
-              <span>{fmt(d.since, { year: shop.joinedYear })}</span>
-            </p>
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-12">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <ShopMark shop={shop} size="lg" />
+            <div className="min-w-0">
+              <ShopKindBadge shop={shop} />
+              <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                {shop.name}
+                {shop.verified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-brand-200">
+                    <BadgeCheck size={14} aria-hidden="true" /> {d.verified}
+                  </span>
+                )}
+              </h1>
+              <p className="mt-1 flex items-center gap-1 text-white/75"><MapPin size={14} aria-hidden="true" /> {shop.address} · {shopAreaLabel[shop.area]}</p>
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
+                <span className="inline-flex items-center gap-1"><Star size={14} className="fill-brand-400 text-brand-400" aria-hidden="true" /> {shop.rating.toFixed(1)} ({fmt(t.shops.reviews, { count: shop.reviewCount })})</span>
+                <span className="inline-flex items-center gap-1"><Clock size={14} aria-hidden="true" /> {shop.openingHours}</span>
+                <span>{fmt(d.since, { year: shop.joinedYear })}</span>
+              </p>
+            </div>
+          </div>
+          <div className="sm:self-center">
+            <ShareAction
+              title={shop.name}
+              text={`Nunua kutoka duka la ${shop.name} kwenye Kariakoo App!`}
+              label="Share Shop"
+            />
           </div>
         </div>
       </section>

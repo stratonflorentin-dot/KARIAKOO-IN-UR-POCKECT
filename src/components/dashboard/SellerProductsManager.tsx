@@ -5,7 +5,7 @@
 // under RLS (owner-scoped); the UI updates optimistically and reverts on error.
 // Product photos can be uploaded to the shop's Supabase Storage folder from
 // ProductComposer. Products without an uploaded photo use a category placeholder.
-import { ChevronDown, Eye } from "lucide-react";
+import { ChevronDown, Eye, Search } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { Fragment, useState } from "react";
 import { createProduct, saveProductFields, setProductStatus } from "@/app/[lang]/seller/products/actions";
@@ -13,6 +13,7 @@ import { ProductImage } from "@/components/product/ProductImage";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { compactInputClass } from "@/components/ui/Field";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/config";
@@ -48,13 +49,24 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const counts = { all: rows.length } as Record<Tab, number>;
   for (const t of ["active", "low", "out", "archived"] as const) counts[t] = 0;
   for (const r of rows) counts[groupOf(r)] += 1;
-  const visible = tab === "all" ? rows : rows.filter((r) => groupOf(r) === tab);
+  const tabFiltered = tab === "all" ? rows : rows.filter((r) => groupOf(r) === tab);
+  const visible = searchQuery.trim()
+    ? tabFiltered.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+    : tabFiltered;
 
   const update = (id: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  async function quickAdjustStock(r: Row, newStock: number) {
+    const clamped = Math.max(0, Math.min(100_000, newStock));
+    const updatedRow = { ...r, stock: clamped };
+    update(r.id, { stock: clamped });
+    await persistFields(updatedRow);
+  }
 
   async function publish(d: PublishedDraft): Promise<PublishResult> {
     const fd = new FormData();
@@ -104,22 +116,34 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
       <ProductComposer categories={categories} shopName={shopName} shopId={shopId} onPublish={publish} />
       <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-emerald-800">{message}</p>
 
-      <div role="tablist" aria-label={sp.filterLabel} className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-        {TABS.map((tabDef) => (
-          <button
-            key={tabDef.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === tabDef.id}
-            onClick={() => setTab(tabDef.id)}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
-              tab === tabDef.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
-            }`}
-          >
-            {sp[tabDef.labelKey]}
-            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === tabDef.id ? "bg-white/20" : "bg-subtle text-muted"}`}>{counts[tabDef.id]}</span>
-          </button>
-        ))}
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="tablist" aria-label={sp.filterLabel} className="no-scrollbar flex gap-2 overflow-x-auto">
+          {TABS.map((tabDef) => (
+            <button
+              key={tabDef.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === tabDef.id}
+              onClick={() => setTab(tabDef.id)}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
+                tab === tabDef.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
+              }`}
+            >
+              {sp[tabDef.labelKey]}
+              <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === tabDef.id ? "bg-white/20" : "bg-subtle text-muted"}`}>{counts[tabDef.id]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="relative min-w-48 sm:w-64">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products..."
+            className="h-9 w-full rounded-full border border-line bg-white pl-8 pr-3 text-xs outline-none focus:border-brand-500"
+          />
+          <Search size={14} className="absolute left-2.5 top-2.5 text-muted" aria-hidden="true" />
+        </div>
       </div>
 
       <div className="mt-3">
@@ -155,11 +179,45 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
                       className={`${compactInputClass} w-32`} />
                   </td>
                   <td className={tdClass}>
-                    <label className="sr-only" htmlFor={`stock-${r.id}`}>{fmt(sp.stockOf, { name: r.name })}</label>
-                    <input id={`stock-${r.id}`} type="number" min={0} step={1} value={r.stock} disabled={r.status === "archived"}
-                      onChange={(e) => update(r.id, { stock: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
-                      onBlur={() => persistFields(r)}
-                      className={`${compactInputClass} w-24 ${r.stock === 0 ? "border-red-300" : ""}`} />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <label className="sr-only" htmlFor={`stock-${r.id}`}>{fmt(sp.stockOf, { name: r.name })}</label>
+                        <input id={`stock-${r.id}`} type="number" min={0} step={1} value={r.stock} disabled={r.status === "archived"}
+                          onChange={(e) => update(r.id, { stock: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                          onBlur={() => persistFields(r)}
+                          className={`${compactInputClass} w-24 ${r.stock === 0 ? "border-red-300" : ""}`} />
+                      </div>
+                      {r.status === "active" && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => quickAdjustStock(r, r.stock + 1)}
+                            className="inline-flex h-5 items-center rounded border border-line bg-subtle px-1.5 text-[10px] font-semibold text-ink hover:bg-stone-200"
+                            title="Add 1 to stock"
+                          >
+                            +1
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => quickAdjustStock(r, r.stock + 5)}
+                            className="inline-flex h-5 items-center rounded border border-line bg-subtle px-1.5 text-[10px] font-semibold text-ink hover:bg-stone-200"
+                            title="Add 5 to stock"
+                          >
+                            +5
+                          </button>
+                          {r.stock > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => quickAdjustStock(r, 0)}
+                              className="inline-flex h-5 items-center rounded border border-red-200 bg-red-50 px-1 text-[10px] font-medium text-red-700 hover:bg-red-100"
+                              title="Set out of stock"
+                            >
+                              0
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className={tdClass}>
                     {r.status === "archived" ? <Badge>{sp.archived}</Badge> : r.stock === 0 ? <Badge tone="danger">{sp.outOfStock}</Badge> : r.stock <= 5 ? <Badge tone="warning">{sp.lowStock}</Badge> : <Badge tone="success">{sp.live}</Badge>}
@@ -173,6 +231,15 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
                       <Link href={`/customer/product/${r.slug}`} className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
                         <Eye size={15} aria-hidden="true" /> {sp.view}<span className="sr-only"> {r.name}</span>
                       </Link>
+                    )}
+                    {r.slug && r.status === "active" && (
+                      <ShareAction
+                        title={r.name}
+                        text={`Check out ${r.name} on Kariakoo`}
+                        url={`/customer/product/${r.slug}`}
+                        label="Share"
+                        variant="icon"
+                      />
                     )}
                     {r.status === "active" ? (
                       <ConfirmDialog

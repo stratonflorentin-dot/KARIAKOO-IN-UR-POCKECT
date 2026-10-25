@@ -3,7 +3,7 @@ import Link from "@/components/i18n/Link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AddToCart } from "@/components/cart/AddToCart";
-import { ShareButton } from "@/components/product/ShareButton";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { RecordView } from "@/components/customer/RecentlyViewed";
 import { Price } from "@/components/product/Price";
 import { ShopKindBadge } from "@/components/shop/ShopMark";
@@ -83,7 +83,11 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
                 )}
               </div>
             ) : <span />}
-            <ShareButton title={product.name} />
+            <ShareAction
+              title={product.name}
+              text={`Angalia bidhaa hii kwenye Kariakoo: ${product.name}`}
+              variant="button"
+            />
           </div>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-4xl">{product.name}</h1>
           {product.audience && (

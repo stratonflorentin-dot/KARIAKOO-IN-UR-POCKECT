@@ -26,14 +26,19 @@ export function LiveSellerOrderActions({ orderId, initialStatus }: { orderId: st
       if (submitter?.value === "rejected" && !window.confirm(s.rejectConfirm)) event.preventDefault();
     }}>
       <input type="hidden" name="orderId" value={orderId} />
-      {initialStatus === "awaiting_seller" && <label className="block text-xs text-muted">{s.reasonIfRejecting}
-        <select name="reason" className="mt-1 h-9 w-full rounded-lg border border-line bg-white px-2 text-xs">
-          <option value="Out of stock">{s.reasonOutOfStock}</option>
-          <option value="Price changed">{s.reasonPriceChanged}</option>
-          <option value="Shop closed today">{s.reasonClosed}</option>
-          <option value="Cannot prepare in time">{s.reasonCannotPrepare}</option>
-        </select>
-      </label>}
+      {initialStatus === "awaiting_seller" && (
+        <div className="space-y-1">
+          <label className="block text-xs text-muted">{s.reasonIfRejecting}
+            <select name="reason" className="mt-1 h-9 w-full rounded-lg border border-line bg-white px-2 text-xs">
+              <option value="Out of stock">{s.reasonOutOfStock}</option>
+              <option value="Price changed">{s.reasonPriceChanged}</option>
+              <option value="Shop closed today">{s.reasonClosed}</option>
+              <option value="Cannot prepare in time">{s.reasonCannotPrepare}</option>
+            </select>
+          </label>
+          <p className="text-[10px] text-muted">Rejecting returns reserved stock back to your catalog.</p>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" name="to" value={next.to} size="sm" disabled={pending}>{pending ? s.saving : s[next.labelKey]}</Button>
         {initialStatus === "awaiting_seller" && <Button type="submit" name="to" value="rejected" variant="outline" size="sm" disabled={pending}>{s.rejectOrder}</Button>}

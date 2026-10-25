@@ -1,4 +1,4 @@
-import { ChevronRight, LayoutGrid, MapPin, Package, ShoppingBag, User } from "lucide-react";
+import { ChevronRight, LayoutGrid, MapPin, Package, ShoppingBag, Store, Truck, User } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
 import { SectionHeading } from "@/components/customer/SectionHeading";
@@ -160,6 +160,40 @@ export default async function CustomerHomePage() {
           </ul>
         </section>
       )}
+
+      {/* Cross-role promotional strip — links customers to partner programmes. */}
+      <section aria-labelledby="partner-heading" className="rounded-3xl border border-line bg-gradient-to-br from-night to-stone-800 p-5 text-white sm:p-8">
+        <h2 id="partner-heading" className="text-lg font-bold">Participate in Kariakoo</h2>
+        <p className="mt-1 text-sm text-white/70">Run your own shop or earn by delivering — join our community.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/apply/seller"
+            className="flex items-center gap-3 rounded-2xl bg-white/10 p-4 transition hover:bg-white/20"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-400/20 text-gold-400">
+              <Store size={18} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold">Sell with us</p>
+              <p className="text-xs text-white/60">Open your Kariakoo shop</p>
+            </div>
+            <ChevronRight size={16} className="ml-auto shrink-0 text-white/40" aria-hidden="true" />
+          </Link>
+          <Link
+            href="/apply/rider"
+            className="flex items-center gap-3 rounded-2xl bg-white/10 p-4 transition hover:bg-white/20"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-400/20 text-brand-300">
+              <Truck size={18} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold">Deliver with us</p>
+              <p className="text-xs text-white/60">Earn as a Kariakoo rider</p>
+            </div>
+            <ChevronRight size={16} className="ml-auto shrink-0 text-white/40" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

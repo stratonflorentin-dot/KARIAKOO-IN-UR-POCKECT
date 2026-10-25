@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { MapLoader } from "@/components/map/MapLoader";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import { getDictionary } from "@/i18n/server";
 import { fmt } from "@/i18n/config";
@@ -19,8 +20,18 @@ export default async function ShopsDirectoryPage({ searchParams }: PageProps<"/[
   const t = await getDictionary();
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.footer.allShops}</h1>
-      <p className="mt-1 text-muted">{t.shops.directorySubtitle}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.footer.allShops}</h1>
+          <p className="mt-1 text-muted">{t.shops.directorySubtitle}</p>
+        </div>
+        <ShareAction
+          title="Kariakoo Shops Directory"
+          text="Discover verified local shops in Kariakoo Market"
+          label="Share directory"
+          variant="pill"
+        />
+      </div>
       <Suspense fallback={<Skeleton className="mt-6 h-96" />}>
         <Directory searchParams={searchParams} />
       </Suspense>

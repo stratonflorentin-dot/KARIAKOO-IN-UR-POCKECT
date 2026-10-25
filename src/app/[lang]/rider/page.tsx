@@ -1,10 +1,10 @@
-import { Bike, ClipboardList, DollarSign, MapPin, Truck, Wallet } from "lucide-react";
+import { Bike, ClipboardList, DollarSign, MapPin, Radio, Truck, Wallet } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { JobOfferModal } from "@/components/rider/JobOfferModal";
 import { AvailableDeliveries } from "@/components/rider/AvailableDeliveries";
 import { RiderDispatchPoller } from "@/components/rider/RiderDispatchPoller";
 import { DeliveryStatusBadge } from "@/components/orders/StatusBadges";
-import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
+import { Card, CardHeader, StatCard } from "@/components/ui/Card";
 import { EmptyState, Notice } from "@/components/ui/States";
 import { TrendBars, lastSevenDays } from "@/components/dashboard/TrendBars";
 import { requireRole } from "@/lib/auth/session";
@@ -36,10 +36,23 @@ export default async function RiderDashboardPage() {
   return (
     <>
       <RiderDispatchPoller />
-      <PageHeader
-        title="Your deliveries"
-        description="Live delivery activity assigned to your rider account."
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Your deliveries</h1>
+          <p className="text-sm text-muted">Live delivery activity assigned to your rider account.</p>
+        </div>
+        {/* Online status indicator */}
+        <span
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
+            toHandle.length > 0
+              ? "bg-emerald-50 text-emerald-800"
+              : "bg-subtle text-muted"
+          }`}
+        >
+          <Radio size={14} aria-hidden="true" className={toHandle.length > 0 ? "text-emerald-600 animate-pulse" : ""} />
+          {toHandle.length > 0 ? "On duty" : "Standby"}
+        </span>
+      </div>
 
       <JobOfferModal offers={offers} />
       <AvailableDeliveries deliveries={available.deliveries} unavailable={available.unavailable} />
@@ -47,6 +60,19 @@ export default async function RiderDashboardPage() {
       {active.length > 0 && offers.length === 0 && (
         <div className="mt-4">
           <Notice>Your next delivery offer will arrive after you complete this active delivery.</Notice>
+        </div>
+      )}
+
+      {/* Start Delivery CTA — shown when the rider has an assigned (not yet accepted) job. */}
+      {toHandle.some((j) => j.status === "ASSIGNED") && (
+        <div className="mt-4">
+          <Link
+            href={`/rider/jobs/${toHandle.find((j) => j.status === "ASSIGNED")!.orderId}`}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-base font-bold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            <Bike size={20} aria-hidden="true" />
+            Start delivery · {toHandle.find((j) => j.status === "ASSIGNED")!.reference}
+          </Link>
         </div>
       )}
 

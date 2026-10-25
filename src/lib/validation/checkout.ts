@@ -34,7 +34,7 @@ export const checkoutSchema = z.object({
   zone: z.enum(zoneIds, { message: "Choose a delivery area." }),
   address: z.string().trim().min(5, "Enter a street, building or landmark for the rider.").max(200),
   instructions: z.string().trim().max(200, "Keep instructions under 200 characters.").optional().default(""),
-  dropoffLat: z.string().optional().default("").refine((v) => Boolean(v), "Set the delivery point on the map.").refine((v) => Number.isFinite(Number(v)) && Number(v) >= -90 && Number(v) <= 90, "Choose a valid map location."),
+  dropoffLat: z.string().optional().default("").refine((v) => v === "" || (Number.isFinite(Number(v)) && Number(v) >= -90 && Number(v) <= 90), "Choose a valid map location."),
   dropoffLng: z.string().optional().default("").refine((v) => v === "" || (Number.isFinite(Number(v)) && Number(v) >= -180 && Number(v) <= 180), "Choose a valid map location."),
   payment: z.enum(PAYMENT_METHODS, { message: "Choose a payment method." }),
 }).refine((v) => Boolean(v.dropoffLat) === Boolean(v.dropoffLng), { path: ["dropoffLat"], message: "Choose a location pin or clear it." });

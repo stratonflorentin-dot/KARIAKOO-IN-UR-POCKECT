@@ -9,9 +9,12 @@ export default async function AdminOverviewPage() {
   const session = await requireRole("admin");
   const live = await liveAdminOverview(session);
   const queues = [
-    { count: live.pendingShops, label: "Seller applications", sub: "awaiting review", href: "/admin/shops", Icon: Store },
-    { count: live.pendingRiders, label: "Rider applications", sub: "awaiting review", href: "/admin/riders", Icon: Bike },
-    { count: live.pendingOrders, label: "Orders awaiting fulfilment", sub: "shop hasn't accepted", href: "/admin/orders", Icon: ClipboardList },
+    ...(live.openIncidents > 0
+      ? [{ count: live.openIncidents, label: "Safety alerts (SOS)", sub: "urgent rider reports", href: "/admin/disputes", Icon: AlertTriangle, urgent: true }]
+      : []),
+    { count: live.pendingShops, label: "Seller applications", sub: "awaiting review", href: "/admin/shops", Icon: Store, urgent: false },
+    { count: live.pendingRiders, label: "Rider applications", sub: "awaiting review", href: "/admin/riders", Icon: Bike, urgent: false },
+    { count: live.pendingOrders, label: "Orders awaiting fulfilment", sub: "shop hasn't accepted", href: "/admin/orders", Icon: ClipboardList, urgent: false },
   ].filter((q) => q.count > 0);
 
   return <>
@@ -25,12 +28,23 @@ export default async function AdminOverviewPage() {
         </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-3">
-          {queues.map(({ count, label, sub, href, Icon }) => (
+          {queues.map(({ count, label, sub, href, Icon, urgent }) => (
             <li key={href}>
-              <Link href={href} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-800"><Icon size={18} aria-hidden="true" /></span>
+              <Link
+                href={href}
+                className={`flex items-center gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-sm ${
+                  urgent
+                    ? "border-red-300 bg-red-50/50 hover:border-red-400"
+                    : "border-line bg-white hover:border-brand-300"
+                }`}
+              >
+                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${
+                  urgent ? "bg-red-100 text-red-700 animate-pulse" : "bg-amber-100 text-amber-800"
+                }`}>
+                  <Icon size={18} aria-hidden="true" />
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-2xl font-bold tabular-nums leading-none">{count}</span>
+                  <span className={`block text-2xl font-bold tabular-nums leading-none ${urgent ? "text-red-700" : ""}`}>{count}</span>
                   <span className="block text-sm font-medium">{label}</span>
                   <span className="block text-xs text-muted">{sub}</span>
                 </span>
@@ -50,6 +64,7 @@ export default async function AdminOverviewPage() {
       <StatCard label="Customers" value={String(live.customers)} icon={<User size={18} />} hint="Registered customer roles" />
       <StatCard label="Approved riders" value={String(live.riders)} icon={<Bike size={18} />} hint="Delivery partners" />
       <StatCard label="Active products" value={String(live.products)} icon={<Truck size={18} />} hint="Currently listed" />
+      <StatCard label="Open incidents" value={String(live.openIncidents)} icon={<AlertTriangle size={18} />} hint="Safety &amp; SOS queue" />
     </div>
     <Card aria-labelledby="recent-orders" className="mt-6">
       <CardHeader id="recent-orders" title="Recent orders" subtitle="Latest orders and merchandise totals." action={<Link href="/admin/orders" className="text-sm font-medium text-brand-700 hover:underline">All orders</Link>} />

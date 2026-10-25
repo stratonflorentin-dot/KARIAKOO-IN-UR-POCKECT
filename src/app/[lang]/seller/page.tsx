@@ -1,5 +1,6 @@
-import { AlertTriangle, BadgeCheck, ClipboardList, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
+import { AlertTriangle, BadgeCheck, ClipboardList, Eye, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
 import Link from "@/components/i18n/Link";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
 import { SellerShopLocation } from "@/components/dashboard/SellerShopLocation";
 import { fmt } from "@/i18n/config";
@@ -34,21 +35,38 @@ export default async function SellerDashboardPage() {
   return (
     <>
       {/* Greeting + verification status (reference: "Hello, …" + Verified Seller). */}
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-600 text-lg font-bold text-white" aria-hidden="true">
-          {shop.name.charAt(0).toUpperCase()}
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{fmt(s.hello, { name: shop.name })}</h1>
-          {verified ? (
-            <span className="mt-0.5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
-              <BadgeCheck size={15} aria-hidden="true" /> {t.product.verifiedSeller}
-            </span>
-          ) : (
-            <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-              {s.awaitingApproval}
-            </span>
-          )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-600 text-lg font-bold text-white" aria-hidden="true">
+            {shop.name.charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{fmt(s.hello, { name: shop.name })}</h1>
+            {verified ? (
+              <span className="mt-0.5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
+                <BadgeCheck size={15} aria-hidden="true" /> {t.product.verifiedSeller}
+              </span>
+            ) : (
+              <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                {s.awaitingApproval}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/customer/shops/${shop.slug}`}
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-white px-3.5 text-xs font-semibold text-ink transition hover:border-brand-400 hover:text-brand-800"
+          >
+            <Eye size={14} aria-hidden="true" /> View Storefront
+          </Link>
+          <ShareAction
+            title={shop.name}
+            text={`Tembelea duka letu la ${shop.name} kwenye Kariakoo App! Nunua mtandaoni na uletewe popote Dar es Salaam.`}
+            url={`/customer/shops/${shop.slug}`}
+            label="Share Shop"
+          />
         </div>
       </div>
 

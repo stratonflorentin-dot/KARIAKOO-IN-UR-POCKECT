@@ -4,6 +4,9 @@ import Link from "@/components/i18n/Link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
+import { ReorderButton } from "@/components/customer/ReorderButton";
+import { QuickCoordinationPills } from "@/components/orders/QuickCoordinationPills";
+import { ShareAction } from "@/components/ui/ShareAction";
 import { DeliveryStatusBadge, FulfillmentBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { Timeline } from "@/components/orders/Timeline";
 import { TrackSteps } from "@/components/orders/TrackSteps";
@@ -91,6 +94,14 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
         <h1 className="mr-2 text-2xl font-bold tracking-tight">{d.order} {order.reference}</h1>
         <OrderStatusBadge status={progressStatus(order)} />
         <PaymentStatusBadge status={order.paymentStatus} />
+        <div className="ml-auto flex items-center gap-2">
+          <ShareAction
+            title={`Oda #${order.reference} - Kariakoo`}
+            text={`Fuatilia oda #${order.reference} ya Kariakoo hapa:`}
+            label="Share tracking"
+          />
+          <ReorderButton items={order.items} />
+        </div>
       </div>
       <p className="text-sm text-muted">{fmt(d.placed, { date: formatDateTime(order.placedAt) })}</p>
 
@@ -162,6 +173,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
             {session && order.delivery.riderId && ["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(order.delivery.status) && (
               <div className="mt-4">
                 <DeliveryVoiceCall orderId={order.id} userId={session.userId} role="customer" peerName={riderName ?? "your rider"} />
+                <QuickCoordinationPills title="Quick updates for rider" />
               </div>
             )}
           </Card>

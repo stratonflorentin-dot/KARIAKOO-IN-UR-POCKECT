@@ -45,9 +45,35 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/[lan
     })
     .sort((a, b) => b.placedAt.localeCompare(a.placedAt));
 
+  const totalVolume = rows.reduce((acc, o) => acc + orderTotals(o.items, o.deliveryFeeTzs).customerTotalTzs, 0);
+  const totalCommission = rows
+    .filter((o) => o.paymentStatus === "successful" && o.status !== "cancelled")
+    .reduce((acc, o) => acc + orderTotals(o.items, o.deliveryFeeTzs).commissionTzs, 0);
+  const unassignedDeliveries = rows.filter((o) => o.status !== "cancelled" && o.status !== "delivered" && !o.delivery.riderId).length;
+
   return (
     <>
       <PageHeader title="Orders" description="Every order is placed with KARIAKOO, split into one fulfilment group per shop, and delivered by one rider." />
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border border-line bg-white p-4">
+          <p className="text-xs font-medium text-muted">Orders shown</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums">{rows.length}</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-white p-4">
+          <p className="text-xs font-medium text-muted">Filtered GMV</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-brand-800">{formatTzs(totalVolume)}</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-white p-4">
+          <p className="text-xs font-medium text-muted">Realized commission</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-emerald-800">{formatTzs(totalCommission)}</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-white p-4">
+          <p className="text-xs font-medium text-muted">Awaiting rider</p>
+          <p className={`mt-1 text-2xl font-bold tabular-nums ${unassignedDeliveries > 0 ? "text-amber-700" : "text-muted"}`}>
+            {unassignedDeliveries}
+          </p>
+        </div>
+      </div>
       <form action="/admin/orders" className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex-1">
           <label htmlFor="o-q" className="text-sm font-medium">Search by reference, customer or shop</label>

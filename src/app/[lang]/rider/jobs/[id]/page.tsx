@@ -6,6 +6,7 @@ import { Timeline } from "@/components/orders/Timeline";
 import { DeliveryFlow } from "@/components/rider/DeliveryFlow";
 import { RiderStopNavigation } from "@/components/rider/RiderStopNavigation";
 import { DeliveryVoiceCall } from "@/components/orders/DeliveryVoiceCall";
+import { RiderQuickDispatchBar } from "@/components/rider/RiderQuickDispatchBar";
 import { OrderStatusPoller } from "@/components/orders/OrderStatusPoller";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
@@ -58,7 +59,10 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
       />
 
       {["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(job.status) && (
-        <DeliveryVoiceCall orderId={job.orderId} userId={riderSession.userId} role="rider" peerName="the customer" />
+        <div className="space-y-3">
+          <DeliveryVoiceCall orderId={job.orderId} userId={riderSession.userId} role="rider" peerName="the customer" />
+          <RiderQuickDispatchBar />
+        </div>
       )}
 
       <section aria-labelledby="pickup-heading" className="rounded-3xl bg-white p-4">

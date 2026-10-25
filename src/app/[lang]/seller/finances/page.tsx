@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "@/components/i18n/Link";
 import { Badge } from "@/components/ui/Badge";
 import { Card, PageHeader, StatCard } from "@/components/ui/Card";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
@@ -46,9 +47,14 @@ export default async function SellerFinancesPage() {
         title="Finances & commission"
         description="Customers pay KARIAKOO. After delivery is confirmed, we pay you the merchandise total minus commission. Delivery fees are not part of your sales."
         actions={
-          <a href="/seller/finances/export" className={buttonClasses({ variant: "outline" })} download>
-            <Download size={16} aria-hidden="true" /> Download CSV
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/seller/orders" className={buttonClasses({ variant: "outline" })}>
+              View order settlements
+            </Link>
+            <a href="/seller/finances/export" className={buttonClasses({ variant: "outline" })} download>
+              <Download size={16} aria-hidden="true" /> Download CSV
+            </a>
+          </div>
         }
       />
 
