@@ -20,11 +20,22 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t.meta.title, template: "%s · KARIAKOO" },
     description: t.meta.description,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "Kariakoo",
+    },
     alternates: { languages: Object.fromEntries(LOCALES.map((l) => [l, `/${l}`])) },
   };
 }
 
-export const viewport: Viewport = { themeColor: "#0a211a" };
+export const viewport: Viewport = {
+  themeColor: "#0a211a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   const locale = await getLocale();

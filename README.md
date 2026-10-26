@@ -22,6 +22,25 @@ Copy `.env.example` to `.env.local`, then set `NEXT_PUBLIC_SUPABASE_URL` and `NE
 | Rider | `/rider` | Approved rider account; live offers, assignments, presence and delivery steps |
 | Admin | `/admin` | Staff account with the admin role |
 
+## Production features & role enhancements
+
+- **PWA (Progressive Web App) Ready**: Full Web Manifest (`/manifest.webmanifest`) supporting "Add to Home Screen" on Android & iOS, standalone app display mode, and custom branding theme colors.
+- **Customer Escrow & Landmark Address**:
+  - Swahili escrow trust guarantee on checkout (*Malipo yako yanashikiliwa kwa usalama*), reassuring buyers that payment is held safely until they verify delivery with their 4-digit PIN.
+  - Detailed Dar es Salaam landmark address input (street name, prominent landmarks, gate color, floor/office) tailored to local dispatch realities.
+  - Customer order list with real-time status tabs and fast instant search by order reference or item name.
+- **Seller Order Management**:
+  - Live order search and status filtering (New, Preparing, Completed) in the seller console.
+  - Privacy-scoped order feed showing only order items belonging to the seller's shop.
+- **Rider Navigation & Safety**:
+  - Pure in-app turn guidance and waypoint routing powered by MapLibre & OpenStreetMap, keeping riders inside the native app without external redirects.
+  - One-tap SOS emergency trigger with persistent incident reporting dispatched to administration.
+  - 4-digit delivery handoff verification preventing disputed drops.
+- **Admin Emergency & Incident Response**:
+  - Real-time urgent SOS alert banner on the admin dashboard with immediate dispatch coordinates and quick incident resolution workflows.
+- **Social Commerce & Sharing**:
+  - Native Web Share API (`navigator.share`) with automatic clipboard copy fallback for product pages, shops, categories, and customer order tracking.
+
 ## Commands
 
 | Command | Purpose |

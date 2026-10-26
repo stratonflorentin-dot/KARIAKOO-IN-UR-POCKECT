@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "@/components/i18n/Link";
-import { LifeBuoy, Package } from "lucide-react";
+import { LifeBuoy, Package, Search } from "lucide-react";
 import { ReorderButton } from "@/components/customer/ReorderButton";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { ButtonLink } from "@/components/ui/Button";
@@ -26,6 +26,7 @@ interface CustomerOrdersListProps {
 
 export function CustomerOrdersList({ orders, labels }: CustomerOrdersListProps) {
   const [tab, setTab] = useState<FilterTab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const counts: Record<FilterTab, number> = {
     all: orders.length,
@@ -34,13 +35,21 @@ export function CustomerOrdersList({ orders, labels }: CustomerOrdersListProps) 
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
 
-  const filteredOrders = orders.filter((o) => {
+  const byTab = orders.filter((o) => {
     if (tab === "all") return true;
     if (tab === "processing") return ["placed", "confirmed", "preparing", "out_for_delivery"].includes(o.status);
     if (tab === "delivered") return o.status === "delivered";
     if (tab === "cancelled") return o.status === "cancelled";
     return true;
   });
+
+  const filteredOrders = searchQuery.trim()
+    ? byTab.filter(
+        (o) =>
+          o.reference.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+          o.items.some((i) => i.productName.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+      )
+    : byTab;
 
   const tabs: { id: FilterTab; label: string }[] = [
     { id: "all", label: "All" },
@@ -51,25 +60,38 @@ export function CustomerOrdersList({ orders, labels }: CustomerOrdersListProps) 
 
   return (
     <div className="space-y-6">
-      {/* Tabs matching Screen 10 */}
-      <div role="tablist" aria-label="Filter orders" className="no-scrollbar flex gap-2 overflow-x-auto">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
-              tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
-            }`}
-          >
-            <span>{t.label}</span>
-            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>
-              {counts[t.id]}
-            </span>
-          </button>
-        ))}
+      {/* Tabs and Quick Search (Screen 10) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="tablist" aria-label="Filter orders" className="no-scrollbar flex gap-2 overflow-x-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
+                tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>
+                {counts[t.id]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="relative min-w-48 sm:w-64">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search order or item…"
+            className="h-9 w-full rounded-full border border-line bg-white pl-9 pr-3 text-xs outline-none transition placeholder:text-muted focus:border-brand-500"
+          />
+        </div>
       </div>
 
       {filteredOrders.length === 0 ? (

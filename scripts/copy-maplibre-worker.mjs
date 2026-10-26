@@ -11,7 +11,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const src = join(root, "node_modules", "maplibre-gl", "dist");
 const dest = join(root, "public", "maplibre");
 mkdirSync(dest, { recursive: true });
-for (const file of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
+for (const file of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs", "maplibre-gl.css"]) {
   copyFileSync(join(src, file), join(dest, file));
 }
 console.log("MapLibre worker copied to public/maplibre/");

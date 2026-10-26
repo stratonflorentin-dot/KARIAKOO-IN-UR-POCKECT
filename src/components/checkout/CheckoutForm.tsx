@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, LocateFixed, Lock } from "lucide-react";
+import { CircleCheck, LocateFixed, Lock, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
@@ -102,7 +102,15 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             </select>
           </Field>
           <Field id="address" label={c.address} error={e.address}>
-            <textarea id="address" name="address" rows={2} defaultValue={v?.address} className={`${inputClass} py-3`} {...fieldAria("address", e.address)} />
+            <textarea
+              id="address"
+              name="address"
+              rows={2}
+              defaultValue={v?.address}
+              placeholder="Mf. Mtaa wa Lumumba, Mkabala na kituo cha mafuta, Lango la kijani au Ghorofa ya 2"
+              className={`${inputClass} py-3`}
+              {...fieldAria("address", e.address)}
+            />
           </Field>
           <Field id="instructions" label={c.instructions} error={e.instructions}>
             <input id="instructions" name="instructions" defaultValue={v?.instructions} placeholder={c.instructionsPlaceholder} className={inputClass} {...fieldAria("instructions", e.instructions)} />
@@ -124,6 +132,17 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
         <fieldset aria-describedby={e.payment ? "payment-error" : "payment-note"}>
           <legend className="text-lg font-semibold">{c.paymentMethod}</legend>
           <p id="payment-note" className="mt-1 text-sm text-muted">{c.paymentNote}</p>
+
+          {/* Dar es Salaam Escrow Trust Badge */}
+          <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5 text-xs text-emerald-900">
+            <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-700" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-emerald-950">Malipo yako yanashikiliwa kwa usalama (Escrow)</p>
+              <p className="mt-0.5 leading-relaxed text-emerald-800">
+                Pesa inashikiliwa na haitalipwa kwa muuzaji hadi utakapopokea mzigo wako na kumpa mpanda pikipiki PIN ya tarakimu 4.
+              </p>
+            </div>
+          </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {payments.map((p) => (
               <label

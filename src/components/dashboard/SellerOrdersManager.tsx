@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { LiveSellerOrderActions } from "@/components/dashboard/LiveSellerOrderActions";
 import { DeliveryStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { EmptyState } from "@/components/ui/States";
@@ -48,6 +49,7 @@ export function SellerOrdersManager({
   };
 }) {
   const [tab, setTab] = useState<TabKey>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const counts: Record<TabKey, number> = {
     all: orders.length,
@@ -56,13 +58,21 @@ export function SellerOrdersManager({
     completed: orders.filter((o) => ["picked_up", "delivered", "rejected", "cancelled"].includes(o.fulfillmentStatus)).length,
   };
 
-  const filtered = orders.filter((o) => {
+  const byTab = orders.filter((o) => {
     if (tab === "all") return true;
     if (tab === "new") return ["awaiting_seller", "accepted"].includes(o.fulfillmentStatus);
     if (tab === "preparing") return ["preparing", "ready_for_pickup"].includes(o.fulfillmentStatus);
     if (tab === "completed") return ["picked_up", "delivered", "rejected", "cancelled"].includes(o.fulfillmentStatus);
     return true;
   });
+
+  const filtered = searchQuery.trim()
+    ? byTab.filter(
+        (o) =>
+          o.reference.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+          o.items.some((i) => i.productName.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+      )
+    : byTab;
 
   // Calculate settlement metrics for Screen 11: Total Sales, Marketplace Fee, Net Payout
   let totalSalesTzs = 0;
@@ -108,25 +118,38 @@ export function SellerOrdersManager({
         </div>
       </section>
 
-      {/* Tabs */}
-      <div role="tablist" aria-label="Filter orders by stage" className="no-scrollbar flex gap-2 overflow-x-auto">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
-              tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
-            }`}
-          >
-            <span>{t.label}</span>
-            <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>
-              {counts[t.id]}
-            </span>
-          </button>
-        ))}
+      {/* Tabs and Quick Search Bar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="tablist" aria-label="Filter orders by stage" className="no-scrollbar flex gap-2 overflow-x-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
+                tab === t.id ? "bg-brand-600 text-white" : "border border-line bg-white text-ink hover:border-brand-300"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span className={`rounded-full px-1.5 text-xs tabular-nums ${tab === t.id ? "bg-white/20" : "bg-subtle text-muted"}`}>
+                {counts[t.id]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="relative min-w-48 sm:w-64">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search reference or item…"
+            className="h-9 w-full rounded-full border border-line bg-white pl-9 pr-3 text-xs outline-none transition placeholder:text-muted focus:border-brand-500"
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (
