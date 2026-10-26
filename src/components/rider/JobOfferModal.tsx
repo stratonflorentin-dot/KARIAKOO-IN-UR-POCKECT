@@ -1,10 +1,11 @@
 "use client";
 
-// Bolt-style dispatch popup: the newest live offer shown as a modal with a
-// ticking countdown ring and Accept / Decline. Full pickup and drop-off details
-// appear on the job page after accepting — before then, RLS keeps the customer's
-// address private (the rider isn't assigned yet), so the offer shows the payout
+// Dispatch popup: newest live offer shown as a modal with a ticking countdown
+// ring and Accept / Decline. Full pickup and drop-off details appear on the job
+// page after accepting — before then, RLS keeps the customer's address private
+// (the rider isn't assigned yet), so the offer shows the payout, vehicle type,
 // and timer only.
+import Image from "next/image";
 import { Bike, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,17 +14,29 @@ import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
 import { formatTzs } from "@/lib/format";
 import { secondsLeft } from "@/lib/rider-earnings";
+import { GROUND_TRANSPORT_VEHICLES } from "@/lib/parcel-transport";
 
 export interface RiderOffer {
   orderId: string;
   payoutTzs: number;
   expiresAt: string;
+  instructions?: string;
+  pickupCount?: number;
 }
 
 // Offers are dispatched with a 45s window (see auto_dispatch_delivery); used to
 // scale the countdown ring.
 const OFFER_WINDOW_S = 45;
 const RING = 2 * Math.PI * 34; // r = 34
+
+/** Extract vehicle name from instructions like "[Usafiri: Pickup Ndogo (description)]" */
+function extractVehicleFromInstructions(instructions?: string) {
+  if (!instructions) return null;
+  const match = instructions.match(/\[Usafiri:\s*([^(]+?)(?:\s*\([^)]*\))?\]/);
+  if (!match) return null;
+  const name = match[1].trim();
+  return GROUND_TRANSPORT_VEHICLES.find((v) => v.name === name) ?? null;
+}
 
 export function JobOfferModal({ offers }: { offers: RiderOffer[] }) {
   const router = useRouter();
@@ -52,6 +65,8 @@ export function JobOfferModal({ offers }: { offers: RiderOffer[] }) {
   }, [current, left, router]);
 
   if (!current || left <= 0) return null;
+
+  const vehicle = extractVehicleFromInstructions(current.instructions);
 
   async function decide(accept: boolean) {
     setBusy(true);
@@ -99,10 +114,28 @@ export function JobOfferModal({ offers }: { offers: RiderOffer[] }) {
             </div>
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1 text-xs uppercase tracking-wide text-muted"><Wallet size={13} aria-hidden="true" /> You earn</p>
             <p className="text-3xl font-bold tabular-nums">{formatTzs(current.payoutTzs)}</p>
-            <p className="mt-1 text-xs text-muted">Pickup &amp; drop-off unlock when you accept.</p>
+            {vehicle ? (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-10 w-12 shrink-0 rounded-lg overflow-hidden bg-stone-100 p-0.5 flex items-center justify-center">
+                  <Image
+                    src={vehicle.imageUrl}
+                    alt={vehicle.name}
+                    width={48}
+                    height={40}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-ink leading-tight">{vehicle.name}</p>
+                  <p className="text-3xs text-muted leading-tight">{vehicle.capacitySummary}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted">Pickup &amp; drop-off unlock when you accept.</p>
+            )}
           </div>
         </div>
 

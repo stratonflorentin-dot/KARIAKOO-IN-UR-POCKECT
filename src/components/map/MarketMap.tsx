@@ -96,8 +96,67 @@ export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km`
 const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#059669", dropoff: "#0a211a" };
 
 function pinElement(point: MapPoint): HTMLElement {
+  if (point.kind === "pickup" || point.kind === "dropoff") {
+    const isPickup = point.kind === "pickup";
+    const bgBadge = isPickup ? "#15803d" : "#09261f";
+    const pinBg = isPickup ? "#15803d" : "#09261f";
+    const labelText = point.badge || (isPickup ? "Pickup" : "Dropoff");
+
+    const container = document.createElement("div");
+    container.setAttribute("aria-label", `${labelText}: ${point.label}`);
+    container.style.cssText = [
+      "display:flex",
+      "flex-direction:column",
+      "align-items:center",
+      "cursor:pointer",
+      "user-select:none",
+      "transform:translate(0, -6px)",
+    ].join(";");
+
+    // Badge pill with label
+    const badge = document.createElement("div");
+    badge.textContent = labelText;
+    badge.style.cssText = [
+      `background:${bgBadge}`,
+      "color:#ffffff",
+      "font:800 12px/1.2 system-ui, -apple-system, sans-serif",
+      "padding:5px 12px",
+      "border-radius:9999px",
+      "box-shadow:0 4px 12px rgba(0,0,0,0.35)",
+      "margin-bottom:4px",
+      "white-space:nowrap",
+      "letter-spacing:0.01em",
+    ].join(";");
+    container.appendChild(badge);
+
+    // Target circle pin with center dot (◎)
+    const pin = document.createElement("div");
+    pin.style.cssText = [
+      "display:grid",
+      "place-items:center",
+      "width:24px",
+      "height:24px",
+      "border-radius:9999px",
+      `background:${pinBg}`,
+      "border:3px solid #ffffff",
+      "box-shadow:0 3px 10px rgba(0,0,0,0.35)",
+    ].join(";");
+
+    const dot = document.createElement("div");
+    dot.style.cssText = [
+      "width:8px",
+      "height:8px",
+      "border-radius:9999px",
+      "background:#ffffff",
+    ].join(";");
+    pin.appendChild(dot);
+    container.appendChild(pin);
+
+    return container;
+  }
+
   const el = document.createElement("div");
-  el.textContent = point.badge ?? (point.kind === "dropoff" ? "🏁" : "");
+  el.textContent = point.badge ?? "";
   el.setAttribute("aria-hidden", "true");
   el.style.cssText = [
     "display:grid;place-items:center;width:32px;height:32px;border-radius:9999px;cursor:pointer",
@@ -136,6 +195,9 @@ export default function MarketMap({
   points,
   ariaLabel,
   route = false,
+  routeWaypoints,
+  defaultView = "satellite",
+  showLocateButton = false,
   locate = false,
   routeFromMe = false,
   deviceLocation,
@@ -146,11 +208,16 @@ export default function MarketMap({
   selectedLocation,
   onLocationSelect,
   locationPicker = false,
+  onLocateMe,
 }: {
   points: MapPoint[];
   ariaLabel: string;
-  /** Draw a dashed guide line through the points in order (not a road route). */
+  /** Draw a route line through the points in order or along routeWaypoints. */
   route?: boolean;
+  /** Specific road waypoints for accurate polyline routing. */
+  routeWaypoints?: LngLat[];
+  defaultView?: "satellite" | "streets";
+  showLocateButton?: boolean;
   /** Offer opt-in "Share my location" with distance to the next point. */
   locate?: boolean;
   /** Draw a live in-app guide from the device position to the first destination. */
@@ -166,6 +233,7 @@ export default function MarketMap({
   selectedLocation?: LngLat | null;
   onLocationSelect?: (location: LngLat) => void;
   locationPicker?: boolean;
+  onLocateMe?: (location: LngLat) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -178,9 +246,10 @@ export default function MarketMap({
   const meRef = useRef<LngLat | null>(null);
   const [me, setMe] = useState<LngLat | null>(null);
   const [geoError, setGeoError] = useState("");
-  const [view, setView] = useState<"satellite" | "streets">("satellite");
+  const [view, setView] = useState<"satellite" | "streets">(defaultView);
   const viewRef = useRef(view);
   const pointsKey = JSON.stringify(points);
+  const waypointsKey = JSON.stringify(routeWaypoints ?? []);
   const heatKey = JSON.stringify(heat);
 
   // Ensure MapLibre's stylesheet is loaded in the browser without Turbopack bundle errors.
@@ -303,9 +372,46 @@ export default function MarketMap({
           },
         });
       }
-      if (route && pts.length > 1) {
-        map.addSource("guide", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map((p) => p.geo) } } });
-        map.addLayer({ id: "guide", type: "line", source: "guide", paint: { "line-color": "#059669", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 } });
+      const waypts: LngLat[] = JSON.parse(waypointsKey);
+      const coords = waypts.length > 1 ? waypts : pts.map((p) => p.geo);
+
+      if (route && coords.length > 1) {
+        map.addSource("guide", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: coords },
+          },
+        });
+
+        // Crisp white underlayer casing for contrast
+        map.addLayer({
+          id: "guide-casing",
+          type: "line",
+          source: "guide",
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": 8.5,
+            "line-opacity": 0.85,
+          },
+        });
+
+        // Solid deep green road route like Bolt / Google Maps
+        map.addLayer({
+          id: "guide",
+          type: "line",
+          source: "guide",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#165534",
+            "line-width": 5.5,
+            "line-opacity": 0.95,
+          },
+        });
       }
       if (routeFromMe && pts.length > 0) {
         map.addSource("rider-route", {
@@ -316,9 +422,9 @@ export default function MarketMap({
         });
         map.addLayer({ id: "rider-route", type: "line", source: "rider-route", paint: { "line-color": "#2563eb", "line-width": 5, "line-opacity": 0.9 } });
       }
-      if (pts.length > 1) {
-        const bounds = new maplibregl.LngLatBounds(pts[0].geo, pts[0].geo);
-        pts.forEach((p) => bounds.extend(p.geo));
+      if (coords.length > 1) {
+        const bounds = new maplibregl.LngLatBounds(coords[0], coords[0]);
+        coords.forEach((c) => bounds.extend(c));
         map.fitBounds(bounds, { padding: 56, maxZoom: 16, duration: 0 });
       }
     });
@@ -329,7 +435,7 @@ export default function MarketMap({
       meMarker.current = null;
       selectedMarker.current = null;
     };
-  }, [pointsKey, heatKey, route, routeFromMe, isLocationPicker]);
+  }, [pointsKey, waypointsKey, heatKey, route, routeFromMe, isLocationPicker]);
 
   useEffect(() => {
     if (!mapRef.current || !locationSelectRef.current) return;
@@ -407,18 +513,21 @@ export default function MarketMap({
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const geo: LngLat = [coords.longitude, coords.latitude];
-        mapRef.current?.flyTo({ center: geo, zoom: 17, duration: 900 });
-        if (!selectedMarker.current) {
-          const el = document.createElement("div");
-          el.setAttribute("aria-label", "Selected shop pickup location");
-          el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
-          selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(geo).addTo(mapRef.current!);
-          selectedMarker.current.on("dragend", () => {
-            const p = selectedMarker.current?.getLngLat();
-            if (p) locationSelectRef.current?.([p.lng, p.lat]);
-          });
-        } else selectedMarker.current.setLngLat(geo);
-        locationSelectRef.current?.(geo);
+        mapRef.current?.flyTo({ center: geo, zoom: 16, duration: 900 });
+        if (onLocateMe) onLocateMe(geo);
+        if (locationSelectRef.current) {
+          if (!selectedMarker.current) {
+            const el = document.createElement("div");
+            el.setAttribute("aria-label", "Selected shop pickup location");
+            el.style.cssText = "width:34px;height:34px;border-radius:9999px;background:#059669;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:grab";
+            selectedMarker.current = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" }).setLngLat(geo).addTo(mapRef.current!);
+            selectedMarker.current.on("dragend", () => {
+              const p = selectedMarker.current?.getLngLat();
+              if (p) locationSelectRef.current?.([p.lng, p.lat]);
+            });
+          } else selectedMarker.current.setLngLat(geo);
+          locationSelectRef.current?.(geo);
+        }
       },
       () => setGeoError("Could not get your location. You can still tap the map to place the shop pin."),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
@@ -451,9 +560,15 @@ export default function MarketMap({
           <Layers size={15} aria-hidden="true" />
           {view === "satellite" ? "Map view" : "Satellite view"}
         </button>
-        {locationPicker && (
-          <button type="button" onClick={locateForPicker} className="absolute bottom-2 right-2 z-10 inline-flex h-10 items-center gap-1.5 rounded-full bg-white/95 px-3 text-xs font-semibold text-ink shadow-md hover:bg-white">
-            <Crosshair size={15} aria-hidden="true" /> Use my location
+        {(locationPicker || showLocateButton) && (
+          <button
+            type="button"
+            onClick={locateForPicker}
+            aria-label="Tafuta eneo langu"
+            title="Tafuta eneo langu"
+            className="absolute bottom-3 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-white text-stone-800 shadow-lg ring-1 ring-black/10 hover:bg-stone-50 active:scale-95 transition"
+          >
+            <Crosshair size={20} strokeWidth={2.2} />
           </button>
         )}
       </div>

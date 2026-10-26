@@ -13,6 +13,6 @@ const MarketMap = dynamic(() => import("./MarketMap"), {
 });
 
 export function MapLoader(props: ComponentProps<typeof MarketMapType>) {
-  if (props.points.length === 0 && !props.onLocationSelect) return null;
+  if (props.points.length === 0 && !props.onLocationSelect && !props.routeWaypoints) return null;
   return <MarketMap {...props} />;
 }
