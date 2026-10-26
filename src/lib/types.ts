@@ -93,6 +93,10 @@ export interface Product {
   priceTzs: number;
   /** Optional "was" price for offers. */
   compareAtTzs?: number;
+  /** Optional wholesale bulk price per unit (Bei ya Jumla). */
+  wholesalePriceTzs?: number;
+  /** Minimum quantity required to unlock wholesale pricing. */
+  wholesaleMinQty?: number;
   stock: number;
   unit: string;
   description: string;

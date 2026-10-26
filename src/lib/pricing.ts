@@ -113,6 +113,16 @@ export function buildQuote(
       issues.push({ productId, message: `Only ${quantity} × ${product.name} can be ordered right now.` });
     }
 
+    // Wholesale volume pricing: if the order quantity meets the minimum wholesale
+    // threshold, automatically apply the wholesale bulk rate (Bei ya Jumla).
+    const unitPriceTzs =
+      product.wholesalePriceTzs &&
+      product.wholesaleMinQty &&
+      quantity >= product.wholesaleMinQty &&
+      product.wholesalePriceTzs < product.priceTzs
+        ? product.wholesalePriceTzs
+        : product.priceTzs;
+
     // Commission is private platform configuration and is not shown to the
     // customer. The place_order RPC applies the real rate authoritatively.
     const { rateBps } = resolveCommissionBps(commissionRules, { shopId: shop.id, category: product.category, at: _at });
@@ -122,9 +132,9 @@ export function buildQuote(
     group.lines.push({
       productId: product.id,
       name: product.name,
-      unitPriceTzs: product.priceTzs,
+      unitPriceTzs,
       quantity,
-      lineTotalTzs: lineTotal({ unitPriceTzs: product.priceTzs, quantity }),
+      lineTotalTzs: lineTotal({ unitPriceTzs, quantity }),
       commissionBps: rateBps,
     });
     const b = breakdown(group.lines);

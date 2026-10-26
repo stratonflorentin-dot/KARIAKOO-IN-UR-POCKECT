@@ -12,5 +12,7 @@ export function getCartCatalog(catalog: Catalog): CartProductInfo[] {
     category: p.category,
     priceTzs: p.priceTzs,
     maxQuantity: Math.min(p.stock, 20),
+    wholesalePriceTzs: p.wholesalePriceTzs,
+    wholesaleMinQty: p.wholesaleMinQty,
   }));
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, LocateFixed, Lock, ShieldCheck } from "lucide-react";
+import { Briefcase, Bus, CircleCheck, Home, LocateFixed, Lock, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
@@ -43,12 +43,17 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const c = t.checkout;
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(reviewCheckout, { status: "idle" });
   const [placeState, placeAction, placing] = useActionState<PlaceState, FormData>(placeOrder, { status: "idle" });
+  const v = state.values;
+  const e = state.errors ?? {};
   // A stable idempotency key per visit, so an accidental double-submit is deduped.
   const [idempotencyKey] = useState(() => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())));
   const [dropoff, setDropoff] = useState<LngLat | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"local" | "upcountry">("local");
+  const [addressText, setAddressText] = useState(v?.address ?? "");
+  const [busCompany, setBusCompany] = useState("Abood Bus");
+  const [destinationTown, setDestinationTown] = useState("");
+  const [upcountryReceiver, setUpcountryReceiver] = useState("");
   const dropoffWasManuallyPlaced = useRef(false);
-  const v = state.values;
-  const e = state.errors ?? {};
 
   useEffect(() => {
     if (!position || dropoffWasManuallyPlaced.current) return;
@@ -95,25 +100,142 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
 
         <fieldset className="space-y-4">
           <legend className="text-lg font-semibold">{c.delivery}</legend>
+
+          {/* Dual delivery selector: Local Dar es Salaam vs Upcountry bus parcel */}
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-subtle p-1.5 text-xs font-semibold sm:text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setDeliveryMode("local");
+                if (addressText.startsWith("Ofisi ya Basi:")) setAddressText("");
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 transition ${
+                deliveryMode === "local" ? "bg-white text-brand-800 shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              <Home size={15} className="shrink-0" />
+              <span>Dar es Salaam (Mlangoni)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeliveryMode("upcountry");
+                const upcountryTemplate = `Ofisi ya Basi: ${busCompany} (Kituo cha Kariakoo / Mbezi Luis) — Mji: ${destinationTown || "Mkoani"}, Mpokeaji: ${upcountryReceiver || "Jina na Simu"}`;
+                setAddressText(upcountryTemplate);
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 transition ${
+                deliveryMode === "upcountry" ? "bg-white text-brand-800 shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              <Bus size={15} className="shrink-0 text-amber-600" />
+              <span>Mizigo ya Mikoani (Ofisi ya Basi)</span>
+            </button>
+          </div>
+
+          {deliveryMode === "upcountry" && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-950 sm:text-sm">
+              <p className="font-semibold text-amber-900">Huduma ya Kusafirisha Mizigo ya Mikoani</p>
+              <p className="mt-1 leading-relaxed text-amber-800">
+                Rider wetu atakabidhi mzigo wako kwenye ofisi ya basi Kariakoo au Mbezi Luis, atalipa stakabadhi ya basi (waybill), na kukutumia namba ya stakabadhi ili ukachukue mzigo wako mkoani kwako.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="bus-company" className="block text-xs font-medium text-amber-900">Kampuni ya Basi</label>
+                  <select
+                    id="bus-company"
+                    value={busCompany}
+                    onChange={(e) => {
+                      setBusCompany(e.target.value);
+                      setAddressText(`Ofisi ya Basi: ${e.target.value} (Kariakoo / Mbezi Luis) — Mji: ${destinationTown || "Mkoani"}, Mpokeaji: ${upcountryReceiver || "Jina na Simu"}`);
+                    }}
+                    className="mt-1 h-10 w-full rounded-xl border border-amber-200 bg-white px-3 text-xs text-ink outline-none"
+                  >
+                    <option value="Abood Bus">Abood Bus (Morogoro, Dodoma, Mbeya)</option>
+                    <option value="BM Coach">BM Coach (Kilimanjaro, Arusha, Mwanza)</option>
+                    <option value="Shabiby Line">Shabiby Line (Dodoma, Singida, Mbeya)</option>
+                    <option value="Tahmeed Coach">Tahmeed Coach (Tanga, Mombasa, Arusha)</option>
+                    <option value="Al Saedy">Al Saedy (Kagera, Shinyanga, Mwanza)</option>
+                    <option value="Kidia One">Kidia One (Moshi, Arusha)</option>
+                    <option value="Kilimanjaro Express">Kilimanjaro Express</option>
+                    <option value="Azam Marine">Azam Marine / SeaLink (Zanzibar Ferry)</option>
+                    <option value="Ofisi ya Basi Kariakoo">Ofisi Nyingine ya Basi (Kariakoo)</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="dest-town" className="block text-xs font-medium text-amber-900">Mkoa / Mji unaoenda Mzigo</label>
+                  <input
+                    id="dest-town"
+                    type="text"
+                    placeholder="Mf. Mwanza, Arusha, Dodoma, Zanzibar"
+                    value={destinationTown}
+                    onChange={(e) => {
+                      setDestinationTown(e.target.value);
+                      setAddressText(`Ofisi ya Basi: ${busCompany} (Kariakoo / Mbezi Luis) — Mji: ${e.target.value || "Mkoani"}, Mpokeaji: ${upcountryReceiver || "Jina na Simu"}`);
+                    }}
+                    className="mt-1 h-10 w-full rounded-xl border border-amber-200 bg-white px-3 text-xs text-ink outline-none"
+                  >
+                  </input>
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="receiver-details" className="block text-xs font-medium text-amber-900">Jina na Namba ya Simu ya Mpokeaji Mkoani</label>
+                  <input
+                    id="receiver-details"
+                    type="text"
+                    placeholder="Mf. Juma Bakari — 0754 000 111"
+                    value={upcountryReceiver}
+                    onChange={(e) => {
+                      setUpcountryReceiver(e.target.value);
+                      setAddressText(`Ofisi ya Basi: ${busCompany} (Kariakoo / Mbezi Luis) — Mji: ${destinationTown || "Mkoani"}, Mpokeaji: ${e.target.value || "Jina na Simu"}`);
+                    }}
+                    className="mt-1 h-10 w-full rounded-xl border border-amber-200 bg-white px-3 text-xs text-ink outline-none"
+                  >
+                  </input>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Field id="zone" label={c.deliveryArea} error={e.zone}>
             {/* key re-mounts the select once the saved area is read from this device */}
             <select key={hydrated ? "ready" : "ssr"} id="zone" name="zone" defaultValue={v?.zone ?? savedZone} className={inputClass} {...fieldAria("zone", e.zone)}>
               {zones.map((z) => <option key={z.id} value={z.id}>{z.name}: {formatTzs(z.feeTzs)} ({z.etaLabel})</option>)}
             </select>
           </Field>
+
+          {deliveryMode === "local" && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-medium text-muted">Mfumo wa haraka:</span>
+              <button
+                type="button"
+                onClick={() => setAddressText("Nyumbani — Mtaa wa: , Mkabala na: , Lango la rangi: ")}
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-subtle px-3 py-1 font-medium text-ink hover:bg-white hover:border-brand-400"
+              >
+                <Home size={12} className="text-brand-600" /> Nyumbani
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddressText("Ofisini / Kazini — Jengo la: , Ghorofa ya: , Chumba / Ofisi: ")}
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-subtle px-3 py-1 font-medium text-ink hover:bg-white hover:border-brand-400"
+              >
+                <Briefcase size={12} className="text-brand-600" /> Ofisini / Kazini
+              </button>
+            </div>
+          )}
+
           <Field id="address" label={c.address} error={e.address}>
             <textarea
               id="address"
               name="address"
               rows={2}
-              defaultValue={v?.address}
+              value={addressText}
+              onChange={(e) => setAddressText(e.target.value)}
               placeholder="Mf. Mtaa wa Lumumba, Mkabala na kituo cha mafuta, Lango la kijani au Ghorofa ya 2"
               className={`${inputClass} py-3`}
               {...fieldAria("address", e.address)}
             />
           </Field>
           <Field id="instructions" label={c.instructions} error={e.instructions}>
-            <input id="instructions" name="instructions" defaultValue={v?.instructions} placeholder={c.instructionsPlaceholder} className={inputClass} {...fieldAria("instructions", e.instructions)} />
+            <input id="instructions" name="instructions" defaultValue={v?.instructions} placeholder={deliveryMode === "upcountry" ? "Rider akabidhi ofisini na kutuma risiti" : c.instructionsPlaceholder} className={inputClass} {...fieldAria("instructions", e.instructions)} />
           </Field>
           <div className="space-y-2">
             <p className="text-sm font-medium">{c.dropoffPin}</p>

@@ -57,7 +57,19 @@ export function CartView({ catalog }: { catalog: CartProductInfo[] }) {
   const groups = new Map<string, typeof items>();
   for (const it of items) groups.set(it.product.shopId, [...(groups.get(it.product.shopId) ?? []), it]);
 
-  const subtotal = items.reduce((s, { line, product }) => s + product.priceTzs * line.quantity, 0);
+  function getUnitPrice(product: CartProductInfo, qty: number): number {
+    if (
+      product.wholesalePriceTzs &&
+      product.wholesaleMinQty &&
+      qty >= product.wholesaleMinQty &&
+      product.wholesalePriceTzs < product.priceTzs
+    ) {
+      return product.wholesalePriceTzs;
+    }
+    return product.priceTzs;
+  }
+
+  const subtotal = items.reduce((s, { line, product }) => s + getUnitPrice(product, line.quantity) * line.quantity, 0);
   const delivery = deliveryFeeFor(zone, groups.size);
 
   return (
@@ -71,17 +83,36 @@ export function CartView({ catalog }: { catalog: CartProductInfo[] }) {
               <span className="font-normal text-muted">{c.packedByShop}</span>
             </h2>
             <ul className="divide-y divide-line">
-              {groupItems.map(({ line, product }) => (
-                <li key={product.id} className="flex gap-3 p-4 sm:gap-4">
-                  <div aria-hidden="true" className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-subtle text-muted sm:h-20 sm:w-20">
-                    <CategoryIcon slug={product.category} size={26} />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link href={`/customer/product/${product.slug}`} className="line-clamp-2 font-semibold hover:text-brand-700">{product.name}</Link>
-                      <p className="shrink-0 font-semibold tabular-nums">{formatTzs(product.priceTzs * line.quantity)}</p>
+              {groupItems.map(({ line, product }) => {
+                const activePrice = getUnitPrice(product, line.quantity);
+                const isWholesale = activePrice < product.priceTzs;
+                return (
+                  <li key={product.id} className="flex gap-3 p-4 sm:gap-4">
+                    <div aria-hidden="true" className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-subtle text-muted sm:h-20 sm:w-20">
+                      <CategoryIcon slug={product.category} size={26} />
                     </div>
-                    <p className="text-xs text-muted">{fmt(c.eachPrice, { price: formatTzs(product.priceTzs) })}</p>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <Link href={`/customer/product/${product.slug}`} className="line-clamp-2 font-semibold hover:text-brand-700">{product.name}</Link>
+                        <div className="text-right">
+                          <p className="shrink-0 font-semibold tabular-nums">{formatTzs(activePrice * line.quantity)}</p>
+                          {isWholesale && (
+                            <p className="text-[11px] text-muted line-through tabular-nums">{formatTzs(product.priceTzs * line.quantity)}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs text-muted">{fmt(c.eachPrice, { price: formatTzs(activePrice) })}</p>
+                        {isWholesale ? (
+                          <span className="inline-flex rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                            Bei ya Jumla ({line.quantity}+ pcs)
+                          </span>
+                        ) : product.wholesalePriceTzs && product.wholesaleMinQty ? (
+                          <span className="text-[11px] text-amber-800">
+                            Ongeza vipande {Math.max(1, product.wholesaleMinQty - line.quantity)} upate Bei ya Jumla ({formatTzs(product.wholesalePriceTzs)}/pc)
+                          </span>
+                        ) : null}
+                      </div>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <QuantityStepper
                         value={Math.min(line.quantity, Math.max(1, product.maxQuantity))}
@@ -100,8 +131,9 @@ export function CartView({ catalog }: { catalog: CartProductInfo[] }) {
                     )}
                   </div>
                 </li>
-              ))}
-            </ul>
+              );
+            })}
+          </ul>
           </div>
         ))}
         <ConfirmDialog

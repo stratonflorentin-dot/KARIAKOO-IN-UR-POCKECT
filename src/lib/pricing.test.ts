@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildQuote, MAX_QUANTITY_PER_LINE } from "./pricing";
+import { createCatalog, getCategories } from "@/lib/catalog";
 import { demoCatalog } from "@/data/demo/catalog";
 import { demoCommissionRules } from "@/data/demo/commission-rules";
 
@@ -76,5 +77,57 @@ describe("buildQuote (server-side price validation)", () => {
     expect(q.groups[0].lines).toEqual([expect.objectContaining({ productId: "prd-014", quantity: 1 })]);
     expect(quote("not an array", "ilala").groups).toEqual([]);
     expect(quote([null, 42, {}], "ilala").groups).toEqual([]);
+  });
+
+  it("applies wholesale price when quantity reaches wholesale threshold", () => {
+    const testCatalog = createCatalog({
+      categories: getCategories(),
+      shops: [
+        {
+          id: "shop-ws",
+          slug: "wholesale-shop",
+          name: "Wholesale Stall",
+          area: "kariakoo",
+          address: "Aggrey St",
+          description: "Bulk seller",
+          categories: ["electronics"],
+          rating: 4.8,
+          reviewCount: 10,
+          verified: true,
+          status: "approved",
+          openingHours: "08:00 - 18:00",
+          joinedYear: 2024,
+        },
+      ],
+      products: [
+        {
+          id: "prd-ws",
+          slug: "bulk-radio",
+          name: "Portable Radio",
+          shopId: "shop-ws",
+          category: "electronics",
+          priceTzs: 20_000,
+          wholesalePriceTzs: 15_000,
+          wholesaleMinQty: 5,
+          stock: 50,
+          unit: "piece",
+          description: "FM radio",
+          highlights: [],
+          status: "active",
+          soldCount: 10,
+          listedAt: NOW,
+        },
+      ],
+    });
+
+    // Below threshold: retail price 20,000 * 4 = 80,000
+    const qRetail = buildQuote([{ productId: "prd-ws", quantity: 4 }], "kariakoo", NOW, testCatalog);
+    expect(qRetail.groups[0].lines[0].unitPriceTzs).toBe(20_000);
+    expect(qRetail.merchandiseTzs).toBe(80_000);
+
+    // At or above threshold: wholesale price 15,000 * 6 = 90,000
+    const qBulk = buildQuote([{ productId: "prd-ws", quantity: 6 }], "kariakoo", NOW, testCatalog);
+    expect(qBulk.groups[0].lines[0].unitPriceTzs).toBe(15_000);
+    expect(qBulk.merchandiseTzs).toBe(90_000);
   });
 });

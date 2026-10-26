@@ -1,4 +1,5 @@
 import Link from "@/components/i18n/Link";
+import { formatTzs } from "@/lib/format";
 import { isOnOffer } from "@/lib/product-utils";
 import type { Product } from "@/lib/types";
 import { Price } from "./Price";
@@ -6,11 +7,22 @@ import { ProductImage } from "./ProductImage";
 import { OfferBadge, StockBadge } from "./StockBadge";
 
 export function ProductCard({ product }: { product: Product }) {
+  const hasWholesale = Boolean(
+    product.wholesalePriceTzs &&
+      product.wholesaleMinQty &&
+      product.wholesalePriceTzs < product.priceTzs,
+  );
+
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm shadow-stone-950/[0.025] transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_16px_40px_-22px_rgba(5,150,105,0.5)] focus-within:ring-2 focus-within:ring-brand-500">
       <div className="relative">
         <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} />
         {isOnOffer(product) && <OfferBadge />}
+        {hasWholesale && (
+          <span className="absolute bottom-2 left-2 rounded-full bg-amber-500/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+            Bei ya Jumla
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3.5 sm:p-4">
         <p className="truncate text-xs font-medium text-muted">{product.shopName}</p>
@@ -22,6 +34,11 @@ export function ProductCard({ product }: { product: Product }) {
         </h3>
         <div className="mt-auto space-y-1.5 pt-1">
           <Price amount={product.priceTzs} compareAt={product.compareAtTzs} />
+          {hasWholesale && (
+            <p className="text-[11px] font-medium text-amber-800">
+              Jumla ({product.wholesaleMinQty}+): {formatTzs(product.wholesalePriceTzs!)}
+            </p>
+          )}
           <StockBadge stock={product.stock} />
         </div>
       </div>

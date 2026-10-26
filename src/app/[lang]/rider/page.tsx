@@ -84,6 +84,21 @@ export default async function RiderDashboardPage() {
         <StatCard label="Cash to collect" value={formatTzs(cash)} icon={<Wallet size={18} />} hint="Cash-on-delivery orders" />
       </div>
 
+      {/* Cash-in-Hand Safety Notice for Boda-Boda Riders */}
+      {cash > 0 && (
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-xs text-amber-950 sm:text-sm">
+          <Wallet size={18} className="mt-0.5 shrink-0 text-amber-700" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-amber-950">
+              Pesa ya Mkononi (Cash in Hand): {formatTzs(cash)}
+            </p>
+            <p className="mt-0.5 text-xs text-amber-800">
+              Kwa usalama wako barabarani Kariakoo na Dar es Salaam, usibaki na pesa nyingi taslimu mfukoni. Weka pesa hii kwenye wakala wa M-Pesa/Mixx au kituo cha makazi ya fedha mara tu unapomaliza mzigo.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Today's deliveries: assigned + active jobs as pickup → dropoff cards. */}
       {toHandle.length > 0 && (
         <section aria-labelledby="to-handle" className="mt-6">

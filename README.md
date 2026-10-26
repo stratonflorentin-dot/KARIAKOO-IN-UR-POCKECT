@@ -25,6 +25,20 @@ Copy `.env.example` to `.env.local`, then set `NEXT_PUBLIC_SUPABASE_URL` and `NE
 ## Production features & role enhancements
 
 - **PWA (Progressive Web App) Ready**: Full Web Manifest (`/manifest.webmanifest`) supporting "Add to Home Screen" on Android & iOS, standalone app display mode, and custom branding theme colors.
+- **Wholesale Volume Tier Pricing (Bei ya Jumla na Rejareja)**:
+  - Supports dual retail and wholesale volume tiers per product.
+  - Automatic pricing tier activation when minimum wholesale quantity (`wholesaleMinQty`) is reached in cart or checkout quote.
+  - Dedicated "Bei ya Jumla" badge on storefront product cards and detailed volume savings box on product pages.
+- **Upcountry Bus Parcel Delivery (Mizigo ya Mikoani)**:
+  - Dual delivery checkout selector: Dar es Salaam Doorstep delivery vs. Upcountry Bus Office parcel dropoff.
+  - Integrated with major Tanzanian bus parcel operators (Abood Bus, BM Coach, Shabiby Line, Tahmeed Coach, Al Saedy, Kidia One, Zanzibar Ferry/Azam Marine).
+  - Collects destination town, recipient details, and directs riders to deposit at carrier parcel counters and provide waybill numbers.
+- **Quick Landmark Address Presets**:
+  - One-tap quick presets on checkout for "🏠 Nyumbani" (Home) and "🏢 Kazini / Ofisini" (Office) to format Dar es Salaam landmark directions without tedious retyping.
+- **Seller Rush-Hour Busy Mode**:
+  - One-tap status toggle in the seller console ("Duka Lipo Wazi" vs. "Nipo Bize Dukani / Sitisha Maagizo") allowing stall owners on congested streets (Congo, Aggrey) to temporarily pause new online orders during heavy physical in-store rushes.
+- **Rider COD Cash-in-Hand Safety Tracker**:
+  - Active balance monitor on the rider dashboard tracking collected cash on delivery with safety reminders to deposit to mobile money agents.
 - **Customer Escrow & Landmark Address**:
   - Swahili escrow trust guarantee on checkout (*Malipo yako yanashikiliwa kwa usalama*), reassuring buyers that payment is held safely until they verify delivery with their 4-digit PIN.
   - Detailed Dar es Salaam landmark address input (street name, prominent landmarks, gate color, floor/office) tailored to local dispatch realities.

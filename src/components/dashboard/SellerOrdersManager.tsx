@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { PauseCircle, PlayCircle, Search, Store } from "lucide-react";
 import { LiveSellerOrderActions } from "@/components/dashboard/LiveSellerOrderActions";
 import { DeliveryStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { EmptyState } from "@/components/ui/States";
@@ -50,6 +50,7 @@ export function SellerOrdersManager({
 }) {
   const [tab, setTab] = useState<TabKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isBusyPaused, setIsBusyPaused] = useState(false);
 
   const counts: Record<TabKey, number> = {
     all: orders.length,
@@ -97,6 +98,56 @@ export function SellerOrdersManager({
 
   return (
     <div className="space-y-6">
+      {/* Rush Hour / Physical Store Rush Toggle */}
+      <div className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+        isBusyPaused
+          ? "border-amber-300 bg-amber-50/90 text-amber-950"
+          : "border-line bg-white text-ink"
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+            isBusyPaused ? "bg-amber-200 text-amber-800" : "bg-brand-50 text-brand-700"
+          }`}>
+            <Store size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${isBusyPaused ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+              <p className="text-sm font-semibold">
+                {isBusyPaused ? "Hali ya Dukani: Bize (Maagizo Mapya Yamesitishwa)" : "Hali ya Dukani: Wazi (Unapokea Maagizo)"}
+              </p>
+            </div>
+            <p className="mt-0.5 text-xs text-muted">
+              {isBusyPaused
+                ? "Duka lako limesitisha kwa muda maagizo mapya mtandaoni ili uhudumie wateja wa mtaani Kariakoo bila msongamano."
+                : "Duka linapokea maagizo ya mtandaoni kawaida. Ikiwa una wateja wengi dukani kwa wakati mmoja, sitisha hapa kwa muda."}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsBusyPaused((prev) => !prev)}
+          className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+            isBusyPaused
+              ? "bg-amber-600 text-white hover:bg-amber-700 shadow-sm"
+              : "border border-line bg-subtle text-ink hover:border-amber-400 hover:bg-amber-50"
+          }`}
+        >
+          {isBusyPaused ? (
+            <>
+              <PlayCircle size={15} />
+              <span>Fungua Kupokea Maagizo</span>
+            </>
+          ) : (
+            <>
+              <PauseCircle size={15} className="text-amber-600" />
+              <span>Nipo Bize Dukani (Sitisha)</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Settlement Overview Card matching Screen 11 */}
       <section aria-labelledby="settlement-overview" className="rounded-3xl border border-line bg-gradient-to-br from-brand-900 via-brand-950 to-night p-6 text-white shadow-sm">
         <h2 id="settlement-overview" className="text-sm font-semibold uppercase tracking-wider text-brand-300">

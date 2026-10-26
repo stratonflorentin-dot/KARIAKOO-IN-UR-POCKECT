@@ -11,4 +11,6 @@ export interface CartProductInfo {
   category: CategorySlug;
   priceTzs: number;
   maxQuantity: number;
+  wholesalePriceTzs?: number;
+  wholesaleMinQty?: number;
 }

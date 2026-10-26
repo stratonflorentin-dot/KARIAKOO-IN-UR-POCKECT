@@ -108,6 +108,20 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           </div>
           <div className="mt-3"><StockBadge stock={product.stock} /></div>
 
+          {product.wholesalePriceTzs && product.wholesaleMinQty && product.wholesalePriceTzs < product.priceTzs && (
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50/80 p-3.5 text-xs text-amber-950 sm:text-sm">
+              <div className="flex items-center gap-2 font-semibold">
+                <span className="rounded-md bg-amber-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
+                  Bei ya Jumla
+                </span>
+                <span>Vipande {product.wholesaleMinQty}+ kwa {formatTzs(product.wholesalePriceTzs)} / kipande</span>
+              </div>
+              <p className="mt-1 text-xs text-amber-800">
+                Nunua kwa wingi kwa ajili ya biashara au duka lako. Bei ya jumla itatumika moja kwa moja kwenye kikapu ukifikisha vipande {product.wholesaleMinQty}.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6">
             <AddToCart productId={product.id} productName={product.name} maxQuantity={Math.min(product.stock, 20)} />
           </div>
