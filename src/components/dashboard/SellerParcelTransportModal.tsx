@@ -105,7 +105,9 @@ export function SellerParcelTransportModal({
                         <Package size={13} className="text-emerald-600" />
                         <span>{v.cargoDescription}</span>
                       </div>
-                      <p className="mt-0.5 text-3xs text-muted truncate">{v.recommendedFor}</p>
+                      <p className="mt-0.5 text-3xs text-muted">
+                        Tarifu ya Bolt: Base {formatTzs(v.tariff.baseFareTzs)} • {formatTzs(v.tariff.perKmRateTzs)}/km • {formatTzs(v.tariff.perMinuteRateTzs)}/dk
+                      </p>
                     </div>
 
                     <div className="flex flex-col items-end shrink-0">

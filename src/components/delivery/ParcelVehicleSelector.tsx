@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, Package, Share2 } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown, ChevronUp, Info, Package, Share2 } from "lucide-react";
 import { formatTzs } from "@/lib/format";
 import {
   GROUND_TRANSPORT_VEHICLES,
+  calculateBoltTripPrice,
   type GroundTransportVehicle,
   type GroundTransportVehicleId,
 } from "@/lib/parcel-transport";
@@ -13,6 +15,8 @@ interface ParcelVehicleSelectorProps {
   onSelectVehicle: (vehicle: GroundTransportVehicle) => void;
   origin?: string;
   destination?: string;
+  distanceKm?: number;
+  durationMin?: number;
   onEditRoute?: () => void;
   paymentMethod?: string;
   onSelectPaymentMethod?: (method: string) => void;
@@ -27,15 +31,20 @@ export function ParcelVehicleSelector({
   onSelectVehicle,
   origin = "Kariakoo Mtaa wa Lumumba",
   destination = "Moshi Bus Stand / Mbezi Luis",
+  distanceKm = 11.2,
+  durationMin = 28,
   onEditRoute,
   paymentMethod = "cash",
   confirmLabel = "Chagua Gari",
   showBottomBar = true,
-  zoneMultiplier = 1.0,
 }: ParcelVehicleSelectorProps) {
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
   const selectedVehicle =
     GROUND_TRANSPORT_VEHICLES.find((v) => v.id === selectedVehicleId) ??
     GROUND_TRANSPORT_VEHICLES[0];
+
+  const selectedTrip = calculateBoltTripPrice(selectedVehicle.id, distanceKm, durationMin);
 
   return (
     <div className="space-y-4">
@@ -52,22 +61,27 @@ export function ParcelVehicleSelector({
             <span className="truncate text-ink">{destination}</span>
           </div>
         </div>
-        {onEditRoute && (
-          <button
-            type="button"
-            onClick={onEditRoute}
-            className="shrink-0 rounded-xl bg-white px-2.5 py-1 text-xs font-medium text-muted hover:text-ink border border-line shadow-2xs"
-          >
-            Badili
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-stone-200/70 px-2 py-0.5 text-2xs font-bold text-stone-700">
+            {distanceKm} km • ~{durationMin} dk
+          </span>
+          {onEditRoute && (
+            <button
+              type="button"
+              onClick={onEditRoute}
+              className="shrink-0 rounded-xl bg-white px-2.5 py-1 text-xs font-medium text-muted hover:text-ink border border-line shadow-2xs"
+            >
+              Badili
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Vehicle cards grid */}
       <div className="space-y-3">
         {GROUND_TRANSPORT_VEHICLES.map((vehicle) => {
           const isSelected = vehicle.id === selectedVehicleId;
-          const adjustedFee = Math.round(vehicle.baseRateTzs * zoneMultiplier);
+          const trip = calculateBoltTripPrice(vehicle.id, distanceKm, durationMin);
 
           return (
             <button
@@ -99,7 +113,9 @@ export function ParcelVehicleSelector({
                   </div>
                   <div className="mt-1 flex flex-wrap gap-2 text-2xs text-muted">
                     <span className="rounded-md bg-stone-100 px-1.5 py-0.5">{vehicle.capacitySummary}</span>
-                    <span className="hidden sm:inline-block rounded-md bg-stone-100 px-1.5 py-0.5">{vehicle.dimensions}</span>
+                    <span className="hidden sm:inline-block rounded-md bg-stone-100 px-1.5 py-0.5">
+                      Base {formatTzs(vehicle.tariff.baseFareTzs)} + {formatTzs(vehicle.tariff.perKmRateTzs)}/km
+                    </span>
                   </div>
                 </div>
               </div>
@@ -116,13 +132,56 @@ export function ParcelVehicleSelector({
                 <div className="text-right">
                   <span className="text-xs font-semibold text-muted">TZS</span>
                   <div className="text-base font-black tracking-tight text-emerald-900 sm:text-lg">
-                    {formatTzs(adjustedFee).replace("TZS", "").trim()}
+                    {formatTzs(trip.totalFareTzs).replace("TZS", "").trim()}
                   </div>
                 </div>
               </div>
             </button>
           );
         })}
+      </div>
+
+      {/* Bolt Tanzania Fare Breakdown Accordion */}
+      <div className="rounded-2xl border border-line bg-subtle p-3.5 text-xs">
+        <button
+          type="button"
+          onClick={() => setShowBreakdown((prev) => !prev)}
+          className="flex w-full items-center justify-between font-semibold text-ink"
+        >
+          <div className="flex items-center gap-2">
+            <Info size={15} className="text-emerald-700" />
+            <span>Mfumo wa Bei: Bolt Tanzania Tariff ({selectedVehicle.name})</span>
+          </div>
+          {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {showBreakdown && (
+          <div className="mt-3 space-y-1.5 border-t border-line pt-2.5 text-2xs">
+            <div className="flex justify-between">
+              <span className="text-muted">Kianzio cha Safari (Base Fare):</span>
+              <span className="font-semibold text-ink">{formatTzs(selectedTrip.baseFareTzs)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">Gharama ya Umbali ({selectedTrip.distanceKm} km @ {formatTzs(selectedVehicle.tariff.perKmRateTzs)}/km):</span>
+              <span className="font-semibold text-ink">{formatTzs(selectedTrip.distanceFareTzs)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">Gharama ya Muda ({selectedTrip.durationMinutes} dk @ {formatTzs(selectedVehicle.tariff.perMinuteRateTzs)}/dk):</span>
+              <span className="font-semibold text-ink">{formatTzs(selectedTrip.timeFareTzs)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">Ada ya Usalama na Mfumo (Bolt Booking Fee 3.5%):</span>
+              <span className="font-semibold text-ink">{formatTzs(selectedTrip.bookingFeeTzs)}</span>
+            </div>
+            <div className="flex justify-between border-t border-line/60 pt-1.5 font-bold text-emerald-950">
+              <span>Jumla Iliyokadiriwa:</span>
+              <span className="font-black text-emerald-900">{formatTzs(selectedTrip.totalFareTzs)}</span>
+            </div>
+            <p className="pt-1 text-3xs text-muted leading-relaxed">
+              * Bei inahesabiwa kwa mujibu wa mwongozo wa LATRA na taratibu rasmi za safari za Bolt nchini Tanzania (Base + Umbali + Muda + Ada ya Huduma).
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Bottom confirmation bar if enabled */}
@@ -158,7 +217,7 @@ export function ParcelVehicleSelector({
               onClick={() => onSelectVehicle(selectedVehicle)}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-800 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-900 active:scale-98"
             >
-              <span>{confirmLabel} — {selectedVehicle.name} ({formatTzs(selectedVehicle.baseRateTzs * zoneMultiplier)})</span>
+              <span>{confirmLabel} — {selectedVehicle.name} ({formatTzs(selectedTrip.totalFareTzs)})</span>
             </button>
             <button
               type="button"
@@ -181,20 +240,15 @@ function VehicleGraphic({ type }: { type: "motorcycle" | "tricycle" | "pickup" |
   if (type === "pickup") {
     return (
       <svg viewBox="0 0 140 85" className="h-full w-full object-contain" fill="none">
-        {/* Cab */}
         <path d="M45 42 L55 24 L82 24 L90 42 Z" fill="#E2E8F0" stroke="#475569" strokeWidth="2" />
         <path d="M57 27 L78 27 L85 41 L51 41 Z" fill="#93C5FD" opacity="0.6" />
         <rect x="42" y="42" width="50" height="20" rx="3" fill="#F8FAFC" stroke="#475569" strokeWidth="2" />
-        {/* Cargo Bed with Boxes */}
         <rect x="8" y="38" width="36" height="24" rx="2" fill="#CBD5E1" stroke="#475569" strokeWidth="2" />
-        {/* Cargo Boxes stacked */}
         <rect x="12" y="24" width="14" height="14" rx="1" fill="#D97706" stroke="#92400E" strokeWidth="1.5" />
         <rect x="27" y="22" width="15" height="16" rx="1" fill="#B45309" stroke="#78350F" strokeWidth="1.5" />
         <rect x="18" y="12" width="14" height="13" rx="1" fill="#F59E0B" stroke="#B45309" strokeWidth="1.5" />
-        {/* Front bumper & headlight */}
         <rect x="91" y="48" width="5" height="12" rx="2" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
         <circle cx="89" cy="50" r="3" fill="#FDE047" stroke="#CA8A04" strokeWidth="1" />
-        {/* Wheels */}
         <circle cx="28" cy="62" r="11" fill="#1E293B" stroke="#475569" strokeWidth="3" />
         <circle cx="28" cy="62" r="4" fill="#94A3B8" />
         <circle cx="75" cy="62" r="11" fill="#1E293B" stroke="#475569" strokeWidth="3" />
@@ -206,21 +260,15 @@ function VehicleGraphic({ type }: { type: "motorcycle" | "tricycle" | "pickup" |
   if (type === "tricycle") {
     return (
       <svg viewBox="0 0 140 85" className="h-full w-full object-contain" fill="none">
-        {/* Bajaji Green Cargo Body */}
         <path d="M12 25 L65 25 L65 58 L12 58 Z" fill="#059669" stroke="#065F46" strokeWidth="2" rx="3" />
         <path d="M15 28 L62 28 L62 55 L15 55 Z" fill="#047857" opacity="0.3" />
-        {/* Cab */}
         <path d="M65 30 L80 18 L98 32 L95 58 L65 58 Z" fill="#10B981" stroke="#065F46" strokeWidth="2" />
         <path d="M72 24 L88 32 L86 44 L70 44 Z" fill="#BAE6FD" opacity="0.8" />
-        {/* Front single wheel fork */}
         <line x1="90" y1="52" x2="100" y2="65" stroke="#334155" strokeWidth="3" strokeLinecap="round" />
-        {/* Front Wheel */}
         <circle cx="100" cy="64" r="10" fill="#1E293B" stroke="#475569" strokeWidth="2.5" />
         <circle cx="100" cy="64" r="3.5" fill="#94A3B8" />
-        {/* Rear Wheels */}
         <circle cx="35" cy="64" r="10" fill="#1E293B" stroke="#475569" strokeWidth="2.5" />
         <circle cx="35" cy="64" r="3.5" fill="#94A3B8" />
-        {/* Headlight */}
         <circle cx="97" cy="40" r="3" fill="#FDE047" stroke="#EAB308" strokeWidth="1" />
       </svg>
     );
@@ -229,49 +277,36 @@ function VehicleGraphic({ type }: { type: "motorcycle" | "tricycle" | "pickup" |
   if (type === "motorcycle") {
     return (
       <svg viewBox="0 0 140 85" className="h-full w-full object-contain" fill="none">
-        {/* Boda Boda Chassis */}
         <path d="M38 58 L55 45 L75 45 L88 34" stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
         <path d="M55 45 L65 58" stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
-        {/* Fuel Tank & Seat */}
         <path d="M62 42 Q72 38 78 44 Q68 47 62 42 Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="1.5" />
         <path d="M48 43 Q55 42 62 43 Q58 47 50 46 Z" fill="#1E293B" />
-        {/* Cargo Box / Rack on back */}
         <rect x="22" y="28" width="26" height="20" rx="2" fill="#D97706" stroke="#92400E" strokeWidth="2" />
         <line x1="22" y1="38" x2="48" y2="38" stroke="#B45309" strokeWidth="1.5" />
-        {/* Handlebars & Headlight */}
         <line x1="86" y1="34" x2="82" y2="28" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
         <circle cx="92" cy="36" r="3.5" fill="#FDE047" stroke="#EAB308" strokeWidth="1" />
-        {/* Front Wheel */}
         <circle cx="95" cy="58" r="12" fill="#0F172A" stroke="#475569" strokeWidth="2.5" />
         <circle cx="95" cy="58" r="4" fill="#94A3B8" />
-        {/* Rear Wheel */}
         <circle cx="38" cy="58" r="12" fill="#0F172A" stroke="#475569" strokeWidth="2.5" />
         <circle cx="38" cy="58" r="4" fill="#94A3B8" />
       </svg>
     );
   }
 
-  // Lori Dogo (Light Truck)
   return (
     <svg viewBox="0 0 140 85" className="h-full w-full object-contain" fill="none">
-      {/* Covered Cargo Bed */}
       <rect x="8" y="20" width="55" height="42" rx="3" fill="#334155" stroke="#1E293B" strokeWidth="2" />
-      {/* Tarp creases */}
       <line x1="8" y1="34" x2="63" y2="34" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 2" />
       <line x1="28" y1="20" x2="28" y2="62" stroke="#475569" strokeWidth="1.5" />
       <line x1="48" y1="20" x2="48" y2="62" stroke="#475569" strokeWidth="1.5" />
-      {/* Cab */}
       <path d="M66 28 L86 28 L98 42 L98 62 L66 62 Z" fill="#F1F5F9" stroke="#475569" strokeWidth="2" />
       <path d="M72 32 L85 32 L92 42 L72 42 Z" fill="#93C5FD" opacity="0.6" />
-      {/* Bumper & Headlight */}
       <rect x="98" y="52" width="6" height="10" rx="1" fill="#64748B" />
       <circle cx="96" cy="50" r="3" fill="#FDE047" stroke="#EAB308" strokeWidth="1" />
-      {/* Dual Rear Wheels */}
       <circle cx="25" cy="64" r="11" fill="#0F172A" stroke="#475569" strokeWidth="3" />
       <circle cx="25" cy="64" r="4" fill="#94A3B8" />
       <circle cx="48" cy="64" r="11" fill="#0F172A" stroke="#475569" strokeWidth="3" />
       <circle cx="48" cy="64" r="4" fill="#94A3B8" />
-      {/* Front Wheel */}
       <circle cx="86" cy="64" r="11" fill="#0F172A" stroke="#475569" strokeWidth="3" />
       <circle cx="86" cy="64" r="4" fill="#94A3B8" />
     </svg>

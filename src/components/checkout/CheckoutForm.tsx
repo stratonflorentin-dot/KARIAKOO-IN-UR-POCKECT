@@ -239,9 +239,9 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-ink">{vehicle.name}</p>
                       <p className="truncate text-3xs text-muted">{vehicle.cargoDescription}</p>
-                      <span className="inline-block mt-0.5 text-3xs text-stone-600 font-medium">
-                        {vehicle.capacitySummary}
-                      </span>
+                      <p className="text-3xs text-stone-500 mt-0.5">
+                        Bolt: Base {formatTzs(vehicle.tariff.baseFareTzs)} • {formatTzs(vehicle.tariff.perKmRateTzs)}/km
+                      </p>
                     </div>
                     <div className="flex flex-col items-end shrink-0">
                       <div className="h-4 w-4 mb-0.5">

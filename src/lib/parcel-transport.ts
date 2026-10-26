@@ -1,8 +1,20 @@
 // Ground Parcel Transport models and pricing for Kariakoo marketplace.
-// Enables customers and shopkeepers to choose the exact vehicle type
-// required for ground parcel delivery (boda boda, bajaji guta, pickup, light truck).
+// Implements official Bolt Tanzania ride & trip pricing structure
+// (Reference: https://bolt.eu/en-tz/support/articles/115002917754/)
+//
+// Formula:
+// Trip Price = Max(Minimum Fare, Base Fare + (Distance in km × Km Rate) + (Duration in min × Minute Rate))
+//              × Dynamic Pricing (Surge) + Booking / Safety Fee (3.5%)
 
 export type GroundTransportVehicleId = "pikipiki" | "bajaji" | "pickup" | "lori_dogo";
+
+export interface BoltTariff {
+  baseFareTzs: number;
+  perKmRateTzs: number;
+  perMinuteRateTzs: number;
+  minimumFareTzs: number;
+  averageSpeedKmH: number;
+}
 
 export interface GroundTransportVehicle {
   id: GroundTransportVehicleId;
@@ -15,7 +27,45 @@ export interface GroundTransportVehicle {
   recommendedFor: string;
   iconType: "motorcycle" | "tricycle" | "pickup" | "truck";
   dimensions: string;
+  tariff: BoltTariff;
 }
+
+/**
+ * Standard Bolt Tanzania tariff schedules adapted for cargo and parcel transport
+ */
+export const BOLT_TANZANIA_TARIFFS: Record<GroundTransportVehicleId, BoltTariff> = {
+  pikipiki: {
+    baseFareTzs: 1_800,
+    perKmRateTzs: 650,
+    perMinuteRateTzs: 90,
+    minimumFareTzs: 3_500,
+    averageSpeedKmH: 26,
+  },
+  bajaji: {
+    baseFareTzs: 3_000,
+    perKmRateTzs: 1_000,
+    perMinuteRateTzs: 120,
+    minimumFareTzs: 5_500,
+    averageSpeedKmH: 20,
+  },
+  pickup: {
+    baseFareTzs: 6_000,
+    perKmRateTzs: 1_250,
+    perMinuteRateTzs: 160,
+    minimumFareTzs: 12_000,
+    averageSpeedKmH: 22,
+  },
+  lori_dogo: {
+    baseFareTzs: 10_000,
+    perKmRateTzs: 1_750,
+    perMinuteRateTzs: 220,
+    minimumFareTzs: 20_000,
+    averageSpeedKmH: 18,
+  },
+};
+
+/** Booking fee percentage applied in Bolt Tanzania (3.5%) */
+export const BOLT_BOOKING_FEE_PERCENTAGE = 0.035;
 
 export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
   {
@@ -29,6 +79,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     recommendedFor: "Maboksi 10–25, bidhaa za maduka, vifaa vya ujenzi vyepesi",
     iconType: "pickup",
     dimensions: "Urefu 2.1m × Upana 1.4m",
+    tariff: BOLT_TANZANIA_TARIFFS.pickup,
   },
   {
     id: "bajaji",
@@ -41,6 +92,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     recommendedFor: "Maboksi 3–8, nguo za jumla, vifurushi vya wastani",
     iconType: "tricycle",
     dimensions: "Urefu 1.5m × Upana 1.1m",
+    tariff: BOLT_TANZANIA_TARIFFS.bajaji,
   },
   {
     id: "pikipiki",
@@ -53,6 +105,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     recommendedFor: "Bahasha, viatu, simu, vipodozi, nguo jozi chache",
     iconType: "motorcycle",
     dimensions: "Raki ya nyuma / Begi la delivery",
+    tariff: BOLT_TANZANIA_TARIFFS.pikipiki,
   },
   {
     id: "lori_dogo",
@@ -65,6 +118,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     recommendedFor: "Mizigo mikubwa ya kontena, marobota ya nguo, vifaa vizito",
     iconType: "truck",
     dimensions: "Urefu 3.4m × Upana 1.9m",
+    tariff: BOLT_TANZANIA_TARIFFS.lori_dogo,
   },
 ];
 
@@ -72,8 +126,70 @@ export function getVehicleById(id: GroundTransportVehicleId): GroundTransportVeh
   return GROUND_TRANSPORT_VEHICLES.find((v) => v.id === id) ?? GROUND_TRANSPORT_VEHICLES[0];
 }
 
+export interface TripPriceBreakdown {
+  vehicleId: GroundTransportVehicleId;
+  distanceKm: number;
+  durationMinutes: number;
+  baseFareTzs: number;
+  distanceFareTzs: number;
+  timeFareTzs: number;
+  subtotalTzs: number;
+  bookingFeeTzs: number;
+  surgeMultiplier: number;
+  totalFareTzs: number;
+  isMinimumFareApplied: boolean;
+}
+
 /**
- * Calculates delivery rate based on ground transport vehicle and optional zone multiplier.
+ * Calculates official Bolt Tanzania trip price per vehicle category.
+ * Reference: https://bolt.eu/en-tz/support/articles/115002917754/
+ * 
+ * Total = (Base + KmRate*Distance + MinuteRate*Duration) * Surge + BookingFee
+ */
+export function calculateBoltTripPrice(
+  vehicleId: GroundTransportVehicleId,
+  distanceKm: number,
+  durationMinutes?: number,
+  surgeMultiplier: number = 1.0,
+  shopCount: number = 1
+): TripPriceBreakdown {
+  const vehicle = getVehicleById(vehicleId);
+  const tariff = vehicle.tariff;
+
+  // Calculate estimated transit duration based on Dar es Salaam city traffic if not provided
+  const estDuration =
+    durationMinutes ??
+    Math.max(10, Math.round((distanceKm / tariff.averageSpeedKmH) * 60) + 6); // + 6 min traffic cushion
+
+  const distanceFareTzs = Math.round(distanceKm * tariff.perKmRateTzs);
+  const timeFareTzs = Math.round(estDuration * tariff.perMinuteRateTzs);
+  const extraPickupTzs = Math.max(0, shopCount - 1) * 2_000;
+
+  const rawComputedFare = tariff.baseFareTzs + distanceFareTzs + timeFareTzs + extraPickupTzs;
+  const isMinimumFareApplied = rawComputedFare < tariff.minimumFareTzs;
+  const baselineFare = Math.max(tariff.minimumFareTzs, rawComputedFare);
+
+  const subtotalWithSurge = Math.round(baselineFare * Math.max(1.0, surgeMultiplier));
+  const bookingFeeTzs = Math.round(subtotalWithSurge * BOLT_BOOKING_FEE_PERCENTAGE);
+  const totalFareTzs = Math.round(subtotalWithSurge + bookingFeeTzs);
+
+  return {
+    vehicleId,
+    distanceKm: Number(distanceKm.toFixed(1)),
+    durationMinutes: estDuration,
+    baseFareTzs: tariff.baseFareTzs,
+    distanceFareTzs,
+    timeFareTzs,
+    subtotalTzs: subtotalWithSurge,
+    bookingFeeTzs,
+    surgeMultiplier,
+    totalFareTzs,
+    isMinimumFareApplied,
+  };
+}
+
+/**
+ * Calculates parcel rate with zone multiplier fallback.
  */
 export function calculateParcelRate(
   vehicleId: GroundTransportVehicleId,
@@ -86,13 +202,13 @@ export function calculateParcelRate(
 }
 
 /**
- * Maps zone ID to distance multiplier from Kariakoo hub.
+ * Known real ground route distances in Dar es Salaam (km).
  */
-export const ZONE_DISTANCE_MULTIPLIERS: Record<string, number> = {
-  kariakoo: 1.0,
-  ilala: 1.1,
-  kinondoni: 1.25,
-  ubungo: 1.35,
-  temeke: 1.35,
-  kigamboni: 1.5,
-};
+export const POPULAR_DAR_ROUTES: { from: string; to: string; distanceKm: number; durationMin: number }[] = [
+  { from: "Newland", to: "Moshi Bus Stand", distanceKm: 11.2, durationMin: 28 },
+  { from: "Kariakoo (Mtaa wa Lumumba)", to: "Mbezi Luis Bus Terminal", distanceKm: 18.5, durationMin: 45 },
+  { from: "Kariakoo Sokoni", to: "Mwenge / Sinza", distanceKm: 12.0, durationMin: 32 },
+  { from: "Kariakoo (Msimbazi)", to: "Kariakoo & Posta (City Centre)", distanceKm: 3.5, durationMin: 14 },
+  { from: "Kariakoo (Kongo St)", to: "Tegeta / Bunju", distanceKm: 28.0, durationMin: 65 },
+  { from: "Kariakoo (Aggrey St)", to: "Temeke / Mbagala Rangi Tatu", distanceKm: 15.0, durationMin: 38 },
+];
