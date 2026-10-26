@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Check, CheckCircle2, Package, Truck, X } from "lucide-react";
 import {
@@ -96,18 +97,29 @@ export function SellerParcelTransportModal({
                         : "border-line bg-white hover:border-emerald-300"
                     }`}
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-ink">{v.name}</span>
-                        <span className="rounded bg-stone-100 px-1.5 py-0.5 text-2xs text-muted">{v.capacitySummary}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative h-14 w-18 shrink-0 rounded-xl bg-subtle p-1 flex items-center justify-center border border-stone-200/60 overflow-hidden">
+                        <Image
+                          src={v.imageUrl}
+                          alt={v.name}
+                          width={72}
+                          height={56}
+                          className="h-full w-full object-contain"
+                        />
                       </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-emerald-800 font-medium">
-                        <Package size={13} className="text-emerald-600" />
-                        <span>{v.cargoDescription}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-ink">{v.name}</span>
+                          <span className="rounded bg-stone-100 px-1.5 py-0.5 text-2xs text-muted">{v.capacitySummary}</span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-emerald-800 font-medium">
+                          <Package size={13} className="text-emerald-600" />
+                          <span>{v.cargoDescription}</span>
+                        </div>
+                        <p className="mt-0.5 text-3xs text-muted">
+                          Tarifu ya Bolt: Base {formatTzs(v.tariff.baseFareTzs)} • {formatTzs(v.tariff.perKmRateTzs)}/km • {formatTzs(v.tariff.perMinuteRateTzs)}/dk
+                        </p>
                       </div>
-                      <p className="mt-0.5 text-3xs text-muted">
-                        Tarifu ya Bolt: Base {formatTzs(v.tariff.baseFareTzs)} • {formatTzs(v.tariff.perKmRateTzs)}/km • {formatTzs(v.tariff.perMinuteRateTzs)}/dk
-                      </p>
                     </div>
 
                     <div className="flex flex-col items-end shrink-0">

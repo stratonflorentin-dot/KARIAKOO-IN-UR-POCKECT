@@ -26,6 +26,7 @@ export interface GroundTransportVehicle {
   baseRateTzs: number;
   recommendedFor: string;
   iconType: "motorcycle" | "tricycle" | "pickup" | "truck";
+  imageUrl: string;
   dimensions: string;
   tariff: BoltTariff;
 }
@@ -78,6 +79,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     baseRateTzs: 21_000,
     recommendedFor: "Maboksi 10–25, bidhaa za maduka, vifaa vya ujenzi vyepesi",
     iconType: "pickup",
+    imageUrl: "/images/transport/pickup.png",
     dimensions: "Urefu 2.1m × Upana 1.4m",
     tariff: BOLT_TANZANIA_TARIFFS.pickup,
   },
@@ -91,6 +93,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     baseRateTzs: 17_000,
     recommendedFor: "Maboksi 3–8, nguo za jumla, vifurushi vya wastani",
     iconType: "tricycle",
+    imageUrl: "/images/transport/bajaji.png",
     dimensions: "Urefu 1.5m × Upana 1.1m",
     tariff: BOLT_TANZANIA_TARIFFS.bajaji,
   },
@@ -104,6 +107,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     baseRateTzs: 11_500,
     recommendedFor: "Bahasha, viatu, simu, vipodozi, nguo jozi chache",
     iconType: "motorcycle",
+    imageUrl: "/images/transport/pikipiki.png",
     dimensions: "Raki ya nyuma / Begi la delivery",
     tariff: BOLT_TANZANIA_TARIFFS.pikipiki,
   },
@@ -117,6 +121,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     baseRateTzs: 31_000,
     recommendedFor: "Mizigo mikubwa ya kontena, marobota ya nguo, vifaa vizito",
     iconType: "truck",
+    imageUrl: "/images/transport/lori_dogo.png",
     dimensions: "Urefu 3.4m × Upana 1.9m",
     tariff: BOLT_TANZANIA_TARIFFS.lori_dogo,
   },

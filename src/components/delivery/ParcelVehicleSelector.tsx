@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Check, ChevronDown, ChevronUp, Info, Package, Share2 } from "lucide-react";
 import { formatTzs } from "@/lib/format";
@@ -97,11 +98,21 @@ export function ParcelVehicleSelector({
               {/* Left: Vehicle visual badge */}
               <div className="flex items-center gap-4">
                 <div
-                  className={`grid h-20 w-24 shrink-0 place-items-center rounded-2xl border p-1 sm:h-22 sm:w-28 ${
+                  className={`grid h-20 w-24 shrink-0 place-items-center rounded-2xl border p-1 sm:h-22 sm:w-28 overflow-hidden ${
                     isSelected ? "border-emerald-300 bg-white" : "border-stone-100 bg-subtle"
                   }`}
                 >
-                  <VehicleGraphic type={vehicle.iconType} />
+                  {vehicle.imageUrl ? (
+                    <Image
+                      src={vehicle.imageUrl}
+                      alt={vehicle.name}
+                      width={112}
+                      height={88}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <VehicleGraphic type={vehicle.iconType} />
+                  )}
                 </div>
 
                 {/* Middle: Details */}

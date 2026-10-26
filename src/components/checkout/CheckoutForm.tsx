@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Briefcase, Bus, CircleCheck, Home, LocateFixed, Lock, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
@@ -230,20 +231,31 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                         return `[Usafiri: ${vehicle.name} (${vehicle.cargoDescription})] ${cleaned}`.trim();
                       });
                     }}
-                    className={`flex items-center justify-between gap-2.5 rounded-xl border p-2.5 text-left transition ${
+                    className={`flex items-center justify-between gap-3 rounded-2xl border p-2.5 text-left transition ${
                       isSelected
                         ? "border-2 border-emerald-700 bg-white shadow-xs ring-1 ring-emerald-600"
                         : "border-line bg-white/70 hover:bg-white hover:border-emerald-300"
                     }`}
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-ink">{vehicle.name}</p>
-                      <p className="truncate text-3xs text-muted">{vehicle.cargoDescription}</p>
-                      <p className="text-3xs text-stone-500 mt-0.5">
-                        Bolt: Base {formatTzs(vehicle.tariff.baseFareTzs)} • {formatTzs(vehicle.tariff.perKmRateTzs)}/km
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative h-14 w-16 shrink-0 rounded-xl bg-subtle p-1 flex items-center justify-center border border-stone-200/60 overflow-hidden">
+                        <Image
+                          src={vehicle.imageUrl}
+                          alt={vehicle.name}
+                          width={64}
+                          height={56}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-ink">{vehicle.name}</p>
+                        <p className="truncate text-3xs text-muted">{vehicle.cargoDescription}</p>
+                        <p className="text-3xs text-stone-500 mt-0.5">
+                          Bolt: Base {formatTzs(vehicle.tariff.baseFareTzs)} • {formatTzs(vehicle.tariff.perKmRateTzs)}/km
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end shrink-0">
+                    <div className="flex flex-col items-end shrink-0 pl-1">
                       <div className="h-4 w-4 mb-0.5">
                         {isSelected && <CircleCheck size={14} className="text-emerald-700" />}
                       </div>
