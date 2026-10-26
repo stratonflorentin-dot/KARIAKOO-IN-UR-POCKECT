@@ -1,4 +1,4 @@
-import { AlertTriangle, BadgeCheck, ClipboardList, Eye, Megaphone, Package, Plus, Receipt, Timer } from "lucide-react";
+import { AlertTriangle, BadgeCheck, ClipboardList, Eye, Megaphone, Package, Plus, Receipt, Timer, Truck } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { ShareAction } from "@/components/ui/ShareAction";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
@@ -28,6 +28,7 @@ export default async function SellerDashboardPage() {
     { href: "/seller/products", Icon: Package, title: s.myProducts, sub: fmt(s.listedCount, { count: summary.productCount }) },
     { href: "/seller/products", Icon: Plus, title: s.addProduct, sub: s.createListing },
     { href: "/seller/orders", Icon: ClipboardList, title: s.ordersAction, sub: summary.pendingOrders ? fmt(s.needAction, { count: summary.pendingOrders }) : s.manageOrders },
+    { href: "/customer/transport", Icon: Truck, title: "Usafiri wa Mizigo", sub: "Chagua Pickup, Bajaji au Lori" },
     { href: "/seller/advertising", Icon: Megaphone, title: s.advertise, sub: s.promoteShop },
     { href: "/seller/finances", Icon: Receipt, title: s.finances, sub: s.proceedsCommission },
   ];

@@ -17,6 +17,7 @@ import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
+import { GROUND_TRANSPORT_VEHICLES, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 
 export interface PaymentOption {
   id: string;
@@ -53,6 +54,8 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const [busCompany, setBusCompany] = useState("Abood Bus");
   const [destinationTown, setDestinationTown] = useState("");
   const [upcountryReceiver, setUpcountryReceiver] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<GroundTransportVehicleId>("pickup");
+  const [instructionsText, setInstructionsText] = useState(v?.instructions ?? "");
   const dropoffWasManuallyPlaced = useRef(false);
 
   useEffect(() => {
@@ -202,6 +205,56 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             </select>
           </Field>
 
+          {/* Ground Parcel Transport Vehicle Selector (Chagua Aina ya Gari) */}
+          <div className="space-y-2.5 rounded-2xl border border-line bg-subtle p-3.5 sm:p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-ink sm:text-sm">
+                Aina ya Usafiri wa Mzigo Ardhini (Ground Parcel Transport)
+              </label>
+              <span className="text-2xs font-semibold text-emerald-800 bg-emerald-100 rounded-md px-2 py-0.5">Chagua Chombo</span>
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              Chagua gari inayotosheleza uzito na ukubwa wa mzigo wako kutoka dukani:
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {GROUND_TRANSPORT_VEHICLES.map((vehicle) => {
+                const isSelected = selectedVehicleId === vehicle.id;
+                return (
+                  <button
+                    key={vehicle.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedVehicleId(vehicle.id);
+                      setInstructionsText((prev) => {
+                        const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
+                        return `[Usafiri: ${vehicle.name} (${vehicle.cargoDescription})] ${cleaned}`.trim();
+                      });
+                    }}
+                    className={`flex items-center justify-between gap-2.5 rounded-xl border p-2.5 text-left transition ${
+                      isSelected
+                        ? "border-2 border-emerald-700 bg-white shadow-xs ring-1 ring-emerald-600"
+                        : "border-line bg-white/70 hover:bg-white hover:border-emerald-300"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-ink">{vehicle.name}</p>
+                      <p className="truncate text-3xs text-muted">{vehicle.cargoDescription}</p>
+                      <span className="inline-block mt-0.5 text-3xs text-stone-600 font-medium">
+                        {vehicle.capacitySummary}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <div className="h-4 w-4 mb-0.5">
+                        {isSelected && <CircleCheck size={14} className="text-emerald-700" />}
+                      </div>
+                      <span className="text-xs font-extrabold text-emerald-900">{formatTzs(vehicle.baseRateTzs)}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {deliveryMode === "local" && (
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="font-medium text-muted">Mfumo wa haraka:</span>
@@ -235,7 +288,15 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             />
           </Field>
           <Field id="instructions" label={c.instructions} error={e.instructions}>
-            <input id="instructions" name="instructions" defaultValue={v?.instructions} placeholder={deliveryMode === "upcountry" ? "Rider akabidhi ofisini na kutuma risiti" : c.instructionsPlaceholder} className={inputClass} {...fieldAria("instructions", e.instructions)} />
+            <input
+              id="instructions"
+              name="instructions"
+              value={instructionsText}
+              onChange={(e) => setInstructionsText(e.target.value)}
+              placeholder={deliveryMode === "upcountry" ? "Rider akabidhi ofisini na kutuma risiti" : c.instructionsPlaceholder}
+              className={inputClass}
+              {...fieldAria("instructions", e.instructions)}
+            />
           </Field>
           <div className="space-y-2">
             <p className="text-sm font-medium">{c.dropoffPin}</p>

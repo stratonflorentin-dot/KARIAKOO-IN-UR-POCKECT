@@ -24,6 +24,17 @@ Copy `.env.example` to `.env.local`, then set `NEXT_PUBLIC_SUPABASE_URL` and `NE
 
 ## Production features & role enhancements
 
+- **Ground Parcel Transport Selection (Usafiri wa Mizigo Ardhini)**:
+  - Complete ground vehicle dispatch selection for customers and shopkeepers:
+    - **Pickup Ndogo** (Small Pickup / Carry, e.g. TZS 21,000) for commercial small goods and cartons.
+    - **Bajaji ya Mizigo** (Cargo Tricycle / Guta, e.g. TZS 17,000) for medium parcels and wholesale bags.
+    - **Pikipiki ya Mizigo** (Cargo Motorcycle Carrier, e.g. TZS 11,500) for light parcels and envelopes.
+    - **Lori Dogo** (Light Truck / Canter, e.g. TZS 31,000) for heavy bulk goods and container bales.
+  - Dedicated ground parcel booking screen (`/customer/transport`) with route origin & destination presets (e.g. Newland → Moshi Bus Stand, Kariakoo Lumumba → Mbezi Luis).
+  - Integrated into customer checkout (`/customer/checkout`) and seller order management (`/seller/orders`) allowing shopkeepers to pick vehicle size upon dispatch.
+- **Kariakoo Market Price Match (Linganisha Bei)**:
+  - Multi-shop price comparison per product (`/customer/compare` and on product detail pages).
+  - Allows customers to see different shops offering the same item with varying prices, availability, and shop ratings in one place.
 - **PWA (Progressive Web App) Ready**: Full Web Manifest (`/manifest.webmanifest`) supporting "Add to Home Screen" on Android & iOS, standalone app display mode, and custom branding theme colors.
 - **Wholesale Volume Tier Pricing (Bei ya Jumla na Rejareja)**:
   - Supports dual retail and wholesale volume tiers per product.

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { PauseCircle, PlayCircle, Search, Store } from "lucide-react";
+import { PauseCircle, PlayCircle, Search, Store, Truck } from "lucide-react";
 import { LiveSellerOrderActions } from "@/components/dashboard/LiveSellerOrderActions";
+import { SellerParcelTransportModal } from "@/components/dashboard/SellerParcelTransportModal";
 import { DeliveryStatusBadge, PaymentStatusBadge } from "@/components/orders/StatusBadges";
 import { EmptyState } from "@/components/ui/States";
 import { TableCard, THead, Th, tbodyClass, tdClass } from "@/components/ui/Table";
@@ -51,6 +52,8 @@ export function SellerOrdersManager({
   const [tab, setTab] = useState<TabKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isBusyPaused, setIsBusyPaused] = useState(false);
+  const [transportModalOrder, setTransportModalOrder] = useState<SellerOrderViewItem | null>(null);
+  const [orderVehicles, setOrderVehicles] = useState<Record<string, string>>({});
 
   const counts: Record<TabKey, number> = {
     all: orders.length,
@@ -240,7 +243,24 @@ export function SellerOrdersManager({
                     <PaymentStatusBadge status={o.paymentStatus} />
                   </td>
                   <td className={tdClass}>
-                    <DeliveryStatusBadge status={o.deliveryStatus} />
+                    <div className="space-y-1">
+                      <DeliveryStatusBadge status={o.deliveryStatus} />
+                      {orderVehicles[o.orderId] ? (
+                        <div className="flex items-center gap-1 text-2xs font-bold text-emerald-800">
+                          <Truck size={12} className="text-emerald-600" />
+                          <span>{orderVehicles[o.orderId]}</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setTransportModalOrder(o)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-line bg-subtle px-2 py-0.5 text-2xs font-semibold text-ink hover:border-brand-400 hover:bg-white"
+                        >
+                          <Truck size={11} className="text-brand-600" />
+                          <span>Chagua Usafiri</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className={`${tdClass} text-right tabular-nums`}>
                     {formatTzs(b.sellerProceedsTzs)}
@@ -256,6 +276,24 @@ export function SellerOrdersManager({
             })}
           </tbody>
         </TableCard>
+      )}
+      {transportModalOrder && (
+        <SellerParcelTransportModal
+          orderReference={transportModalOrder.reference}
+          orderZone={
+            isDeliveryZoneId(transportModalOrder.zone)
+              ? getZone(transportModalOrder.zone).name
+              : transportModalOrder.zone
+          }
+          isOpen={Boolean(transportModalOrder)}
+          onClose={() => setTransportModalOrder(null)}
+          onConfirm={(vehicle) => {
+            setOrderVehicles((prev) => ({
+              ...prev,
+              [transportModalOrder.orderId]: vehicle.name,
+            }));
+          }}
+        />
       )}
     </div>
   );

@@ -117,6 +117,26 @@ export default async function CustomerHomePage() {
         <ChevronRight size={18} className="shrink-0 text-brand-600" aria-hidden="true" />
       </Link>
 
+      {/* Ground Parcel Transport Banner (Usafiri wa Mizigo) */}
+      <Link
+        href="/customer/transport"
+        className="flex items-center gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-white p-4 transition hover:border-emerald-400 hover:shadow-sm sm:p-5"
+      >
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-800 text-white shadow-sm">
+          <Truck size={22} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-ink">Usafiri wa Mizigo Ardhini (Ground Parcel Transport)</p>
+            <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-bold text-white uppercase">Chagua Gari</span>
+          </div>
+          <p className="mt-0.5 text-xs text-muted leading-relaxed">
+            Chagua gari ya mizigo ya ardhini: Pickup Ndogo, Bajaji ya Mizigo, Pikipiki au Lori Dogo kuanzia TZS 11,500.
+          </p>
+        </div>
+        <ChevronRight size={18} className="shrink-0 text-emerald-700" aria-hidden="true" />
+      </Link>
+
       <section aria-labelledby="featured-heading">
         <SectionHeading id="featured-heading" title={t.home.featured} href="/customer/search?sort=popular" linkLabel={t.common.viewAll} />
         {featured.length > 0 ? (
