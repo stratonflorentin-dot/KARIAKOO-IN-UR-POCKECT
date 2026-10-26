@@ -8,8 +8,9 @@ import "server-only";
 // so the browser can never supply or override prices, fees or commission.
 import { createCatalog, getCategories, type Catalog } from "@/lib/catalog";
 import { resolveCommissionBps } from "@/lib/commission";
-import { deliveryFeeFor } from "@/lib/delivery";
+import { deliveryFeeFor, deliveryFeeFromDistance, EXTRA_PICKUP_FEE_TZS, getDistanceKmFromKariakoo } from "@/lib/delivery";
 import { breakdown, lineTotal } from "@/lib/money";
+import { getVehiclePriceForDropoff, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 import type { CartLine, CommissionRule, DeliveryZoneId } from "@/lib/types";
 
 export const MAX_QUANTITY_PER_LINE = 20;
@@ -70,6 +71,10 @@ export interface Quote {
  * are read; every price, fee and commission rate is looked up here.
  * `catalog` is the live Supabase catalog. Final pricing and commission are
  * independently recomputed by the place_order database function.
+ *
+ * When `dropoffLat` and `dropoffLng` are provided, the delivery fee is
+ * calculated from the actual Haversine distance between Kariakoo market
+ * and the customer's drop point, rather than using a flat per-zone fee.
  */
 export function buildQuote(
   rawLines: unknown,
@@ -77,6 +82,9 @@ export function buildQuote(
   _at: string,
   catalog: Catalog = emptyCatalog,
   commissionRules: CommissionRule[] = [],
+  dropoffLat?: number,
+  dropoffLng?: number,
+  vehicleId?: GroundTransportVehicleId,
 ): Quote {
   const issues: QuoteIssue[] = [];
   const byShop = new Map<string, ShopGroup>();
@@ -146,7 +154,26 @@ export function buildQuote(
 
   const groups = [...byShop.values()];
   const merchandise = groups.reduce((s, g) => s + g.merchandiseTzs, 0);
-  const deliveryFee = deliveryFeeFor(zone, groups.length);
+
+  // When a ground cargo vehicle is chosen (Pikipiki, Bajaji, Pickup, Lori Dogo),
+  // the delivery fee matches the vehicle's dynamic fare to that drop point / zone.
+  // Otherwise fall back to distance or static per-zone fee.
+  const hasDropoff =
+    typeof dropoffLat === "number" &&
+    typeof dropoffLng === "number" &&
+    Number.isFinite(dropoffLat) &&
+    Number.isFinite(dropoffLng);
+
+  let deliveryFee: number;
+  if (vehicleId) {
+    const dropoffCoord: [number, number] | null = hasDropoff ? [dropoffLng, dropoffLat] : null;
+    const vehiclePrice = getVehiclePriceForDropoff(vehicleId, dropoffCoord, zone);
+    deliveryFee = vehiclePrice.totalFareTzs + (groups.length - 1) * EXTRA_PICKUP_FEE_TZS;
+  } else if (hasDropoff) {
+    deliveryFee = deliveryFeeFromDistance(getDistanceKmFromKariakoo(dropoffLng, dropoffLat), groups.length);
+  } else {
+    deliveryFee = deliveryFeeFor(zone, groups.length);
+  }
   return {
     groups,
     merchandiseTzs: merchandise,

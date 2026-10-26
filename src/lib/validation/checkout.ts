@@ -15,6 +15,7 @@ export function formatTzPhone(e164: string): string {
 }
 
 export const PAYMENT_METHODS = ["mpesa", "mixx", "airtelmoney", "halopesa", "cod"] as const;
+export const VEHICLE_IDS = ["pikipiki", "bajaji", "pickup", "lori_dogo"] as const;
 
 const zoneIds = deliveryZones.map((z) => z.id) as [string, ...string[]];
 
@@ -37,6 +38,7 @@ export const checkoutSchema = z.object({
   dropoffLat: z.string().optional().default("").refine((v) => v === "" || (Number.isFinite(Number(v)) && Number(v) >= -90 && Number(v) <= 90), "Choose a valid map location."),
   dropoffLng: z.string().optional().default("").refine((v) => v === "" || (Number.isFinite(Number(v)) && Number(v) >= -180 && Number(v) <= 180), "Choose a valid map location."),
   payment: z.enum(PAYMENT_METHODS, { message: "Choose a payment method." }),
+  vehicle: z.enum(VEHICLE_IDS).optional().default("pickup"),
 }).refine((v) => Boolean(v.dropoffLat) === Boolean(v.dropoffLng), { path: ["dropoffLat"], message: "Choose a location pin or clear it." });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

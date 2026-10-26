@@ -12,9 +12,10 @@ import { buildQuote, type QuoteIssue } from "@/lib/pricing";
 import { getPaymentProviders } from "@/lib/payments/providers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { checkoutSchema } from "@/lib/validation/checkout";
+import type { GroundTransportVehicleId } from "@/lib/parcel-transport";
 import type { CartLine, DeliveryZoneId } from "@/lib/types";
 
-type FieldName = "name" | "phone" | "zone" | "address" | "instructions" | "dropoffLat" | "dropoffLng" | "payment" | "cart";
+type FieldName = "name" | "phone" | "zone" | "address" | "instructions" | "dropoffLat" | "dropoffLng" | "payment" | "vehicle" | "cart";
 
 export interface VerifiedGroup {
   shopName: string;
@@ -47,6 +48,7 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
     dropoffLat: String(formData.get("dropoffLat") ?? ""),
     dropoffLng: String(formData.get("dropoffLng") ?? ""),
     payment: String(formData.get("payment") ?? ""),
+    vehicle: String(formData.get("vehicle") ?? "pickup"),
   };
 
   const errors: CheckoutState["errors"] = {};
@@ -75,7 +77,10 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
     return { status: "error", errors, values: raw };
   }
 
-  const quote = buildQuote(cart, parsed.data.zone as DeliveryZoneId, new Date().toISOString(), await getCatalog());
+  const dropLat = parsed.data.dropoffLat ? Number(parsed.data.dropoffLat) : undefined;
+  const dropLng = parsed.data.dropoffLng ? Number(parsed.data.dropoffLng) : undefined;
+  const vehicle = parsed.data.vehicle as GroundTransportVehicleId | undefined;
+  const quote = buildQuote(cart, parsed.data.zone as DeliveryZoneId, new Date().toISOString(), await getCatalog(), [], dropLat, dropLng, vehicle);
   if (quote.groups.length === 0) {
     return { status: "error", errors: { cart: quote.issues[0]?.message ?? "Your cart is empty." }, values: raw };
   }
@@ -140,6 +145,7 @@ export async function placeOrder(_prev: PlaceState, formData: FormData): Promise
     dropoffLat: String(formData.get("dropoffLat") ?? ""),
     dropoffLng: String(formData.get("dropoffLng") ?? ""),
     payment: String(formData.get("payment") ?? ""),
+    vehicle: String(formData.get("vehicle") ?? "pickup"),
   };
   const parsed = checkoutSchema.safeParse(raw);
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Please check your details." };

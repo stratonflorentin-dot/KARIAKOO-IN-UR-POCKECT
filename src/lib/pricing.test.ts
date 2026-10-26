@@ -39,6 +39,32 @@ describe("buildQuote (server-side price validation)", () => {
     expect(q.commissionTzs).toBe(34_500 + 6_400);
   });
 
+  it("calculates delivery fee matching the selected vehicle", () => {
+    const qPikipiki = buildQuote(
+      [{ productId: "prd-001", quantity: 1 }],
+      "kariakoo",
+      NOW,
+      demoCatalog,
+      demoCommissionRules,
+      undefined,
+      undefined,
+      "pikipiki",
+    );
+    expect(qPikipiki.deliveryFeeTzs).toBeGreaterThanOrEqual(2_500);
+
+    const qPickup = buildQuote(
+      [{ productId: "prd-001", quantity: 1 }],
+      "kariakoo",
+      NOW,
+      demoCatalog,
+      demoCommissionRules,
+      undefined,
+      undefined,
+      "pickup",
+    );
+    expect(qPickup.deliveryFeeTzs).toBeGreaterThan(qPikipiki.deliveryFeeTzs);
+  });
+
   it("applies the shop-specific rate and scheduled rates by date", () => {
     expect(quote([{ productId: "prd-014", quantity: 2 }], "ilala").commissionTzs).toBe(2_450);
     expect(quote([{ productId: "prd-001", quantity: 1 }], "ilala", "2026-11-02T10:00:00+03:00").commissionTzs).toBe(27_600);

@@ -87,19 +87,38 @@ export function getDistanceKmFromKariakoo(lng: number, lat: number): number {
   return distanceKmBetween({ lat, lng }, ZONE_CENTERS.kariakoo);
 }
 
+/** Base delivery fee + per-km rate for distance-based pricing. */
+const DELIVERY_BASE_TZS = 1_500;
+const DELIVERY_PER_KM_TZS = 400;
+const DELIVERY_MIN_TZS = 2_000;
+
+/**
+ * Calculates delivery fee from actual distance (km) rather than flat zone tiers.
+ * Rounds to nearest TSh 500 for clean pricing. Minimum TSh 2,000.
+ */
+export function deliveryFeeFromDistance(distanceKm: number, shopCount: number = 1): number {
+  if (!Number.isInteger(shopCount) || shopCount <= 0) return 0;
+  const raw = DELIVERY_BASE_TZS + DELIVERY_PER_KM_TZS * distanceKm;
+  const rounded = Math.round(raw / 500) * 500;
+  const baseFee = Math.max(DELIVERY_MIN_TZS, rounded);
+  return baseFee + (shopCount - 1) * EXTRA_PICKUP_FEE_TZS;
+}
+
 /**
  * Computes delivery fee based directly on drop point coordinates (or fallback zone).
+ * Uses actual Haversine distance from Kariakoo market to the pin.
  */
 export function deliveryFeeForDropoff(
   dropoff: [number, number] | null,
   zone: DeliveryZoneId,
   shopCount: number = 1
-): { feeTzs: number; zone: DeliveryZoneId; distanceKm?: number } {
+): { feeTzs: number; zone: DeliveryZoneId; distanceKm: number } {
   if (dropoff && Number.isFinite(dropoff[0]) && Number.isFinite(dropoff[1])) {
     const detectedZone = getZoneFromCoordinates(dropoff[0], dropoff[1]);
     const distanceKm = getDistanceKmFromKariakoo(dropoff[0], dropoff[1]);
     const feeTzs = deliveryFeeFor(detectedZone, shopCount);
     return { feeTzs, zone: detectedZone, distanceKm };
   }
-  return { feeTzs: deliveryFeeFor(zone, shopCount), zone };
+  const fallbackKm = distanceKmBetween(ZONE_CENTERS.kariakoo, ZONE_CENTERS[zone]);
+  return { feeTzs: deliveryFeeFor(zone, shopCount), zone, distanceKm: fallbackKm };
 }

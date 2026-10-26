@@ -18,8 +18,8 @@ import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
-import { deliveryFeeFor, getDistanceKmFromKariakoo, getZone, getZoneFromCoordinates, isDeliveryZoneId } from "@/lib/delivery";
-import { GROUND_TRANSPORT_VEHICLES, getVehiclePriceForZone, type GroundTransportVehicleId } from "@/lib/parcel-transport";
+import { getDistanceKmFromKariakoo, getZone, getZoneFromCoordinates, isDeliveryZoneId } from "@/lib/delivery";
+import { GROUND_TRANSPORT_VEHICLES, getVehiclePriceForDropoff, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 
 export interface PaymentOption {
   id: string;
@@ -61,6 +61,8 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const [instructionsText, setInstructionsText] = useState(v?.instructions ?? "");
   const dropoffWasManuallyPlaced = useRef(false);
 
+  const selectedVehiclePrice = getVehiclePriceForDropoff(selectedVehicleId, dropoff, selectedZone).totalFareTzs;
+
   useEffect(() => {
     if (!position || dropoffWasManuallyPlaced.current) return;
     setDropoff([position.lng, position.lat]);
@@ -73,7 +75,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
     setSelectedZone(detected);
     setZone(detected);
     const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
-    const newFare = getVehiclePriceForZone(selectedVehicleId, detected);
+    const newFare = getVehiclePriceForDropoff(selectedVehicleId, location, detected).totalFareTzs;
     if (vehicle) {
       setInstructionsText((prev) => {
         const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
@@ -90,7 +92,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
       setSelectedZone(detected);
       setZone(detected);
       const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
-      const newFare = getVehiclePriceForZone(selectedVehicleId, detected);
+      const newFare = getVehiclePriceForDropoff(selectedVehicleId, [position.lng, position.lat], detected).totalFareTzs;
       if (vehicle) {
         setInstructionsText((prev) => {
           const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
@@ -118,6 +120,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
       <form action={formAction} noValidate className="space-y-8" aria-describedby="checkout-note">
         {/* Only product ids and quantities are submitted, never prices. */}
         <input type="hidden" name="cart" value={JSON.stringify(lines)} />
+        <input type="hidden" name="vehicle" value={selectedVehicleId} />
 
         <fieldset className="space-y-4">
           <legend className="text-lg font-semibold">{c.yourDetails}</legend>
@@ -240,7 +243,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                   setZone(newZone);
                 }
                 const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
-                const newFare = getVehiclePriceForZone(selectedVehicleId, newZone);
+                const newFare = getVehiclePriceForDropoff(selectedVehicleId, dropoff, newZone).totalFareTzs;
                 if (vehicle) {
                   setInstructionsText((prev) => {
                     const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
@@ -269,7 +272,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             <div className="grid gap-2 sm:grid-cols-2">
               {GROUND_TRANSPORT_VEHICLES.map((vehicle) => {
                 const isSelected = selectedVehicleId === vehicle.id;
-                const dynamicFare = getVehiclePriceForZone(vehicle.id, selectedZone);
+                const dynamicFare = getVehiclePriceForDropoff(vehicle.id, dropoff, selectedZone).totalFareTzs;
                 return (
                   <button
                     key={vehicle.id}
@@ -380,7 +383,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                 <div className="text-right">
                   <p className="text-3xs uppercase tracking-wider text-emerald-800 font-semibold">Ada ya Usafirishaji</p>
                   <p className="font-extrabold text-sm text-emerald-900">
-                    {formatTzs(deliveryFeeFor(isDeliveryZoneId(selectedZone) ? selectedZone : "kariakoo", 1))}
+                    {formatTzs(selectedVehiclePrice)}
                   </p>
                 </div>
               </div>
@@ -463,7 +466,12 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             </div>
             <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
               <div className="flex justify-between"><dt className="text-muted">{c.itemSubtotal}</dt><dd className="tabular-nums">{formatTzs(state.verified.merchandiseTzs)}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">{c.deliveryFee}</dt><dd className="tabular-nums">{formatTzs(state.verified.deliveryFeeTzs)}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-muted">
+                  {c.deliveryFee} · {GROUND_TRANSPORT_VEHICLES.find((item) => item.id === (v?.vehicle ?? selectedVehicleId))?.name}
+                </dt>
+                <dd className="tabular-nums font-semibold text-emerald-800">{formatTzs(state.verified.deliveryFeeTzs)}</dd>
+              </div>
               <div className="flex justify-between border-t border-line pt-3 text-base"><dt className="font-semibold">{c.total}</dt><dd className="font-bold tabular-nums">{formatTzs(state.verified.customerTotalTzs)}</dd></div>
             </dl>
             <p className="mt-3 text-xs text-muted">
@@ -480,6 +488,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                 <input type="hidden" name="dropoffLat" value={v?.dropoffLat ?? ""} />
                 <input type="hidden" name="dropoffLng" value={v?.dropoffLng ?? ""} />
                 <input type="hidden" name="payment" value={v?.payment ?? ""} />
+                <input type="hidden" name="vehicle" value={v?.vehicle ?? selectedVehicleId} />
                 <input type="hidden" name="idempotency_key" value={idempotencyKey} />
                 {placeState.status === "error" && (
                   <p role="alert" className="mb-2 rounded-xl bg-red-50 p-3 text-sm text-red-800">{placeState.message}</p>
@@ -520,15 +529,15 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                 <dt className="text-muted">
                   {fmt(t.cart.deliveryTo, {
                     zone: isDeliveryZoneId(selectedZone) ? getZone(selectedZone).name.split(" (")[0] : selectedZone,
-                  })}
+                  })} · {GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId)?.name}
                 </dt>
                 <dd className="font-semibold tabular-nums text-emerald-800">
-                  {formatTzs(deliveryFeeFor(isDeliveryZoneId(selectedZone) ? selectedZone : "kariakoo", 1))}
+                  {formatTzs(selectedVehiclePrice)}
                 </dd>
               </div>
             </dl>
             <p className="text-xs text-muted leading-relaxed">
-              Ada ya usafirishaji inabadilika kulingana na kituo cha kushusha mzigo (Drop Point).
+              Ada ya usafirishaji inalingana na chombo ulichochagua na kituo cha kushusha mzigo.
             </p>
             <p className="text-xs text-muted">{c.fillPrompt}</p>
           </div>
