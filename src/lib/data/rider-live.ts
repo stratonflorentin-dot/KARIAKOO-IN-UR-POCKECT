@@ -22,7 +22,7 @@ export interface RiderJobView {
   cashToCollectTzs: number;
 }
 
-export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt: string; instructions?: string; pickupCount: number }
+export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt: string }
 export interface RiderAvailableDelivery {
   orderId: string;
   reference: string;
@@ -64,18 +64,16 @@ export async function riderOffers(session: Session | null): Promise<RiderOfferVi
   const { error: dispatchError } = await sb.rpc("rider_refresh_offers");
   if (dispatchError) throw new Error(`Could not refresh delivery offers: ${dispatchError.message}`);
   const { data, error } = await sb.from("delivery_offers")
-    .select("order_id,payout_tzs,expires_at,orders(instructions,order_items(id))")
+    .select("order_id,payout_tzs,expires_at")
     .eq("rider_id", session.userId)
     .eq("status", "pending")
     .gt("expires_at", new Date().toISOString())
     .order("offered_at", { ascending: true });
   if (error) throw new Error(`Could not load delivery offers: ${error.message}`);
-  return ((data ?? []) as { order_id: string; payout_tzs: number; expires_at: string; orders: { instructions?: string | null; order_items?: { id: string }[] } | null }[]).map((offer) => ({
+  return ((data ?? []) as { order_id: string; payout_tzs: number; expires_at: string }[]).map((offer) => ({
     orderId: offer.order_id,
     payoutTzs: Number(offer.payout_tzs),
     expiresAt: offer.expires_at,
-    instructions: offer.orders?.instructions ?? undefined,
-    pickupCount: offer.orders?.order_items?.length ?? 1,
   }));
 }
 

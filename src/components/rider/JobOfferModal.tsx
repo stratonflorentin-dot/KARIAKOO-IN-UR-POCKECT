@@ -14,7 +14,7 @@ import { useI18n } from "@/i18n/client";
 import { localizePath } from "@/i18n/config";
 import { formatTzs } from "@/lib/format";
 import { secondsLeft } from "@/lib/rider-earnings";
-import { GROUND_TRANSPORT_VEHICLES } from "@/lib/parcel-transport";
+import { GROUND_TRANSPORT_VEHICLES, getVehicleById } from "@/lib/parcel-transport";
 
 export interface RiderOffer {
   orderId: string;
@@ -29,13 +29,22 @@ export interface RiderOffer {
 const OFFER_WINDOW_S = 45;
 const RING = 2 * Math.PI * 34; // r = 34
 
-/** Extract vehicle name from instructions like "[Usafiri: Pickup Ndogo (description)]" */
-function extractVehicleFromInstructions(instructions?: string) {
-  if (!instructions) return null;
-  const match = instructions.match(/\[Usafiri:\s*([^(]+?)(?:\s*\([^)]*\))?\]/);
-  if (!match) return null;
-  const name = match[1].trim();
-  return GROUND_TRANSPORT_VEHICLES.find((v) => v.name === name) ?? null;
+/** Resolve vehicle: from embedded instructions if present, or infer from payout amount */
+function getVehicleForOffer(offer: RiderOffer) {
+  if (offer.instructions) {
+    const match = offer.instructions.match(/\[Usafiri:\s*([^(]+?)(?:\s*\([^)]*\))?\]/);
+    if (match) {
+      const name = match[1].trim();
+      const found = GROUND_TRANSPORT_VEHICLES.find((v) => v.name === name);
+      if (found) return found;
+    }
+  }
+  // Match vehicle from fare payout amount
+  const p = offer.payoutTzs;
+  if (p >= 25_000) return getVehicleById("lori_dogo");
+  if (p >= 18_000) return getVehicleById("pickup");
+  if (p >= 12_000) return getVehicleById("bajaji");
+  return getVehicleById("pikipiki");
 }
 
 export function JobOfferModal({ offers }: { offers: RiderOffer[] }) {
@@ -66,7 +75,7 @@ export function JobOfferModal({ offers }: { offers: RiderOffer[] }) {
 
   if (!current || left <= 0) return null;
 
-  const vehicle = extractVehicleFromInstructions(current.instructions);
+  const vehicle = getVehicleForOffer(current);
 
   async function decide(accept: boolean) {
     setBusy(true);
