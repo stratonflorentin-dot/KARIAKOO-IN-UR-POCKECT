@@ -26,29 +26,29 @@ describe("Ground Parcel Transport & Bolt Tanzania Trip Pricing", () => {
 
   it("calculates Bolt trip price accurately: Base + (km * rate) + (min * rate) + 3.5% fee", () => {
     // 10 km, 25 minutes on Pikipiki
-    // Base: 1,800
-    // Distance: 10 * 650 = 6,500
-    // Time: 25 * 90 = 2,250
-    // Subtotal: 1,800 + 6,500 + 2,250 = 10,550
-    // Booking fee (3.5%): 369.25 -> 369
-    // Total: 10,550 + 369 = 10,919
+    // Base: 1,200
+    // Distance: 10 * 450 = 4,500
+    // Time: 25 * 60 = 1,500
+    // Subtotal: 1,200 + 4,500 + 1,500 = 7,200
+    // Booking fee (3.5%): 252
+    // Total: 7,200 + 252 = 7,452
     const trip = calculateBoltTripPrice("pikipiki", 10, 25, 1.0);
-    expect(trip.baseFareTzs).toBe(1_800);
-    expect(trip.distanceFareTzs).toBe(6_500);
-    expect(trip.timeFareTzs).toBe(2_250);
-    expect(trip.subtotalTzs).toBe(10_550);
-    expect(trip.bookingFeeTzs).toBe(Math.round(10_550 * 0.035));
+    expect(trip.baseFareTzs).toBe(1_200);
+    expect(trip.distanceFareTzs).toBe(4_500);
+    expect(trip.timeFareTzs).toBe(1_500);
+    expect(trip.subtotalTzs).toBe(7_200);
+    expect(trip.bookingFeeTzs).toBe(Math.round(7_200 * 0.035));
     expect(trip.totalFareTzs).toBe(trip.subtotalTzs + trip.bookingFeeTzs);
   });
 
   it("applies minimum fare for very short trips under minimum threshold", () => {
     // Very short trip: 0.2 km, 2 min on Lori Dogo
-    // Raw sum would be 10,000 + 350 + 440 = 10,790
-    // But Lori Dogo minimum fare is 20,000 TZS
+    // Raw sum would be 9,000 + 320 + 400 = 9,720
+    // But Lori Dogo minimum fare is 22,000 TZS
     const shortTrip = calculateBoltTripPrice("lori_dogo", 0.2, 2, 1.0);
     expect(shortTrip.isMinimumFareApplied).toBe(true);
-    expect(shortTrip.subtotalTzs).toBe(20_000);
-    expect(shortTrip.totalFareTzs).toBe(20_000 + Math.round(20_000 * 0.035));
+    expect(shortTrip.subtotalTzs).toBe(22_000);
+    expect(shortTrip.totalFareTzs).toBe(22_000 + Math.round(22_000 * 0.035));
   });
 
   it("applies dynamic surge multiplier during peak demand", () => {

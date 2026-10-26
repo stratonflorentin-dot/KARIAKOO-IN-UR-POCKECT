@@ -18,7 +18,7 @@ import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
-import { GROUND_TRANSPORT_VEHICLES, type GroundTransportVehicleId } from "@/lib/parcel-transport";
+import { GROUND_TRANSPORT_VEHICLES, getVehiclePriceForZone, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 
 export interface PaymentOption {
   id: string;
@@ -56,6 +56,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const [destinationTown, setDestinationTown] = useState("");
   const [upcountryReceiver, setUpcountryReceiver] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<GroundTransportVehicleId>("pickup");
+  const [selectedZone, setSelectedZone] = useState<string>(v?.zone ?? savedZone ?? "kariakoo");
   const [instructionsText, setInstructionsText] = useState(v?.instructions ?? "");
   const dropoffWasManuallyPlaced = useRef(false);
 
@@ -201,7 +202,26 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
 
           <Field id="zone" label={c.deliveryArea} error={e.zone}>
             {/* key re-mounts the select once the saved area is read from this device */}
-            <select key={hydrated ? "ready" : "ssr"} id="zone" name="zone" defaultValue={v?.zone ?? savedZone} className={inputClass} {...fieldAria("zone", e.zone)}>
+            <select
+              key={hydrated ? "ready" : "ssr"}
+              id="zone"
+              name="zone"
+              value={selectedZone}
+              onChange={(e) => {
+                const newZone = e.target.value;
+                setSelectedZone(newZone);
+                const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
+                const newFare = getVehiclePriceForZone(selectedVehicleId, newZone);
+                if (vehicle) {
+                  setInstructionsText((prev) => {
+                    const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
+                    return `[Usafiri: ${vehicle.name} (${formatTzs(newFare)})] ${cleaned}`.trim();
+                  });
+                }
+              }}
+              className={inputClass}
+              {...fieldAria("zone", e.zone)}
+            >
               {zones.map((z) => <option key={z.id} value={z.id}>{z.name}: {formatTzs(z.feeTzs)} ({z.etaLabel})</option>)}
             </select>
           </Field>
@@ -212,14 +232,15 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
               <label className="text-xs font-bold text-ink sm:text-sm">
                 Aina ya Usafiri wa Mzigo Ardhini (Ground Parcel Transport)
               </label>
-              <span className="text-2xs font-semibold text-emerald-800 bg-emerald-100 rounded-md px-2 py-0.5">Chagua Chombo</span>
+              <span className="text-2xs font-semibold text-emerald-800 bg-emerald-100 rounded-md px-2 py-0.5">Bei Kulingana na Eneo</span>
             </div>
             <p className="text-xs text-muted leading-relaxed">
-              Chagua gari inayotosheleza uzito na ukubwa wa mzigo wako kutoka dukani:
+              Chagua chombo kinacholingana na ukubwa wa mzigo wako (bei inarekebishwa kiotomatiki kulingana na eneo):
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {GROUND_TRANSPORT_VEHICLES.map((vehicle) => {
                 const isSelected = selectedVehicleId === vehicle.id;
+                const dynamicFare = getVehiclePriceForZone(vehicle.id, selectedZone);
                 return (
                   <button
                     key={vehicle.id}
@@ -228,7 +249,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                       setSelectedVehicleId(vehicle.id);
                       setInstructionsText((prev) => {
                         const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
-                        return `[Usafiri: ${vehicle.name} (${vehicle.cargoDescription})] ${cleaned}`.trim();
+                        return `[Usafiri: ${vehicle.name} (${formatTzs(dynamicFare)})] ${cleaned}`.trim();
                       });
                     }}
                     className={`flex items-center justify-between gap-3 rounded-2xl border p-2.5 text-left transition ${
@@ -256,7 +277,7 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
                       <div className="h-4 w-4 mb-0.5">
                         {isSelected && <CircleCheck size={14} className="text-emerald-700" />}
                       </div>
-                      <span className="text-xs font-extrabold text-emerald-900">{formatTzs(vehicle.baseRateTzs)}</span>
+                      <span className="text-xs font-extrabold text-emerald-900">{formatTzs(dynamicFare)}</span>
                     </div>
                   </button>
                 );

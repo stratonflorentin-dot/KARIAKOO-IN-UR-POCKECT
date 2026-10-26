@@ -36,31 +36,31 @@ export interface GroundTransportVehicle {
  */
 export const BOLT_TANZANIA_TARIFFS: Record<GroundTransportVehicleId, BoltTariff> = {
   pikipiki: {
-    baseFareTzs: 1_800,
-    perKmRateTzs: 650,
-    perMinuteRateTzs: 90,
-    minimumFareTzs: 3_500,
+    baseFareTzs: 1_200,
+    perKmRateTzs: 450,
+    perMinuteRateTzs: 60,
+    minimumFareTzs: 2_500,
     averageSpeedKmH: 26,
   },
   bajaji: {
-    baseFareTzs: 3_000,
-    perKmRateTzs: 1_000,
-    perMinuteRateTzs: 120,
-    minimumFareTzs: 5_500,
+    baseFareTzs: 2_500,
+    perKmRateTzs: 750,
+    perMinuteRateTzs: 100,
+    minimumFareTzs: 5_000,
     averageSpeedKmH: 20,
   },
   pickup: {
-    baseFareTzs: 6_000,
-    perKmRateTzs: 1_250,
-    perMinuteRateTzs: 160,
+    baseFareTzs: 5_000,
+    perKmRateTzs: 1_100,
+    perMinuteRateTzs: 150,
     minimumFareTzs: 12_000,
     averageSpeedKmH: 22,
   },
   lori_dogo: {
-    baseFareTzs: 10_000,
-    perKmRateTzs: 1_750,
-    perMinuteRateTzs: 220,
-    minimumFareTzs: 20_000,
+    baseFareTzs: 9_000,
+    perKmRateTzs: 1_600,
+    perMinuteRateTzs: 200,
+    minimumFareTzs: 22_000,
     averageSpeedKmH: 18,
   },
 };
@@ -76,7 +76,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     cargoDescription: "Mizigo midogo ya biashara",
     capacityWeightKg: 1000,
     capacitySummary: "Hadi kg 1,000 (Tani 1)",
-    baseRateTzs: 21_000,
+    baseRateTzs: 14_000,
     recommendedFor: "Maboksi 10–25, bidhaa za maduka, vifaa vya ujenzi vyepesi",
     iconType: "pickup",
     imageUrl: "/images/transport/pickup.png",
@@ -90,7 +90,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     cargoDescription: "Mizigo midogo",
     capacityWeightKg: 400,
     capacitySummary: "Hadi kg 400",
-    baseRateTzs: 17_000,
+    baseRateTzs: 5_500,
     recommendedFor: "Maboksi 3–8, nguo za jumla, vifurushi vya wastani",
     iconType: "tricycle",
     imageUrl: "/images/transport/bajaji.png",
@@ -104,7 +104,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     cargoDescription: "Vifurushi na mizigo midogo",
     capacityWeightKg: 60,
     capacitySummary: "Hadi kg 60",
-    baseRateTzs: 11_500,
+    baseRateTzs: 2_500,
     recommendedFor: "Bahasha, viatu, simu, vipodozi, nguo jozi chache",
     iconType: "motorcycle",
     imageUrl: "/images/transport/pikipiki.png",
@@ -118,7 +118,7 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
     cargoDescription: "Mizigo mingi ya biashara",
     capacityWeightKg: 3500,
     capacitySummary: "Hadi kg 3,500 (Tani 3.5)",
-    baseRateTzs: 31_000,
+    baseRateTzs: 25_000,
     recommendedFor: "Mizigo mikubwa ya kontena, marobota ya nguo, vifaa vizito",
     iconType: "truck",
     imageUrl: "/images/transport/lori_dogo.png",
@@ -129,6 +129,30 @@ export const GROUND_TRANSPORT_VEHICLES: GroundTransportVehicle[] = [
 
 export function getVehicleById(id: GroundTransportVehicleId): GroundTransportVehicle {
   return GROUND_TRANSPORT_VEHICLES.find((v) => v.id === id) ?? GROUND_TRANSPORT_VEHICLES[0];
+}
+
+/**
+ * Estimated road distance (km) from central Kariakoo market to each Dar es Salaam delivery zone.
+ */
+export const ZONE_ESTIMATED_KM: Record<string, number> = {
+  kariakoo: 2.5,
+  ilala: 4.5,
+  kinondoni: 9.5,
+  ubungo: 13.5,
+  temeke: 11.0,
+  kigamboni: 15.0,
+};
+
+/**
+ * Dynamically computes accurate vehicle trip price based on customer's delivery zone.
+ */
+export function getVehiclePriceForZone(
+  vehicleId: GroundTransportVehicleId,
+  zoneId: string = "kariakoo"
+): number {
+  const km = ZONE_ESTIMATED_KM[zoneId] ?? 4.0;
+  const trip = calculateBoltTripPrice(vehicleId, km);
+  return trip.totalFareTzs;
 }
 
 export interface TripPriceBreakdown {

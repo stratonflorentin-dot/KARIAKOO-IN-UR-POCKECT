@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ShieldCheck, Clock } from "lucide-react";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -46,7 +47,8 @@ export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderNam
     };
 
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 10_000);
+    // Fast 5-second polling for live real-time safety tracking
+    const timer = window.setInterval(() => void refresh(), 5_000);
     return () => {
       alive = false;
       window.clearInterval(timer);
@@ -57,30 +59,83 @@ export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderNam
     return <p role="status" className="rounded-2xl bg-subtle p-4 text-sm text-muted">{error}</p>;
   }
   if (!position) {
-    return <p role="status" className="rounded-2xl bg-subtle p-4 text-sm text-muted">Waiting for your rider&apos;s live location. This map refreshes automatically.</p>;
+    return (
+      <div className="rounded-3xl border border-line bg-white p-5 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
+          <ShieldCheck size={16} className="text-emerald-600 animate-pulse" />
+          <span>Ulinzi wa Safari (User Safety Tracking)</span>
+        </div>
+        <p className="text-xs text-muted">
+          Dereva akichukua mzigo, eneo lake la GPS litatokea hapa moja kwa moja kwa ajili ya usalama wako.
+        </p>
+      </div>
+    );
   }
 
   const points: MapPoint[] = [
-    { id: "rider", kind: "pickup", badge: "R", label: "Your rider", geo: [position.lng, position.lat] },
-    ...(dropoff ? [{ id: "dropoff", kind: "dropoff" as const, badge: "D", label: "Delivery destination", geo: [dropoff.lng, dropoff.lat] as [number, number] }] : []),
+    {
+      id: "rider",
+      kind: "rider",
+      badge: "Dereva Yuko Njiani",
+      label: riderName ? `Dereva: ${riderName}` : "Dereva wa Mzigo",
+      geo: [position.lng, position.lat],
+    },
+    ...(dropoff
+      ? [
+          {
+            id: "dropoff",
+            kind: "dropoff" as const,
+            badge: "Dropoff",
+            label: "Eneo la Kushusha Mzigo",
+            geo: [dropoff.lng, dropoff.lat] as [number, number],
+          },
+        ]
+      : []),
   ];
+
   const updated = new Date(position.updated_at);
   const age = Math.max(0, Math.floor((Date.now() - updated.getTime()) / 1000));
-  const freshness = age < 5 ? "just now" : age < 60 ? `${age}s ago` : `${Math.floor(age / 60)}m ago`;
+  const freshness = age < 5 ? "sasa hivi" : age < 60 ? `sekunde ${age} zilizopita` : `dakika ${Math.floor(age / 60)} zilizopita`;
 
   return (
-    <section aria-label="Live rider location" className="rounded-3xl border border-line bg-white p-4">
-      <h2 className="font-semibold">{riderName ? `Your rider: ${riderName}` : "Your rider’s live location"}</h2>
-      <div className="mt-3">
+    <section aria-label="Live rider location" className="rounded-3xl border border-line bg-white p-4 shadow-xs">
+      <div className="flex items-center justify-between gap-2 pb-2 border-b border-line">
+        <div className="flex items-center gap-2">
+          <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 text-emerald-800">
+            <ShieldCheck size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-ink">
+              {riderName ? `Safari ya ${riderName}` : "Ufuatiliaji wa Dereva Moja kwa Moja"}
+            </h2>
+            <p className="text-3xs text-muted">Ulinzi wa Safari unafanya kazi · GPS inajihuisha {freshness}</p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-2xs font-bold text-emerald-800 border border-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
+          Live GPS
+        </span>
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-2xl border border-line">
         <MapLoader
           points={points}
-          ariaLabel="Satellite map with the rider and delivery destination"
+          ariaLabel="Ramani inayoonyesha dereva na eneo la kushusha mzigo"
           route={points.length > 1}
-          heightClass="h-64 sm:h-80"
-          note="The line is a straight guide between pins, not the road route."
+          defaultView="streets"
+          showLocateButton={true}
+          heightClass="h-72 sm:h-80"
+          note="Eneo la dereva linashirikiwa moja kwa moja kwa ajili ya usalama wa mzigo."
         />
       </div>
-      <p className="mt-2 text-xs text-muted">Rider location updated {freshness}. Location is shared only while the delivery is active.</p>
+
+      <div className="mt-2.5 flex items-center justify-between text-2xs text-muted">
+        <div className="flex items-center gap-1.5">
+          <Clock size={12} className="text-emerald-700" />
+          <span>Inajihuisha kila sekunde 5</span>
+        </div>
+        <span>Usalama: Eneo linashirikiwa nawe pekee</span>
+      </div>
     </section>
   );
 }

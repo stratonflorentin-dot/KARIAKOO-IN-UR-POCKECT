@@ -18,7 +18,7 @@ export type LngLat = [number, number];
 
 export interface MapPoint {
   id: string;
-  kind: "shop" | "pickup" | "dropoff";
+  kind: "shop" | "pickup" | "dropoff" | "rider";
   label: string;
   geo: LngLat;
   /** Short text on the pin (e.g. a number or initial). */
@@ -93,9 +93,57 @@ export function haversine(a: LngLat, b: LngLat): number {
 
 export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
 
-const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#059669", dropoff: "#0a211a" };
+const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#059669", dropoff: "#0a211a", rider: "#0f172a" };
 
 function pinElement(point: MapPoint): HTMLElement {
+  if (point.kind === "rider") {
+    const container = document.createElement("div");
+    container.setAttribute("aria-label", `Rider: ${point.label}`);
+    container.style.cssText = [
+      "display:flex",
+      "flex-direction:column",
+      "align-items:center",
+      "cursor:pointer",
+      "user-select:none",
+      "transform:translate(0, -8px)",
+    ].join(";");
+
+    // Pill badge above the vehicle
+    const badge = document.createElement("div");
+    badge.textContent = point.badge || "Dereva Yuko Njiani";
+    badge.style.cssText = [
+      "background:#047857",
+      "color:#ffffff",
+      "font:800 11px/1.2 system-ui, -apple-system, sans-serif",
+      "padding:4px 10px",
+      "border-radius:9999px",
+      "box-shadow:0 3px 10px rgba(0,0,0,0.3)",
+      "margin-bottom:4px",
+      "white-space:nowrap",
+      "letter-spacing:0.02em",
+    ].join(";");
+    container.appendChild(badge);
+
+    // Vehicle avatar disc with pulse radar safety ring
+    const vehicleDisc = document.createElement("div");
+    vehicleDisc.style.cssText = [
+      "display:grid",
+      "place-items:center",
+      "width:36px",
+      "height:36px",
+      "border-radius:9999px",
+      "background:#0f172a",
+      "border:3px solid #ffffff",
+      "box-shadow:0 0 0 6px rgba(16,185,129,0.35), 0 4px 12px rgba(0,0,0,0.45)",
+      "color:#ffffff",
+    ].join(";");
+
+    vehicleDisc.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>`;
+    container.appendChild(vehicleDisc);
+
+    return container;
+  }
+
   if (point.kind === "pickup" || point.kind === "dropoff") {
     const isPickup = point.kind === "pickup";
     const bgBadge = isPickup ? "#15803d" : "#09261f";
