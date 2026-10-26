@@ -9,6 +9,7 @@ import { Price } from "@/components/product/Price";
 import { ShopKindBadge } from "@/components/shop/ShopMark";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductImage } from "@/components/product/ProductImage";
+import { ShopPriceComparison } from "@/components/product/ShopPriceComparison";
 import { StockBadge } from "@/components/product/StockBadge";
 import { Skeleton } from "@/components/ui/States";
 import { fmt } from "@/i18n/config";
@@ -49,6 +50,7 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
   const category = getCategory(product.category);
   const categoryName = category ? (t.categories[category.slug as keyof Dictionary["categories"]] ?? category.name) : "";
   const related = catalog.searchProducts({ category: product.category, sort: "popular", pageSize: 5 }).items.filter((p) => p.id !== product.id).slice(0, 4);
+  const alternatives = catalog.findAlternativeSellers(product);
   const cheapest = Math.min(...deliveryZones.map((z) => z.feeTzs));
 
   return (
@@ -166,6 +168,9 @@ async function ProductContent({ params }: Pick<PageProps<"/[lang]/customer/produ
           </section>
         </div>
       </div>
+
+      {/* Multi-Shop Price Comparison (Linganisha Bei Madukani) */}
+      <ShopPriceComparison currentProduct={product} alternatives={alternatives} />
 
       {related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-14">

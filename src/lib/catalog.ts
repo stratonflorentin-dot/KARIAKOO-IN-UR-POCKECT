@@ -123,6 +123,21 @@ export function createCatalog(data: CatalogData) {
     });
   }
 
+  function findAlternativeSellers(target: Product): { product: Product; shop: Shop | undefined }[] {
+    const targetTokens = termsOf(target.name).filter((t) => t.length > 2);
+    return products
+      .filter((p) => {
+        if (p.id === target.id || p.shopId === target.shopId) return false;
+        // Match same productType (e.g. shirts, sneakers)
+        if (target.productType && p.productType === target.productType) return true;
+        // Or same category sharing significant name terms
+        if (p.category === target.category && targetTokens.some((t) => normalise(p.name).includes(t))) return true;
+        return false;
+      })
+      .map((p) => ({ product: p, shop: getShop(p.shopId) }))
+      .sort((a, b) => a.product.priceTzs - b.product.priceTzs);
+  }
+
   return {
     getCategories,
     getCategory,
@@ -136,6 +151,7 @@ export function createCatalog(data: CatalogData) {
     getShopArea,
     searchProducts,
     searchShops,
+    findAlternativeSellers,
   };
 }
 

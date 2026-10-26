@@ -1,4 +1,4 @@
-import { ChevronRight, LayoutGrid, MapPin, Package, ShoppingBag, Store, Truck, User } from "lucide-react";
+import { ChevronRight, LayoutGrid, MapPin, Package, Scale, ShoppingBag, Store, Truck, User } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
 import { SectionHeading } from "@/components/customer/SectionHeading";
@@ -99,6 +99,23 @@ export default async function CustomerHomePage() {
           ))}
         </ul>
       </nav>
+
+      {/* Price Comparison Banner (Linganisha Bei) */}
+      <Link
+        href="/customer/compare"
+        className="flex items-center gap-4 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-emerald-50/60 p-4 transition hover:border-brand-400 hover:shadow-sm sm:p-5"
+      >
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-600 text-white shadow-sm">
+          <Scale size={22} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-ink">Linganisha Bei za Kariakoo (Market Price Match)</p>
+          <p className="mt-0.5 text-xs text-muted leading-relaxed">
+            Bidhaa moja, maduka mengi, bei tofauti — angalia bei zote kwa wakati mmoja na uchague duka lenye bei nafuu zaidi.
+          </p>
+        </div>
+        <ChevronRight size={18} className="shrink-0 text-brand-600" aria-hidden="true" />
+      </Link>
 
       <section aria-labelledby="featured-heading">
         <SectionHeading id="featured-heading" title={t.home.featured} href="/customer/search?sort=popular" linkLabel={t.common.viewAll} />
