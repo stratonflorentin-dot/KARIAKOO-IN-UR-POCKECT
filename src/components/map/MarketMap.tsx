@@ -7,7 +7,6 @@
 // Privacy: the viewer's own position is read only after they tap "Share my
 // location", only while the map is open, and it never leaves the device.
 import * as maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import { Crosshair, Layers, LocateFixed, LocateOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -183,6 +182,18 @@ export default function MarketMap({
   const viewRef = useRef(view);
   const pointsKey = JSON.stringify(points);
   const heatKey = JSON.stringify(heat);
+
+  // Ensure MapLibre's stylesheet is loaded in the browser without Turbopack bundle errors.
+  useEffect(() => {
+    const id = "maplibre-gl-css";
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = "/maplibre/maplibre-gl.css";
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     locationSelectRef.current = onLocationSelect;
