@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Briefcase, Bus, CircleCheck, Home, LocateFixed, Lock, ShieldCheck } from "lucide-react";
+import { Briefcase, Bus, CircleCheck, Home, LocateFixed, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
-import { localizePath } from "@/i18n/config";
+import { fmt, localizePath } from "@/i18n/config";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/[lang]/customer/checkout/actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -18,6 +18,7 @@ import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { LngLat } from "@/components/map/MarketMap";
 import type { DeliveryZone } from "@/lib/types";
+import { deliveryFeeFor, getDistanceKmFromKariakoo, getZone, getZoneFromCoordinates, isDeliveryZoneId } from "@/lib/delivery";
 import { GROUND_TRANSPORT_VEHICLES, getVehiclePriceForZone, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 
 export interface PaymentOption {
@@ -38,7 +39,7 @@ const PAY_CHIP: Record<string, string> = {
 
 export function CheckoutForm({ zones, payments, canOrder = false }: { zones: DeliveryZone[]; payments: PaymentOption[]; canOrder?: boolean }) {
   const { lines, hydrated, clear } = useCart();
-  const { zone: savedZone } = useDeliveryZone();
+  const { zone: savedZone, setZone } = useDeliveryZone();
   const router = useRouter();
   const { locale, t } = useI18n();
   const { position, requestLocation } = useAppLocation();
@@ -68,12 +69,37 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   function selectDropoff(location: LngLat) {
     dropoffWasManuallyPlaced.current = true;
     setDropoff(location);
+    const detected = getZoneFromCoordinates(location[0], location[1]);
+    setSelectedZone(detected);
+    setZone(detected);
+    const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
+    const newFare = getVehiclePriceForZone(selectedVehicleId, detected);
+    if (vehicle) {
+      setInstructionsText((prev) => {
+        const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
+        return `[Usafiri: ${vehicle.name} (${formatTzs(newFare)})] ${cleaned}`.trim();
+      });
+    }
   }
 
   function useCurrentLocation() {
     dropoffWasManuallyPlaced.current = false;
-    if (position) setDropoff([position.lng, position.lat]);
-    else requestLocation();
+    if (position) {
+      setDropoff([position.lng, position.lat]);
+      const detected = getZoneFromCoordinates(position.lng, position.lat);
+      setSelectedZone(detected);
+      setZone(detected);
+      const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
+      const newFare = getVehiclePriceForZone(selectedVehicleId, detected);
+      if (vehicle) {
+        setInstructionsText((prev) => {
+          const cleaned = prev.replace(/\[Usafiri:.*?\]\s*/g, "");
+          return `[Usafiri: ${vehicle.name} (${formatTzs(newFare)})] ${cleaned}`.trim();
+        });
+      }
+    } else {
+      requestLocation();
+    }
   }
 
   useEffect(() => {
@@ -210,6 +236,9 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
               onChange={(e) => {
                 const newZone = e.target.value;
                 setSelectedZone(newZone);
+                if (isDeliveryZoneId(newZone)) {
+                  setZone(newZone);
+                }
                 const vehicle = GROUND_TRANSPORT_VEHICLES.find((item) => item.id === selectedVehicleId);
                 const newFare = getVehiclePriceForZone(selectedVehicleId, newZone);
                 if (vehicle) {
@@ -335,6 +364,27 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
               <LocateFixed size={16} aria-hidden="true" /> {c.useMyLocation}
             </button>
             <MapLoader points={[]} ariaLabel={c.dropoffPin} selectedLocation={dropoff} onLocationSelect={selectDropoff} locationPicker heightClass="h-64" />
+            {dropoff && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3 text-xs text-emerald-950">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-emerald-700 shrink-0" />
+                  <div>
+                    <p className="font-bold">
+                      Kituo cha Kushusha (Drop Point): {isDeliveryZoneId(selectedZone) ? getZone(selectedZone).name : selectedZone}
+                    </p>
+                    <p className="text-3xs text-emerald-800">
+                      Umbali: ~{getDistanceKmFromKariakoo(dropoff[0], dropoff[1]).toFixed(1)} km kutoka soko la Kariakoo
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xs uppercase tracking-wider text-emerald-800 font-semibold">Ada ya Usafirishaji</p>
+                  <p className="font-extrabold text-sm text-emerald-900">
+                    {formatTzs(deliveryFeeFor(isDeliveryZoneId(selectedZone) ? selectedZone : "kariakoo", 1))}
+                  </p>
+                </div>
+              </div>
+            )}
             {dropoff && <button type="button" className="text-sm font-semibold text-brand-700 underline" onClick={() => { dropoffWasManuallyPlaced.current = true; setDropoff(null); }}>{c.clearDropoffPin}</button>}
             {e.dropoffLat && !dropoff && <p role="alert" className="text-sm text-red-700">{e.dropoffLat}</p>}
             <input type="hidden" name="dropoffLat" value={dropoff?.[1] ?? ""} />
@@ -451,7 +501,37 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
             )}
           </>
         ) : (
-          <p className="mt-2 text-sm text-muted">{c.fillPrompt}</p>
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-line bg-white p-3.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Kituo cha Kushusha (Drop Point):</span>
+                <span className="font-semibold text-ink">
+                  {isDeliveryZoneId(selectedZone) ? getZone(selectedZone).name.split(" (")[0] : selectedZone}
+                </span>
+              </div>
+              {dropoff && (
+                <p className="mt-1 text-3xs text-emerald-700">
+                  📍 Umbali: ~{getDistanceKmFromKariakoo(dropoff[0], dropoff[1]).toFixed(1)} km kutoka Kariakoo
+                </p>
+              )}
+            </div>
+            <dl className="space-y-2 border-t border-line pt-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">
+                  {fmt(t.cart.deliveryTo, {
+                    zone: isDeliveryZoneId(selectedZone) ? getZone(selectedZone).name.split(" (")[0] : selectedZone,
+                  })}
+                </dt>
+                <dd className="font-semibold tabular-nums text-emerald-800">
+                  {formatTzs(deliveryFeeFor(isDeliveryZoneId(selectedZone) ? selectedZone : "kariakoo", 1))}
+                </dd>
+              </div>
+            </dl>
+            <p className="text-xs text-muted leading-relaxed">
+              Ada ya usafirishaji inabadilika kulingana na kituo cha kushusha mzigo (Drop Point).
+            </p>
+            <p className="text-xs text-muted">{c.fillPrompt}</p>
+          </div>
         )}
       </aside>
     </div>

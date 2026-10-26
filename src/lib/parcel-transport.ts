@@ -6,6 +6,8 @@
 // Trip Price = Max(Minimum Fare, Base Fare + (Distance in km × Km Rate) + (Duration in min × Minute Rate))
 //              × Dynamic Pricing (Surge) + Booking / Safety Fee (3.5%)
 
+import { getDistanceKmFromKariakoo, getZoneFromCoordinates } from "@/lib/delivery";
+
 export type GroundTransportVehicleId = "pikipiki" | "bajaji" | "pickup" | "lori_dogo";
 
 export interface BoltTariff {
@@ -153,6 +155,25 @@ export function getVehiclePriceForZone(
   const km = ZONE_ESTIMATED_KM[zoneId] ?? 4.0;
   const trip = calculateBoltTripPrice(vehicleId, km);
   return trip.totalFareTzs;
+}
+
+/**
+ * Computes vehicle fare directly from GPS drop point coordinates, falling back to zone.
+ */
+export function getVehiclePriceForDropoff(
+  vehicleId: GroundTransportVehicleId,
+  dropoff?: [number, number] | null,
+  zoneId: string = "kariakoo"
+): { totalFareTzs: number; distanceKm: number; zoneId: string } {
+  if (dropoff && Number.isFinite(dropoff[0]) && Number.isFinite(dropoff[1])) {
+    const km = Math.max(1.0, Number(getDistanceKmFromKariakoo(dropoff[0], dropoff[1]).toFixed(1)));
+    const detectedZone = getZoneFromCoordinates(dropoff[0], dropoff[1]);
+    const trip = calculateBoltTripPrice(vehicleId, km);
+    return { totalFareTzs: trip.totalFareTzs, distanceKm: km, zoneId: detectedZone };
+  }
+  const km = ZONE_ESTIMATED_KM[zoneId] ?? 4.0;
+  const trip = calculateBoltTripPrice(vehicleId, km);
+  return { totalFareTzs: trip.totalFareTzs, distanceKm: km, zoneId };
 }
 
 export interface TripPriceBreakdown {

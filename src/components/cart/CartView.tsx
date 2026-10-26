@@ -152,6 +152,7 @@ export function CartView({ catalog }: { catalog: CartProductInfo[] }) {
       <aside aria-labelledby="summary-heading" className="h-fit rounded-2xl border border-line bg-subtle p-5 lg:sticky lg:top-32">
         <h2 id="summary-heading" className="text-lg font-semibold">{c.orderSummary}</h2>
         <div className="mt-3 rounded-xl bg-white px-3 py-2"><LocationSelector /></div>
+        <p className="mt-1.5 text-2xs text-muted">Ada ya usafiri inategemea eneo/kituo cha kushusha (Drop point).</p>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted">{fmt(c.itemsCount, { count: items.reduce((s, i) => s + i.line.quantity, 0) })}</dt>

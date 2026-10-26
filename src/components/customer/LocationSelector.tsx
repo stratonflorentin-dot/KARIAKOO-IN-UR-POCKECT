@@ -4,6 +4,7 @@ import { MapPin } from "lucide-react";
 import { useId } from "react";
 import { useI18n } from "@/i18n/client";
 import { deliveryZones } from "@/lib/delivery";
+import { formatTzs } from "@/lib/format";
 import { useDeliveryZone } from "@/lib/preferences-store";
 import type { DeliveryZoneId } from "@/lib/types";
 
@@ -22,10 +23,12 @@ export function LocationSelector({ tone = "light" }: { tone?: "light" | "dark" }
         id={id}
         value={zone}
         onChange={(e) => setZone(e.target.value as DeliveryZoneId)}
-        className={`min-w-0 max-w-44 cursor-pointer truncate rounded-lg bg-transparent py-1 pr-1 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${dark ? "text-white [&>option]:text-ink" : ""}`}
+        className={`min-w-0 max-w-48 cursor-pointer truncate rounded-lg bg-transparent py-1 pr-1 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${dark ? "text-white [&>option]:text-ink" : ""}`}
       >
         {deliveryZones.map((z) => (
-          <option key={z.id} value={z.id}>{z.name}</option>
+          <option key={z.id} value={z.id}>
+            {z.name}: {formatTzs(z.feeTzs)}
+          </option>
         ))}
       </select>
     </div>
