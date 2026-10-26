@@ -103,6 +103,8 @@ export interface CustomerOrderDetail {
   shopNames: Record<string, string>;
   pin: string | null;
   riderName: string | null;
+  riderVehicle?: string | null;
+  riderPlate?: string | null;
 }
 
 /** One order for its customer, with shop names, PIN and rider name. Null if not theirs. */
@@ -127,12 +129,21 @@ export async function liveCustomerOrder(session: Session | null, orderId: string
     const pin = (pinRow?.[0] as { pin?: string } | undefined)?.pin ?? null;
 
     let riderName: string | null = null;
+    let riderVehicle: string | null = null;
+    let riderPlate: string | null = null;
     if (order.delivery.riderId) {
-      const { data: prof } = await sb.from("profiles").select("full_name").eq("id", order.delivery.riderId).limit(1);
+      const [{ data: prof }, { data: riderRow }] = await Promise.all([
+        sb.from("profiles").select("full_name").eq("id", order.delivery.riderId).limit(1),
+        sb.from("riders").select("vehicle,plate").eq("id", order.delivery.riderId).limit(1),
+      ]);
       riderName = ((prof?.[0] as { full_name?: string } | undefined)?.full_name ?? "").trim() || null;
+      if (riderRow?.[0]) {
+        riderVehicle = (riderRow[0] as { vehicle?: string }).vehicle ?? null;
+        riderPlate = (riderRow[0] as { plate?: string }).plate ?? null;
+      }
     }
 
-    return { order, shopNames, pin, riderName };
+    return { order, shopNames, pin, riderName, riderVehicle, riderPlate };
   } catch {
     return null;
   }

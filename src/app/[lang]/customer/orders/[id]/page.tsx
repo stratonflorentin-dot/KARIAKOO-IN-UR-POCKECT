@@ -82,7 +82,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
   const detail = await liveCustomerOrder(session, id);
   // Someone else's order looks exactly like a missing one.
   if (!detail) notFound();
-  const { order, shopNames, pin, riderName } = detail;
+  const { order, shopNames, pin, riderName, riderVehicle, riderPlate } = detail;
   const shopName = (shopId: string) => shopNames[shopId] ?? "Shop";
 
   const totals = orderTotals(order.items, order.deliveryFeeTzs);
@@ -130,7 +130,13 @@ async function OrderDetail({ params }: Pick<PageProps<"/[lang]/customer/orders/[
           </Card>
 
           {["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(order.delivery.status) && (
-            <LiveRiderMap orderId={order.id} riderName={riderName ?? undefined} />
+            <LiveRiderMap
+              orderId={order.id}
+              riderName={riderName ?? undefined}
+              vehicleType={riderVehicle ?? undefined}
+              vehiclePlate={riderPlate ?? undefined}
+              instructions={order.instructions}
+            />
           )}
 
           <Card aria-labelledby="items-heading">

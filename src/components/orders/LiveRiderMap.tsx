@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { ShieldCheck, Clock } from "lucide-react";
+import { Check, Clock, ShieldCheck } from "lucide-react";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
+import { getVehicleById, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type RiderPosition = {
@@ -14,12 +16,35 @@ type RiderPosition = {
 
 type DropoffPosition = { lat: number; lng: number };
 
+function resolveVehicleCategory(vehicleType?: string, instructions?: string): GroundTransportVehicleId {
+  const combined = `${vehicleType || ""} ${instructions || ""}`.toLowerCase();
+  if (combined.includes("bajaj") || combined.includes("tuktuk") || combined.includes("tri")) return "bajaji";
+  if (combined.includes("pickup") || combined.includes("gari")) return "pickup";
+  if (combined.includes("lori") || combined.includes("truck") || combined.includes("canter")) return "lori_dogo";
+  return "pikipiki"; // default motorcycle
+}
+
 /** Customer-only live view; the RPC checks order ownership and rider freshness. */
-export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderName?: string }) {
+export function LiveRiderMap({
+  orderId,
+  riderName,
+  vehicleType,
+  vehiclePlate,
+  instructions,
+}: {
+  orderId: string;
+  riderName?: string;
+  vehicleType?: string;
+  vehiclePlate?: string;
+  instructions?: string;
+}) {
   const client = useMemo(() => createSupabaseBrowserClient(), []);
   const [position, setPosition] = useState<RiderPosition | null>(null);
   const [dropoff, setDropoff] = useState<DropoffPosition | null>(null);
   const [error, setError] = useState("");
+
+  const resolvedCategory = resolveVehicleCategory(vehicleType, instructions);
+  const vehicleObj = getVehicleById(resolvedCategory);
 
   useEffect(() => {
     let alive = true;
@@ -76,9 +101,11 @@ export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderNam
     {
       id: "rider",
       kind: "rider",
-      badge: "Dereva Yuko Njiani",
-      label: riderName ? `Dereva: ${riderName}` : "Dereva wa Mzigo",
+      badge: `${vehicleObj.name} · Yuko Njiani`,
+      label: riderName ? `Dereva: ${riderName} (${vehicleObj.name})` : vehicleObj.name,
       geo: [position.lng, position.lat],
+      vehicleType: resolvedCategory,
+      vehicleImageUrl: vehicleObj.imageUrl,
     },
     ...(dropoff
       ? [
@@ -129,12 +156,51 @@ export function LiveRiderMap({ orderId, riderName }: { orderId: string; riderNam
         />
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between text-2xs text-muted">
-        <div className="flex items-center gap-1.5">
-          <Clock size={12} className="text-emerald-700" />
-          <span>Inajihuisha kila sekunde 5</span>
+      {/* Bolt-style Driver & Vehicle Information Card */}
+      <div className="mt-3 rounded-2xl border border-line bg-subtle/60 p-3.5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-slate-800 text-white font-bold text-base shadow-sm">
+                {riderName ? riderName[0].toUpperCase() : "D"}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-600 text-white shadow-xs ring-2 ring-white">
+                <Check size={10} strokeWidth={3} />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-ink truncate">{riderName || "Dereva Aliyeidhinishwa"}</p>
+                <span className="rounded-md bg-stone-200/90 px-2 py-0.5 font-mono text-2xs font-extrabold uppercase text-stone-800 border border-stone-300">
+                  {vehiclePlate || "TZ · RIDER"}
+                </span>
+              </div>
+              <p className="text-xs text-muted font-medium truncate">
+                {vehicleObj.name} · {vehicleObj.cargoDescription}
+              </p>
+            </div>
+          </div>
+          <div className="relative h-12 w-16 shrink-0 rounded-xl bg-white p-1 flex items-center justify-center border border-line shadow-2xs overflow-hidden">
+            <Image
+              src={vehicleObj.imageUrl}
+              alt={vehicleObj.name}
+              width={60}
+              height={44}
+              className="h-full w-full object-contain"
+            />
+          </div>
         </div>
-        <span>Usalama: Eneo linashirikiwa nawe pekee</span>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-line text-2xs text-muted">
+          <div className="flex items-center gap-1.5 text-emerald-800 font-semibold">
+            <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
+            <span>Usalama wa Mzigo: Safari inalindwa kwa GPS moja kwa moja</span>
+          </div>
+          <div className="flex items-center gap-1.5 font-medium shrink-0">
+            <Clock size={11} className="text-emerald-700" />
+            <span>Inasasishwa {freshness}</span>
+          </div>
+        </div>
       </div>
     </section>
   );

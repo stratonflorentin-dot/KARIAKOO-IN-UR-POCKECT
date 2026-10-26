@@ -26,6 +26,10 @@ export interface MapPoint {
   /** Optional in-app link shown in the pop-up. */
   href?: string;
   linkLabel?: string;
+  /** Optional vehicle category for rider avatar: pikipiki, bajaji, pickup, lori_dogo */
+  vehicleType?: "pikipiki" | "bajaji" | "pickup" | "lori_dogo" | string;
+  /** Optional image URL for vehicle avatar */
+  vehicleImageUrl?: string;
 }
 
 const TILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY ?? "";
@@ -105,22 +109,33 @@ function pinElement(point: MapPoint): HTMLElement {
       "align-items:center",
       "cursor:pointer",
       "user-select:none",
-      "transform:translate(0, -8px)",
+      "transform:translate(0, -10px)",
     ].join(";");
+
+    const vType = (point.vehicleType || "").toLowerCase();
+    const isBajaj = vType.includes("bajaj") || vType.includes("tri");
+    const isPickup = vType.includes("pickup") || vType.includes("car");
+    const isLori = vType.includes("lori") || vType.includes("truck") || vType.includes("canter");
 
     // Pill badge above the vehicle
     const badge = document.createElement("div");
-    badge.textContent = point.badge || "Dereva Yuko Njiani";
+    let defaultBadge = "🏍️ Dereva Yuko Njiani";
+    if (isBajaj) defaultBadge = "🛺 Bajaji Iko Njiani";
+    else if (isPickup) defaultBadge = "🛻 Pickup Iko Njiani";
+    else if (isLori) defaultBadge = "🚚 Lori Dogo Liko Njiani";
+
+    badge.textContent = point.badge || defaultBadge;
     badge.style.cssText = [
       "background:#047857",
       "color:#ffffff",
       "font:800 11px/1.2 system-ui, -apple-system, sans-serif",
       "padding:4px 10px",
       "border-radius:9999px",
-      "box-shadow:0 3px 10px rgba(0,0,0,0.3)",
+      "box-shadow:0 3px 10px rgba(0,0,0,0.35)",
       "margin-bottom:4px",
       "white-space:nowrap",
       "letter-spacing:0.02em",
+      "border:1.5px solid #ffffff",
     ].join(";");
     container.appendChild(badge);
 
@@ -129,16 +144,39 @@ function pinElement(point: MapPoint): HTMLElement {
     vehicleDisc.style.cssText = [
       "display:grid",
       "place-items:center",
-      "width:36px",
-      "height:36px",
+      "width:44px",
+      "height:44px",
       "border-radius:9999px",
-      "background:#0f172a",
-      "border:3px solid #ffffff",
-      "box-shadow:0 0 0 6px rgba(16,185,129,0.35), 0 4px 12px rgba(0,0,0,0.45)",
-      "color:#ffffff",
+      "background:#ffffff",
+      "border:2.5px solid #059669",
+      "box-shadow:0 0 0 6px rgba(16,185,129,0.32), 0 4px 14px rgba(0,0,0,0.38)",
+      "overflow:hidden",
+      "position:relative",
+      "padding:2px",
     ].join(";");
 
-    vehicleDisc.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>`;
+    const imgSrc =
+      point.vehicleImageUrl ||
+      (isBajaj
+        ? "/images/transport/bajaji.png"
+        : isPickup
+          ? "/images/transport/pickup.png"
+          : isLori
+            ? "/images/transport/lori_dogo.png"
+            : "/images/transport/pikipiki.png");
+
+    let fallbackSvg = "";
+    if (isBajaj) {
+      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="19" r="2.5"/><circle cx="20" cy="19" r="2.5"/><path d="M3 16V9a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7H3z" fill="#10b981"/><path d="M14 6l3 5H14V6z" fill="#38bdf8"/></svg>`;
+    } else if (isPickup) {
+      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M2 13h4l3-6h5v6h8v3H2v-3z" fill="#10b981"/><path d="M8 8l-2 5h4V8H8z" fill="#38bdf8"/></svg>`;
+    } else if (isLori) {
+      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/><rect x="2" y="5" width="12" height="11" rx="1" fill="#10b981"/><path d="M14 9h4l3 4v3h-7V9z" fill="#047857"/></svg>`;
+    } else {
+      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="M5 18l4-8h4l3 8"/><path d="M12 10l2-4h3"/><circle cx="13" cy="5" r="1.5" fill="#047857"/></svg>`;
+    }
+
+    vehicleDisc.innerHTML = `<img src="${imgSrc}" alt="${point.label}" style="width:34px;height:28px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.25));" onError="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';" />${fallbackSvg}`;
     container.appendChild(vehicleDisc);
 
     return container;
