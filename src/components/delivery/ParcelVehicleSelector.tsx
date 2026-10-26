@@ -152,7 +152,7 @@ export function ParcelVehicleSelector({
         })}
       </div>
 
-      {/* Bolt Tanzania Fare Breakdown Accordion */}
+      {/* Fare Breakdown Accordion */}
       <div className="rounded-2xl border border-line bg-subtle p-3.5 text-xs">
         <button
           type="button"
@@ -161,7 +161,7 @@ export function ParcelVehicleSelector({
         >
           <div className="flex items-center gap-2">
             <Info size={15} className="text-emerald-700" />
-            <span>Mfumo wa Bei: Bolt Tanzania Tariff ({selectedVehicle.name})</span>
+            <span>Mchanganuo wa Gharama ({selectedVehicle.name})</span>
           </div>
           {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
@@ -181,7 +181,7 @@ export function ParcelVehicleSelector({
               <span className="font-semibold text-ink">{formatTzs(selectedTrip.timeFareTzs)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted">Ada ya Usalama na Mfumo (Bolt Booking Fee 3.5%):</span>
+              <span className="text-muted">Ada ya Usalama na Huduma (3.5%):</span>
               <span className="font-semibold text-ink">{formatTzs(selectedTrip.bookingFeeTzs)}</span>
             </div>
             <div className="flex justify-between border-t border-line/60 pt-1.5 font-bold text-emerald-950">
@@ -189,7 +189,7 @@ export function ParcelVehicleSelector({
               <span className="font-black text-emerald-900">{formatTzs(selectedTrip.totalFareTzs)}</span>
             </div>
             <p className="pt-1 text-3xs text-muted leading-relaxed">
-              * Bei inahesabiwa kwa mujibu wa mwongozo wa LATRA na taratibu rasmi za safari za Bolt nchini Tanzania (Base + Umbali + Muda + Ada ya Huduma).
+              * Bei inahesabiwa kwa uwazi kulingana na taratibu rasmi za safari (Base Fare + Umbali + Muda + Ada ya Huduma).
             </p>
           </div>
         )}

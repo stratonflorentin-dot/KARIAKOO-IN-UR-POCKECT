@@ -117,7 +117,7 @@ export function SellerParcelTransportModal({
                           <span>{v.cargoDescription}</span>
                         </div>
                         <p className="mt-0.5 text-3xs text-muted">
-                          Tarifu ya Bolt: Base {formatTzs(v.tariff.baseFareTzs)} • {formatTzs(v.tariff.perKmRateTzs)}/km • {formatTzs(v.tariff.perMinuteRateTzs)}/dk
+                          Kiwango: Base {formatTzs(v.tariff.baseFareTzs)} • {formatTzs(v.tariff.perKmRateTzs)}/km
                         </p>
                       </div>
                     </div>

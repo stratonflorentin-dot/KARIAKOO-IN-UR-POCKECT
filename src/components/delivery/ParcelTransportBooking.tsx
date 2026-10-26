@@ -226,7 +226,7 @@ export function ParcelTransportBooking({ userRole: _userRole = "customer" }: { u
                 <span className="font-medium text-ink truncate max-w-[200px]">{origin} → {destination} ({confirmedBooking.distanceKm} km)</span>
               </div>
               <div className="flex justify-between border-t border-emerald-200/60 pt-2 text-sm">
-                <span className="font-bold text-ink">Gharama ya Safari (Bolt Tarifu):</span>
+                <span className="font-bold text-ink">Gharama ya Safari:</span>
                 <span className="font-black text-emerald-900">{formatTzs(confirmedBooking.costTzs)}</span>
               </div>
             </div>
