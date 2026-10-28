@@ -65,6 +65,10 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
 
   useEffect(() => {
     if (!position || dropoffWasManuallyPlaced.current) return;
+    // Only auto-place the pin from an accurate (GPS) fix. A coarse IP-based fix
+    // on desktop or weak signal can be kilometres off, which would silently set
+    // the wrong delivery point — leave the pin unset so the customer taps/drags.
+    if (!Number.isFinite(position.accuracy) || position.accuracy > 150) return;
     setDropoff([position.lng, position.lat]);
   }, [position]);
 
@@ -86,7 +90,11 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
 
   function useCurrentLocation() {
     dropoffWasManuallyPlaced.current = false;
-    if (position) {
+    // Always ask for a fresh, most-accurate fix. Place it now only if it is
+    // already accurate; otherwise the gated effect above drops the pin once a
+    // good fix arrives — never a coarse IP fix that would be the wrong place.
+    requestLocation();
+    if (position && Number.isFinite(position.accuracy) && position.accuracy <= 150) {
       setDropoff([position.lng, position.lat]);
       const detected = getZoneFromCoordinates(position.lng, position.lat);
       setSelectedZone(detected);
@@ -99,8 +107,6 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
           return `[Usafiri: ${vehicle.name} (${formatTzs(newFare)})] ${cleaned}`.trim();
         });
       }
-    } else {
-      requestLocation();
     }
   }
 

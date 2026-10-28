@@ -391,7 +391,7 @@ export default function MarketMap({
           { id: "streets", type: "raster", source: "streets", layout: { visibility: viewRef.current === "streets" ? "visible" : "none" } },
         ],
       },
-      center: selectedLocationRef.current ?? pts[0]?.geo ?? [39.2083, -6.7924],
+      center: selectedLocationRef.current ?? pts[0]?.geo ?? [39.2778, -6.8188], // Kariakoo market
       zoom: selectedLocationRef.current || pts.length ? 15 : 13,
       attributionControl: { compact: true },
       cooperativeGestures: true, // one-finger scrolling still scrolls the page on phones
