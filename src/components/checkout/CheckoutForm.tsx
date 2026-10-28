@@ -469,6 +469,11 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
               <div className="flex justify-between">
                 <dt className="text-muted">
                   {c.deliveryFee} · {GROUND_TRANSPORT_VEHICLES.find((item) => item.id === (v?.vehicle ?? selectedVehicleId))?.name}
+                  {state.verified.surgeMultiplier > 1 && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                      {state.verified.surgeMultiplier.toFixed(1)}× {c.surge}
+                    </span>
+                  )}
                 </dt>
                 <dd className="tabular-nums font-semibold text-emerald-800">{formatTzs(state.verified.deliveryFeeTzs)}</dd>
               </div>

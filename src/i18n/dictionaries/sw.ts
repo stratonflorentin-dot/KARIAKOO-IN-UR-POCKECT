@@ -677,6 +677,7 @@ const sw: Dictionary = {
     verified: "Bei, stoku na usafirishaji vimethibitishwa na seva yetu",
     itemSubtotal: "Jumla ndogo ya bidhaa",
     deliveryFee: "Ada ya usafirishaji",
+    surge: "Ongezeko",
     total: "Jumla",
     placing: "Inaweka oda yako…",
     placeOrder: "Weka oda",

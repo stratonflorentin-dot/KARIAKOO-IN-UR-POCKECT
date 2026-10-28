@@ -676,6 +676,7 @@ const en = {
     verified: "Prices, stock and delivery verified by our server",
     itemSubtotal: "Item subtotal",
     deliveryFee: "Delivery fee",
+    surge: "Surge",
     total: "Total",
     placing: "Placing your order…",
     placeOrder: "Place order",

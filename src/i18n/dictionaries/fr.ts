@@ -678,6 +678,7 @@ const fr: Dictionary = {
     verified: "Prix, stock et livraison vérifiés par notre serveur",
     itemSubtotal: "Sous-total des articles",
     deliveryFee: "Frais de livraison",
+    surge: "Majoration",
     total: "Total",
     placing: "Enregistrement de votre commande…",
     placeOrder: "Passer la commande",
