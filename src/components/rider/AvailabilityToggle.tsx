@@ -14,8 +14,10 @@ export function AvailabilityToggle({ initialOnline }: { initialOnline: boolean }
   const watchId = useRef<number | null>(null);
   const heartbeat = useRef<number | null>(null);
   const lastSentAt = useRef(0);
+  const sharing = useRef(false);
 
   function stopLocationUpdates() {
+    sharing.current = false;
     if (watchId.current !== null && "geolocation" in navigator) {
       navigator.geolocation.clearWatch(watchId.current);
       watchId.current = null;
@@ -34,11 +36,20 @@ export function AvailabilityToggle({ initialOnline }: { initialOnline: boolean }
   }
 
   function startLocationUpdates() {
-    if (!("geolocation" in navigator)) return;
+    if (sharing.current || !("geolocation" in navigator)) return;
+    sharing.current = true;
     setTracking(true);
     watchId.current = navigator.geolocation.watchPosition(
       ({ coords }) => void publish(coords.longitude, coords.latitude),
-      () => setMessage("Live GPS paused. Check browser location permission and device GPS."),
+      (err) => {
+        setMessage("Live GPS paused. Check browser location permission and device GPS.");
+        // If location is denied, stop so the manual "Share live location" button
+        // reappears for an explicit permission prompt.
+        if (err.code === err.PERMISSION_DENIED) {
+          stopLocationUpdates();
+          setTracking(false);
+        }
+      },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
     );
     heartbeat.current = window.setInterval(() => {
@@ -51,6 +62,15 @@ export function AvailabilityToggle({ initialOnline }: { initialOnline: boolean }
   }
 
   useEffect(() => () => stopLocationUpdates(), []);
+
+  // An online rider shares live location automatically — including right after
+  // accepting a delivery and when returning to the app already online — so
+  // customers can track active deliveries without a manual tap. Resumes
+  // silently when location permission is already granted.
+  useEffect(() => {
+    if (online) startLocationUpdates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
 
   async function enableTracking() {
     if (!("geolocation" in navigator)) {
