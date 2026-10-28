@@ -120,7 +120,7 @@ const sw: Dictionary = {
     sellerCentre: "Kituo cha muuzaji",
     adminCentre: "Kituo cha udhibiti",
     seller: { dashboard: "Dashibodi", orders: "Oda", products: "Bidhaa", advertising: "Matangazo", finances: "Fedha na komisheni", inventory: "Historia ya stoku", shopProfile: "Wasifu wa duka", notifications: "Arifa", support: "Msaada" },
-    admin: { overview: "Muhtasari", orders: "Oda", businesses: "Biashara", riders: "Madereva", customers: "Wateja", products: "Bidhaa", commission: "Komisheni", payments: "Malipo na maafikiano", delivery: "Usimamizi wa usafirishaji", disputes: "Migogoro na marejesho", analytics: "Takwimu na ripoti", settings: "Mipangilio ya jukwaa", security: "Watumiaji wa admin na usalama" },
+    admin: { overview: "Muhtasari", orders: "Oda", businesses: "Biashara", riders: "Madereva", customers: "Wateja", products: "Bidhaa", commission: "Komisheni", pricing: "Bei na nauli", payments: "Malipo na maafikiano", delivery: "Usimamizi wa usafirishaji", disputes: "Migogoro na marejesho", analytics: "Takwimu na ripoti", settings: "Mipangilio ya jukwaa", security: "Watumiaji wa admin na usalama" },
   },
   seller: {
     noShopTitle: "Dashibodi ya muuzaji",

@@ -24,6 +24,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/[lang]/adm
     { label: a.customers, icon: "customers", href: "/admin/customers" },
     { label: a.products, icon: "products", href: "/admin/products" },
     { label: a.commission, icon: "commission", href: "/admin/commission" },
+    { label: a.pricing, icon: "payments", href: "/admin/pricing" },
     { label: a.payments, icon: "payments", href: "/admin/payments" },
     { label: a.delivery, icon: "delivery", href: "/admin/delivery" },
     { label: a.disputes, icon: "disputes", href: "/admin/disputes" },

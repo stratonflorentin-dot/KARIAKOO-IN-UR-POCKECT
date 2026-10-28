@@ -121,7 +121,7 @@ const fr: Dictionary = {
     sellerCentre: "Espace vendeur",
     adminCentre: "Centre de contrôle",
     seller: { dashboard: "Tableau de bord", orders: "Commandes", products: "Produits", advertising: "Publicité", finances: "Finances et commission", inventory: "Historique du stock", shopProfile: "Profil de la boutique", notifications: "Notifications", support: "Support" },
-    admin: { overview: "Vue d'ensemble", orders: "Commandes", businesses: "Commerces", riders: "Livreurs", customers: "Clients", products: "Produits", commission: "Commission", payments: "Paiements et règlements", delivery: "Gestion des livraisons", disputes: "Litiges et remboursements", analytics: "Analyses et rapports", settings: "Paramètres de la plateforme", security: "Utilisateurs admin et sécurité" },
+    admin: { overview: "Vue d'ensemble", orders: "Commandes", businesses: "Commerces", riders: "Livreurs", customers: "Clients", products: "Produits", commission: "Commission", pricing: "Tarifs et frais", payments: "Paiements et règlements", delivery: "Gestion des livraisons", disputes: "Litiges et remboursements", analytics: "Analyses et rapports", settings: "Paramètres de la plateforme", security: "Utilisateurs admin et sécurité" },
   },
   seller: {
     noShopTitle: "Tableau de bord vendeur",

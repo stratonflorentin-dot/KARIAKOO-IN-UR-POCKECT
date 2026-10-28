@@ -119,7 +119,7 @@ const en = {
     sellerCentre: "Seller centre",
     adminCentre: "Founder control centre",
     seller: { dashboard: "Dashboard", orders: "Orders", products: "Products", advertising: "Advertising", finances: "Finances & commission", inventory: "Inventory history", shopProfile: "Shop profile", notifications: "Notifications", support: "Support" },
-    admin: { overview: "Overview", orders: "Orders", businesses: "Businesses", riders: "Riders", customers: "Customers", products: "Products", commission: "Commission", payments: "Payments & settlements", delivery: "Delivery management", disputes: "Disputes & refunds", analytics: "Analytics & reports", settings: "Platform settings", security: "Admin users & security" },
+    admin: { overview: "Overview", orders: "Orders", businesses: "Businesses", riders: "Riders", customers: "Customers", products: "Products", commission: "Commission", pricing: "Pricing & fares", payments: "Payments & settlements", delivery: "Delivery management", disputes: "Disputes & refunds", analytics: "Analytics & reports", settings: "Platform settings", security: "Admin users & security" },
   },
   seller: {
     noShopTitle: "Seller dashboard",
