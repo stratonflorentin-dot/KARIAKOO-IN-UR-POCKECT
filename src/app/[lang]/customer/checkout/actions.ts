@@ -14,6 +14,21 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { checkoutSchema } from "@/lib/validation/checkout";
 import type { GroundTransportVehicleId } from "@/lib/parcel-transport";
 import type { CartLine, DeliveryZoneId } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// The active demand surge (1.0–2.5×). Admins toggle surge_zones; the server
+// applies the same multiplier at review and at order placement so the fee the
+// customer sees is exactly the fee charged. Defaults to 1.0 on any error.
+async function activeSurgeMultiplier(sb: SupabaseClient): Promise<number> {
+  try {
+    const { data, error } = await sb.rpc("active_surge_multiplier", { p_zone: null });
+    if (error) return 1;
+    const m = Number(data);
+    return Number.isFinite(m) ? Math.min(2.5, Math.max(1, m)) : 1;
+  } catch {
+    return 1;
+  }
+}
 
 type FieldName = "name" | "phone" | "zone" | "address" | "instructions" | "dropoffLat" | "dropoffLng" | "payment" | "vehicle" | "cart";
 
@@ -32,6 +47,7 @@ export interface CheckoutState {
     merchandiseTzs: number;
     deliveryFeeTzs: number;
     customerTotalTzs: number;
+    surgeMultiplier: number;
     issues: QuoteIssue[];
     phone: string;
     paymentLabel: string;
@@ -85,6 +101,12 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
     return { status: "error", errors: { cart: quote.issues[0]?.message ?? "Your cart is empty." }, values: raw };
   }
 
+  // Apply the active demand surge to the delivery fee (1.0 when none active).
+  const sb = await createSupabaseServerClient();
+  const surge = await activeSurgeMultiplier(sb);
+  const deliveryFeeTzs = Math.round(quote.deliveryFeeTzs * surge);
+  const customerTotalTzs = quote.merchandiseTzs + deliveryFeeTzs;
+
   // Commission and seller payouts are internal and never sent to customers.
   return {
     status: "verified",
@@ -96,8 +118,9 @@ export async function reviewCheckout(_prev: CheckoutState, formData: FormData): 
         lines: g.lines.map(({ productId, name, quantity, unitPriceTzs, lineTotalTzs }) => ({ productId, name, quantity, unitPriceTzs, lineTotalTzs })),
       })),
       merchandiseTzs: quote.merchandiseTzs,
-      deliveryFeeTzs: quote.deliveryFeeTzs,
-      customerTotalTzs: quote.customerTotalTzs,
+      deliveryFeeTzs,
+      customerTotalTzs,
+      surgeMultiplier: surge,
       issues: quote.issues,
       phone: parsed.data.phone,
       paymentLabel: provider!.label,
@@ -173,6 +196,15 @@ export async function placeOrder(_prev: PlaceState, formData: FormData): Promise
   const items = cart.map((line) => ({ product_id: uuidBySlug.get(slugById.get(line.productId)!), quantity: line.quantity }));
   if (items.some((i) => !i.product_id)) return { status: "error", message: "A product in your cart is no longer available." };
 
+  // Authoritative delivery fee: the same server-only buildQuote the review used,
+  // times the active surge. What is charged == what was shown; the browser never
+  // supplies the fee. place_order floors it at the configured minimum.
+  const dropLat = parsed.data.dropoffLat ? Number(parsed.data.dropoffLat) : undefined;
+  const dropLng = parsed.data.dropoffLng ? Number(parsed.data.dropoffLng) : undefined;
+  const vehicle = parsed.data.vehicle as GroundTransportVehicleId | undefined;
+  const quote = buildQuote(cart, parsed.data.zone as DeliveryZoneId, new Date().toISOString(), catalog, [], dropLat, dropLng, vehicle);
+  const deliveryFeeTzs = Math.round(quote.deliveryFeeTzs * (await activeSurgeMultiplier(sb)));
+
   const { data, error } = await sb.rpc("place_order", {
     p_items: items,
     p_zone: parsed.data.zone,
@@ -180,6 +212,7 @@ export async function placeOrder(_prev: PlaceState, formData: FormData): Promise
     p_payment_method: provider.id,
     p_idempotency_key: String(formData.get("idempotency_key") ?? crypto.randomUUID()),
     p_instructions: parsed.data.instructions ?? "",
+    p_delivery_fee_tzs: deliveryFeeTzs,
   });
   if (error) {
     const message = /sign in/i.test(error.message) ? "Please sign in to place an order." : error.message;
