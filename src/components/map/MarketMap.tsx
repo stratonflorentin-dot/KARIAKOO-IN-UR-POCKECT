@@ -122,60 +122,14 @@ const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#
 
 function pinElement(point: MapPoint): HTMLElement {
   if (point.kind === "rider") {
-    const container = document.createElement("div");
-    container.setAttribute("aria-label", `Rider: ${point.label}`);
-    container.style.cssText = [
-      "display:flex",
-      "flex-direction:column",
-      "align-items:center",
-      "cursor:pointer",
-      "user-select:none",
-      "transform:translate(0, -10px)",
-    ].join(";");
-
     const vType = (point.vehicleType || "").toLowerCase();
     const isBajaj = vType.includes("bajaj") || vType.includes("tri");
     const isPickup = vType.includes("pickup") || vType.includes("car");
     const isLori = vType.includes("lori") || vType.includes("truck") || vType.includes("canter");
 
-    // Pill badge above the vehicle
-    const badge = document.createElement("div");
-    let defaultBadge = "🏍️ Dereva Yuko Njiani";
-    if (isBajaj) defaultBadge = "🛺 Bajaji Iko Njiani";
-    else if (isPickup) defaultBadge = "🛻 Pickup Iko Njiani";
-    else if (isLori) defaultBadge = "🚚 Lori Dogo Liko Njiani";
-
-    badge.textContent = point.badge || defaultBadge;
-    badge.style.cssText = [
-      "background:#047857",
-      "color:#ffffff",
-      "font:800 11px/1.2 system-ui, -apple-system, sans-serif",
-      "padding:4px 10px",
-      "border-radius:9999px",
-      "box-shadow:0 3px 10px rgba(0,0,0,0.35)",
-      "margin-bottom:4px",
-      "white-space:nowrap",
-      "letter-spacing:0.02em",
-      "border:1.5px solid #ffffff",
-    ].join(";");
-    container.appendChild(badge);
-
-    // Vehicle avatar disc with pulse radar safety ring
-    const vehicleDisc = document.createElement("div");
-    vehicleDisc.style.cssText = [
-      "display:grid",
-      "place-items:center",
-      "width:44px",
-      "height:44px",
-      "border-radius:9999px",
-      "background:#ffffff",
-      "border:2.5px solid #059669",
-      "box-shadow:0 0 0 6px rgba(16,185,129,0.32), 0 4px 14px rgba(0,0,0,0.38)",
-      "overflow:hidden",
-      "position:relative",
-      "padding:2px",
-    ].join(";");
-
+    // Colour-coded per vehicle, matching the vehicle picker: green pickup,
+    // blue bajaj, teal lori, purple pikipiki.
+    const color = isPickup ? "#15803d" : isBajaj ? "#2563eb" : isLori ? "#0f766e" : "#7c3aed";
     const imgSrc =
       point.vehicleImageUrl ||
       (isBajaj
@@ -185,20 +139,56 @@ function pinElement(point: MapPoint): HTMLElement {
           : isLori
             ? "/images/transport/lori_dogo.png"
             : "/images/transport/pikipiki.png");
+    const defaultBadge = isBajaj ? "Bajaji" : isPickup ? "Pickup" : isLori ? "Lori Dogo" : "Pikipiki";
 
-    let fallbackSvg = "";
-    if (isBajaj) {
-      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="19" r="2.5"/><circle cx="20" cy="19" r="2.5"/><path d="M3 16V9a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7H3z" fill="#10b981"/><path d="M14 6l3 5H14V6z" fill="#38bdf8"/></svg>`;
-    } else if (isPickup) {
-      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M2 13h4l3-6h5v6h8v3H2v-3z" fill="#10b981"/><path d="M8 8l-2 5h4V8H8z" fill="#38bdf8"/></svg>`;
-    } else if (isLori) {
-      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/><rect x="2" y="5" width="12" height="11" rx="1" fill="#10b981"/><path d="M14 9h4l3 4v3h-7V9z" fill="#047857"/></svg>`;
-    } else {
-      fallbackSvg = `<svg style="display:none;width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="M5 18l4-8h4l3 8"/><path d="M12 10l2-4h3"/><circle cx="13" cy="5" r="1.5" fill="#047857"/></svg>`;
-    }
+    const container = document.createElement("div");
+    container.setAttribute("aria-label", `Rider: ${point.label}`);
+    container.style.cssText = ["display:flex", "flex-direction:column", "align-items:center", "cursor:pointer", "user-select:none"].join(";");
 
-    vehicleDisc.innerHTML = `<img src="${imgSrc}" alt="${point.label}" style="width:34px;height:28px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.25));" onError="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';" />${fallbackSvg}`;
-    container.appendChild(vehicleDisc);
+    // Label / ETA pill
+    const badge = document.createElement("div");
+    badge.textContent = point.badge || defaultBadge;
+    badge.style.cssText = [
+      `background:${color}`,
+      "color:#ffffff",
+      "font:800 11px/1.2 system-ui, -apple-system, sans-serif",
+      "padding:4px 10px",
+      "border-radius:9999px",
+      "box-shadow:0 3px 10px rgba(0,0,0,0.35)",
+      "white-space:nowrap",
+      "border:1.5px solid #ffffff",
+    ].join(";");
+    container.appendChild(badge);
+
+    // Vehicle image floating above the pin.
+    const img = document.createElement("img");
+    img.src = imgSrc;
+    img.alt = point.label;
+    img.style.cssText = "width:58px;height:42px;object-fit:contain;margin-top:3px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4))";
+    img.onerror = () => { img.style.display = "none"; };
+    container.appendChild(img);
+
+    // Colour-matched teardrop location pin with a white centre dot.
+    const pinWrap = document.createElement("div");
+    pinWrap.style.cssText = "position:relative;width:24px;height:24px;margin-top:-1px";
+    const pin = document.createElement("div");
+    pin.style.cssText = [
+      `background:${color}`,
+      "position:absolute",
+      "left:1px",
+      "top:1px",
+      "width:22px",
+      "height:22px",
+      "border:3px solid #ffffff",
+      "border-radius:50% 50% 50% 0",
+      "transform:rotate(45deg)",
+      "box-shadow:0 3px 8px rgba(0,0,0,0.4)",
+    ].join(";");
+    const dot = document.createElement("div");
+    dot.style.cssText = "position:absolute;left:9px;top:9px;width:7px;height:7px;border-radius:9999px;background:#ffffff";
+    pinWrap.appendChild(pin);
+    pinWrap.appendChild(dot);
+    container.appendChild(pinWrap);
 
     return container;
   }
@@ -452,7 +442,7 @@ export default function MarketMap({
     }
 
     for (const p of pts) {
-      new maplibregl.Marker({ element: pinElement(p) })
+      new maplibregl.Marker({ element: pinElement(p), anchor: p.kind === "rider" ? "bottom" : "center" })
         .setLngLat(p.geo)
         .setPopup(new maplibregl.Popup({ offset: 20, closeButton: false }).setDOMContent(popupContent(p)))
         .addTo(map);
