@@ -7,7 +7,7 @@
 // Privacy: the viewer's own position is read only after they tap "Share my
 // location", only while the map is open, and it never leaves the device.
 import * as maplibregl from "maplibre-gl";
-import { Crosshair, Layers, LocateFixed, LocateOff } from "lucide-react";
+import { Crosshair, Layers, LocateFixed, LocateOff, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Turbopack can't resolve MapLibre's bundled worker URL, so load the copy
@@ -344,6 +344,7 @@ export default function MarketMap({
   const [me, setMe] = useState<LngLat | null>(null);
   const [geoError, setGeoError] = useState("");
   const [view, setView] = useState<"satellite" | "streets">(defaultView);
+  const [expanded, setExpanded] = useState(false);
   const viewRef = useRef(view);
   const pointsKey = JSON.stringify(points);
   const waypointsKey = JSON.stringify(routeWaypoints ?? []);
@@ -656,10 +657,26 @@ export default function MarketMap({
 
   const next = nextIndex !== undefined && nextIndex >= 0 ? points[nextIndex] : undefined;
 
+  // Resize the map canvas after the container grows/shrinks (expand/collapse).
+  useEffect(() => {
+    const id = window.setTimeout(() => mapRef.current?.resize(), 80);
+    return () => window.clearTimeout(id);
+  }, [expanded]);
+
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-white">
-      <div className="relative">
-        <div ref={container} role="region" aria-label={ariaLabel} className={`w-full ${heightClass}`} />
+    <div className={expanded ? "fixed inset-0 z-[2000] flex flex-col bg-white" : "overflow-hidden rounded-3xl border border-line bg-white"}>
+      <div className={`relative ${expanded ? "flex-1" : ""}`}>
+        <div ref={container} role="region" aria-label={ariaLabel} className={`w-full ${expanded ? "h-full" : heightClass}`} />
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-label={expanded ? "Close full map" : "Open full map"}
+          aria-pressed={expanded}
+          className="absolute bottom-3 left-3 z-10 inline-flex h-10 items-center gap-1.5 rounded-full bg-white/95 px-3 text-xs font-semibold text-ink shadow-md hover:bg-white"
+        >
+          {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
+          {expanded ? "Close" : "Full map"}
+        </button>
         <button
           type="button"
           onClick={() => setView((v) => (v === "satellite" ? "streets" : "satellite"))}
