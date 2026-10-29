@@ -97,6 +97,27 @@ export function haversine(a: LngLat, b: LngLat): number {
 
 export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
 
+/**
+ * Road-following driving route through the given waypoints, using the public
+ * OSRM demo server (free, no key). Returns the routed polyline, or null if the
+ * service is unavailable — callers fall back to a straight line so a route is
+ * always shown. For production scale, swap in a keyed provider.
+ */
+async function fetchRoadRoute(waypoints: LngLat[]): Promise<LngLat[] | null> {
+  if (waypoints.length < 2) return null;
+  try {
+    const path = waypoints.map(([lng, lat]) => `${lng.toFixed(6)},${lat.toFixed(6)}`).join(";");
+    const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = (await res.json()) as { routes?: { geometry?: { coordinates?: [number, number][] } }[] };
+    const line = json.routes?.[0]?.geometry?.coordinates;
+    return Array.isArray(line) && line.length > 1 ? (line as LngLat[]) : null;
+  } catch {
+    return null;
+  }
+}
+
 const pinColor: Record<MapPoint["kind"], string> = { shop: "#059669", pickup: "#059669", dropoff: "#0a211a", rider: "#0f172a" };
 
 function pinElement(point: MapPoint): HTMLElement {
@@ -497,6 +518,18 @@ export default function MarketMap({
             "line-width": 5.5,
             "line-opacity": 0.95,
           },
+        });
+
+        // Upgrade the straight guide line to a real road-following route (the
+        // actual streets the rider drives). Falls back to the straight line.
+        void fetchRoadRoute(coords).then((routed) => {
+          if (!routed || !mapRef.current) return;
+          const src = map.getSource("guide") as maplibregl.GeoJSONSource | undefined;
+          if (!src) return;
+          src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: routed } });
+          const b = new maplibregl.LngLatBounds(routed[0], routed[0]);
+          routed.forEach((c) => b.extend(c));
+          map.fitBounds(b, { padding: 56, maxZoom: 16, duration: 400 });
         });
       }
       if (routeFromMe && pts.length > 0) {
