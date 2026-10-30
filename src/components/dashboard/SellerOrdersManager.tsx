@@ -209,6 +209,49 @@ export function SellerOrdersManager({
       {filtered.length === 0 ? (
         <EmptyState title={labels.noOrders} body={labels.noOrdersBody} />
       ) : (
+        <>
+        {/* Mobile: stacked cards so every control (incl. order actions) stays reachable
+            without horizontal scrolling off-screen. */}
+        <ul className="space-y-3 lg:hidden">
+          {filtered.map((o) => {
+            const b = breakdown(o.items);
+            return (
+              <li key={o.orderId} className="rounded-2xl border border-line bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">{o.reference}</p>
+                    <p className="text-xs text-muted">{formatDateTime(o.placedAt)}</p>
+                    <p className="text-xs text-muted">{isDeliveryZoneId(o.zone) ? getZone(o.zone).name.split(" (")[0] : o.zone}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-semibold tabular-nums">{formatTzs(b.sellerProceedsTzs)}</p>
+                    <p className="text-2xs text-muted">{labels.afterCommission.replace("{rate}", formatBps(o.items[0]?.commissionBps ?? 0))}</p>
+                  </div>
+                </div>
+                <ul className="mt-3 space-y-0.5 text-sm">
+                  {o.items.map((i) => (<li key={i.productId}>{i.quantity} × {i.productName}</li>))}
+                </ul>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <PaymentStatusBadge status={o.paymentStatus} />
+                  <DeliveryStatusBadge status={o.deliveryStatus} />
+                  {orderVehicles[o.orderId] ? (
+                    <span className="flex items-center gap-1 text-2xs font-bold text-emerald-800"><Truck size={12} className="text-emerald-600" aria-hidden="true" />{orderVehicles[o.orderId]}</span>
+                  ) : (
+                    <button type="button" onClick={() => setTransportModalOrder(o)} className="inline-flex items-center gap-1 rounded-lg border border-line bg-subtle px-2 py-1 text-2xs font-semibold text-ink hover:border-brand-400 hover:bg-white">
+                      <Truck size={11} className="text-brand-600" aria-hidden="true" /><span>Chagua Usafiri</span>
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 border-t border-line pt-3">
+                  <LiveSellerOrderActions orderId={o.orderId} initialStatus={o.fulfillmentStatus} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Desktop: full table. */}
+        <div className="hidden lg:block">
         <TableCard label={labels.shopOrders} minWidth="60rem">
           <THead>
             <Th>{labels.colOrder}</Th>
@@ -276,6 +319,8 @@ export function SellerOrdersManager({
             })}
           </tbody>
         </TableCard>
+        </div>
+        </>
       )}
       {transportModalOrder && (
         <SellerParcelTransportModal
