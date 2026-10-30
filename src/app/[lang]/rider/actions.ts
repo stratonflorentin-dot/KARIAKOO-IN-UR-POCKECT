@@ -72,6 +72,21 @@ export async function reportSosIncident(lat?: number, lng?: number): Promise<Sos
   return { ok: true, message: "Alert sent to dispatch. Stay safe — call emergency services if you're in danger." };
 }
 
+/** Share the rider's live position for an active delivery; appends to the
+ *  durable anti-theft trail (server throttles to ~1 stored point / 15s). */
+export async function pingDeliveryLocation(orderId: string, lng: number, lat: number, accuracy?: number): Promise<{ ok: boolean }> {
+  const session = await getSessionWithRole("rider");
+  if (!session) return { ok: false };
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.rpc("rider_ping_delivery_location", {
+    p_order_id: orderId,
+    p_lat: lat,
+    p_lng: lng,
+    p_accuracy: typeof accuracy === "number" && Number.isFinite(accuracy) ? accuracy : null,
+  });
+  return { ok: !error };
+}
+
 /* ----------------------------- Dispatch ----------------------------- */
 
 // Dispatch actions operate on the signed-in Supabase rider's records.
