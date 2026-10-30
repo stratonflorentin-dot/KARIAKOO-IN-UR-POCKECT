@@ -22,7 +22,7 @@ export interface RiderJobView {
   cashToCollectTzs: number;
 }
 
-export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt: string }
+export interface RiderOfferView { orderId: string; payoutTzs: number; expiresAt: string; instructions?: string }
 export interface RiderAvailableDelivery {
   orderId: string;
   reference: string;
@@ -70,11 +70,24 @@ export async function riderOffers(session: Session | null): Promise<RiderOfferVi
     .gt("expires_at", new Date().toISOString())
     .order("offered_at", { ascending: true });
   if (error) throw new Error(`Could not load delivery offers: ${error.message}`);
-  return ((data ?? []) as { order_id: string; payout_tzs: number; expires_at: string }[]).map((offer) => ({
-    orderId: offer.order_id,
-    payoutTzs: Number(offer.payout_tzs),
-    expiresAt: offer.expires_at,
-  }));
+  // The chosen transport vehicle (non-sensitive) for each pending offer, so the
+  // offer card shows the real vehicle instead of guessing it from the payout.
+  const { data: vehRows } = await sb.rpc("rider_offer_vehicles");
+  const vehicleByOrder = new Map(
+    ((vehRows ?? []) as { order_id: string; vehicle: string | null }[])
+      .filter((r) => r.vehicle)
+      .map((r) => [r.order_id, r.vehicle as string]),
+  );
+  return ((data ?? []) as { order_id: string; payout_tzs: number; expires_at: string }[]).map((offer) => {
+    const vehicle = vehicleByOrder.get(offer.order_id);
+    return {
+      orderId: offer.order_id,
+      payoutTzs: Number(offer.payout_tzs),
+      expiresAt: offer.expires_at,
+      // The offer modal parses this marker to show the real vehicle.
+      instructions: vehicle ? `[Usafiri: ${vehicle}]` : undefined,
+    };
+  });
 }
 
 export async function riderJobs(session: Session | null): Promise<RiderJobView[]> {
