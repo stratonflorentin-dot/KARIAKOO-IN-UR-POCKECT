@@ -152,6 +152,77 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
             {rows.length === 0 ? sp.noProductsYet : sp.noneInList}
           </p>
         ) : (
+        <>
+        {/* Mobile: one card per product so price, stock and actions stay reachable. */}
+        <ul className="space-y-3 lg:hidden">
+          {visible.map((r) => (
+            <li key={r.id} className={`rounded-2xl border border-line p-4 ${r.status === "archived" ? "bg-subtle text-muted" : "bg-white"}`}>
+              <div className="flex items-start gap-3">
+                <div className="w-14 shrink-0 overflow-hidden rounded-lg"><ProductImage category={r.category} name={r.name} imageUrl={r.imageUrl} size="sm" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium leading-tight">{r.name}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {formatTzs(r.priceTzs)}{r.audience && ` · ${audienceLabel(r.audience)}`}{r.productType && ` · ${productTypeLabel(r.productType)}`}
+                  </p>
+                  <div className="mt-1.5">
+                    {r.status === "archived" ? <Badge>{sp.archived}</Badge> : r.stock === 0 ? <Badge tone="danger">{sp.outOfStock}</Badge> : r.stock <= 5 ? <Badge tone="warning">{sp.lowStock}</Badge> : <Badge tone="success">{sp.live}</Badge>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor={`m-price-${r.id}`} className="block text-xs font-medium text-muted">{sp.colPrice}</label>
+                  <input id={`m-price-${r.id}`} type="number" min={100} step={100} value={r.priceTzs} disabled={r.status === "archived"}
+                    onChange={(e) => update(r.id, { priceTzs: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                    onBlur={() => persistFields(r)} className={`${compactInputClass} mt-1 w-full`} />
+                </div>
+                <div>
+                  <label htmlFor={`m-stock-${r.id}`} className="block text-xs font-medium text-muted">{sp.colStock}</label>
+                  <input id={`m-stock-${r.id}`} type="number" min={0} step={1} value={r.stock} disabled={r.status === "archived"}
+                    onChange={(e) => update(r.id, { stock: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                    onBlur={() => persistFields(r)} className={`${compactInputClass} mt-1 w-full ${r.stock === 0 ? "border-red-300" : ""}`} />
+                </div>
+              </div>
+
+              {r.status === "active" && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <button type="button" onClick={() => quickAdjustStock(r, r.stock + 1)} className="inline-flex h-7 items-center rounded border border-line bg-subtle px-2 text-xs font-semibold text-ink hover:bg-stone-200">+1</button>
+                  <button type="button" onClick={() => quickAdjustStock(r, r.stock + 5)} className="inline-flex h-7 items-center rounded border border-line bg-subtle px-2 text-xs font-semibold text-ink hover:bg-stone-200">+5</button>
+                  {r.stock > 0 && <button type="button" onClick={() => quickAdjustStock(r, 0)} className="inline-flex h-7 items-center rounded border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-700 hover:bg-red-100">{sp.outOfStock}</button>}
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
+                <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle">
+                  <ChevronDown size={15} className={open === r.id ? "rotate-180" : ""} aria-hidden="true" /> {sp.details}
+                </button>
+                {r.slug && r.status === "active" && (
+                  <Link href={`/customer/product/${r.slug}`} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle"><Eye size={15} aria-hidden="true" /> {sp.view}</Link>
+                )}
+                {r.slug && r.status === "active" && (
+                  <ShareAction title={r.name} text={`Check out ${r.name} on Kariakoo`} url={`/customer/product/${r.slug}`} label="Share" variant="icon" />
+                )}
+                {r.status === "active" ? (
+                  <ConfirmDialog title={fmt(sp.archiveTitle, { name: r.name })} body={sp.archiveBody} confirmLabel={sp.archive}
+                    onConfirm={() => changeStatus(r, "archived")}
+                    trigger={(openDialog) => <button type="button" onClick={openDialog} className="ml-auto h-9 rounded-lg px-2.5 text-sm text-red-700 hover:bg-red-50">{sp.archive}</button>} />
+                ) : (
+                  <button type="button" onClick={() => changeStatus(r, "active")} className="ml-auto h-9 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle">{sp.restore}</button>
+                )}
+              </div>
+
+              {open === r.id && (
+                <div className="mt-3 rounded-xl bg-subtle p-3">
+                  <p className="whitespace-pre-line text-sm text-muted">{r.description}</p>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        {/* Desktop: full table. */}
+        <div className="hidden lg:block">
         <TableCard label={sp.tableLabel} minWidth="52rem">
           <THead><Th>{sp.colProduct}</Th><Th>{sp.colPrice}</Th><Th>{sp.colStock}</Th><Th>{sp.colStatus}</Th><Th><span className="sr-only">{sp.colActions}</span></Th></THead>
           <tbody className={tbodyClass}>
@@ -273,6 +344,8 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
             ))}
           </tbody>
         </TableCard>
+        </div>
+        </>
         )}
       </div>
     </>
