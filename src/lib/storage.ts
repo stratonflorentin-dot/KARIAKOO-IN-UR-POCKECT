@@ -5,6 +5,7 @@
 
 export const PRODUCT_IMAGES_BUCKET = "product-images";
 export const STORE_BANNERS_BUCKET = "store-banners";
+export const DELIVERY_PROOF_BUCKET = "delivery-proof";
 
 const EXT_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -26,4 +27,11 @@ export function productImagePath(shopId: string, type: string): string {
 /** The public-URL prefix for a shop's product images, for validating saves. */
 export function productImagePublicPrefix(supabaseUrl: string, shopId: string): string {
   return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${shopId}/`;
+}
+
+/** Object path (within the private delivery-proof bucket) for an order's proof photo.
+ *  One filename segment under the order id — matches the rider_add_delivery_proof check. */
+export function deliveryProofObjectPath(orderId: string, type: string): string {
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${orderId}/${id}.${imageExtForType(type)}`;
 }

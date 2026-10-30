@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Timeline } from "@/components/orders/Timeline";
 import { DeliveryFlow } from "@/components/rider/DeliveryFlow";
 import { DeliveryLiveShare } from "@/components/rider/DeliveryLiveShare";
+import { DeliveryProofCapture } from "@/components/rider/DeliveryProofCapture";
 import { RiderStopNavigation } from "@/components/rider/RiderStopNavigation";
 import { DeliveryVoiceCall } from "@/components/orders/DeliveryVoiceCall";
 import { RiderQuickDispatchBar } from "@/components/rider/RiderQuickDispatchBar";
@@ -61,6 +62,9 @@ export default async function RiderJobPage({ params, searchParams }: PageProps<"
 
       {/* Once the parcel is in hand, share the rider's live location for anti-theft. */}
       {["PICKED_UP", "IN_TRANSIT"].includes(job.status) && <DeliveryLiveShare orderId={job.orderId} />}
+
+      {/* At hand-over, capture a proof-of-delivery photo. */}
+      {job.status === "IN_TRANSIT" && <DeliveryProofCapture orderId={job.orderId} />}
 
       {["ACCEPTED", "PICKED_UP", "IN_TRANSIT"].includes(job.status) && (
         <div className="space-y-3">

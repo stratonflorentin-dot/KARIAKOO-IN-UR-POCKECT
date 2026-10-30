@@ -87,6 +87,20 @@ export async function pingDeliveryLocation(orderId: string, lng: number, lat: nu
   return { ok: !error };
 }
 
+/** Record a proof-of-delivery photo (already uploaded to the delivery-proof bucket). */
+export async function addDeliveryProof(orderId: string, imagePath: string, note?: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSessionWithRole("rider");
+  if (!session) return { ok: false, error: "Please sign in as a rider." };
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.rpc("rider_add_delivery_proof", {
+    p_order_id: orderId,
+    p_image_path: imagePath,
+    p_note: note ?? "",
+  });
+  if (error) return { ok: false, error: "Could not save the proof photo." };
+  return { ok: true };
+}
+
 /* ----------------------------- Dispatch ----------------------------- */
 
 // Dispatch actions operate on the signed-in Supabase rider's records.
