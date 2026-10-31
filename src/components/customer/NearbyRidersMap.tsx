@@ -5,9 +5,10 @@
 // positions); an RPC snapshot (nearby_available_riders) seeds the map and acts as
 // a fallback when no one is broadcasting. The precise live location of the rider
 // assigned to an order is shown only after booking.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
+import { riderRouteEta } from "@/app/[lang]/customer/transport/actions";
 import { DISCOVERY_CHANNEL } from "@/components/rider/RiderDiscoveryBroadcaster";
 import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { getVehicleById, type GroundTransportVehicleId } from "@/lib/parcel-transport";
@@ -57,6 +58,10 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
   const [snapshot, setSnapshot] = useState<Rider[]>([]);
   const [live, setLive] = useState<Record<string, LivePing>>({});
   const [error, setError] = useState("");
+  const [eta, setEta] = useState<{ minutes: number; approximate: boolean } | null>(null);
+  const posRef = useRef(position);
+  posRef.current = position;
+  const nearestRef = useRef<Rider | undefined>(undefined);
 
   useEffect(() => {
     requestLocation();
@@ -153,6 +158,30 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
     };
   });
   const nearest = riders[0];
+  nearestRef.current = nearest;
+
+  // Road-based ETA for the nearest rider, refreshed on a new nearest rider and
+  // every 30s (bounded so we respect the routing API's free-tier limits).
+  useEffect(() => {
+    if (!nearestRef.current) {
+      setEta(null);
+      return;
+    }
+    let alive = true;
+    async function fetchEta() {
+      const p = posRef.current;
+      const n = nearestRef.current;
+      if (!p || !n) return;
+      const r = await riderRouteEta(n.lat, n.lng, p.lat, p.lng);
+      if (alive) setEta({ minutes: Math.max(1, Math.round(r.durationS / 60)), approximate: r.approximate });
+    }
+    void fetchEta();
+    const id = window.setInterval(() => void fetchEta(), 30_000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [nearest?.id]);
 
   return (
     <section aria-label="Madereva walio karibu" className="space-y-3">
@@ -180,7 +209,12 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
         <>
           <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm">
             <span className="font-semibold">{riders.length} {riders.length === 1 ? "dereva" : "madereva"} karibu</span>
-            {nearest && <span className="text-muted">Aliye karibu zaidi ~{approxMinutes(nearest.distanceM)} dakika (makisio)</span>}
+            {nearest && (
+              <span className="text-muted">
+                Aliye karibu zaidi ~{eta ? eta.minutes : approxMinutes(nearest.distanceM)} dakika{" "}
+                {eta && !eta.approximate ? "(njia)" : "(makisio)"}
+              </span>
+            )}
           </div>
           <div className="overflow-hidden rounded-2xl border border-line">
             <MapLoader
