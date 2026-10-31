@@ -38,13 +38,24 @@ function initials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-export function ParcelTransportBooking({ userRole: _userRole = "customer" }: { userRole?: "customer" | "seller" }) {
+export function ParcelTransportBooking({
+  userRole: _userRole = "customer",
+  vehicleId,
+  onVehicleChange,
+}: {
+  userRole?: "customer" | "seller";
+  /** When provided, the selected vehicle is controlled by the parent (e.g. the
+   *  nearby-riders map preselecting a vehicle type). Otherwise it is local state. */
+  vehicleId?: GroundTransportVehicleId;
+  onVehicleChange?: (id: GroundTransportVehicleId) => void;
+}) {
   const [origin, setOrigin] = useState("Newland");
   const [destination, setDestination] = useState("Moshi Bus Stand");
   const [distanceKm, setDistanceKm] = useState(11.2);
   const [durationMin, setDurationMin] = useState(28);
   const [isEditingRoute, setIsEditingRoute] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<GroundTransportVehicleId>("pickup");
+  const [internalVehicleId, setInternalVehicleId] = useState<GroundTransportVehicleId>("pickup");
+  const selectedVehicleId = vehicleId ?? internalVehicleId;
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [confirmedBooking, setConfirmedBooking] = useState<{
     reference: string;
@@ -60,7 +71,8 @@ export function ParcelTransportBooking({ userRole: _userRole = "customer" }: { u
   } | null>(null);
 
   function handleSelectVehicle(vehicle: GroundTransportVehicle) {
-    setSelectedVehicleId(vehicle.id);
+    setInternalVehicleId(vehicle.id);
+    onVehicleChange?.(vehicle.id);
   }
 
   function handleConfirmBooking(vehicle: GroundTransportVehicle) {

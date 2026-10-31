@@ -51,7 +51,14 @@ function haversineM(aLat: number, aLng: number, bLat: number, bLng: number): num
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
+export function NearbyRidersMap({
+  radiusM = 5000,
+  onPickVehicle,
+}: {
+  radiusM?: number;
+  /** Fired when the customer chooses a vehicle type to book from the discovery map. */
+  onPickVehicle?: (id: VehId) => void;
+}) {
   const { position, requestLocation } = useAppLocation();
   const client = useMemo(() => createSupabaseBrowserClient(), []);
   const [filter, setFilter] = useState<VehId | "all">("all");
@@ -216,6 +223,17 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
               </span>
             )}
           </div>
+          {onPickVehicle && filter !== "all" && (
+            // Carry the chosen vehicle type straight into booking (auto-dispatch picks the
+            // actual rider — discovery positions are de-identified, so no specific rider is requested).
+            <button
+              type="button"
+              onClick={() => onPickVehicle(filter)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              Agiza {getVehicleById(filter).name} →
+            </button>
+          )}
           <div className="overflow-hidden rounded-2xl border border-line">
             <MapLoader
               points={points}

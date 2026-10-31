@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "@/components/i18n/Link";
-import { ParcelTransportBooking } from "@/components/delivery/ParcelTransportBooking";
-import { NearbyRidersMap } from "@/components/customer/NearbyRidersMap";
+import { TransportDiscoveryBooking } from "@/components/customer/TransportDiscoveryBooking";
 import { Truck } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -32,13 +31,8 @@ export default function ParcelTransportPage() {
         </div>
       </div>
 
-      {/* Riders near you (approximate positions) before you book. */}
-      <div className="mb-5">
-        <h2 className="mb-2 text-sm font-semibold text-ink">Madereva walio karibu nawe</h2>
-        <NearbyRidersMap />
-      </div>
-
-      <ParcelTransportBooking userRole="customer" />
+      {/* Riders near you (approximate positions) → pick a vehicle type → book. */}
+      <TransportDiscoveryBooking />
     </div>
   );
 }

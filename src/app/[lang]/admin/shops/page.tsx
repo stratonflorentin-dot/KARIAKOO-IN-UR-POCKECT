@@ -30,24 +30,46 @@ export default async function AdminShopsPage() {
         {applications.length === 0 ? (
           <EmptyState title="No seller applications yet" body="When someone applies to sell through the app, their shop appears here for review." />
         ) : (
-          <TableCard label="Seller applications" minWidth="48rem">
-            <THead><Th>Shop</Th><Th>Category</Th><Th>Area</Th><Th>Status & actions</Th></THead>
-            <tbody className={tbodyClass}>
+          <>
+            {/* Mobile: one card per application so the review controls stay reachable. */}
+            <ul className="space-y-3 lg:hidden">
               {applications.map((a) => (
-                <tr key={a.id}>
-                  <th scope="row" className={`${tdClass} font-medium`}>
-                    {a.name}
-                    <span className="block text-xs font-normal text-muted">{a.address}</span>
-                  </th>
-                  <td className={tdClass}>{getCategory(a.category)?.name ?? a.category}</td>
-                  <td className={`${tdClass} capitalize`}>{a.area}</td>
-                  <td className={tdClass}>
+                <li key={a.id} className="rounded-2xl border border-line bg-white p-4">
+                  <p className="font-medium leading-tight">{a.name}</p>
+                  <p className="mt-0.5 text-xs text-muted">{a.address}</p>
+                  <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                    <div><dt className="inline font-medium">Category: </dt><dd className="inline">{getCategory(a.category)?.name ?? a.category}</dd></div>
+                    <div><dt className="inline font-medium">Area: </dt><dd className="inline capitalize">{a.area}</dd></div>
+                  </dl>
+                  <div className="mt-3 border-t border-line pt-3">
                     <LiveModerationActions kind="shop" id={a.id} subject={a.name} status={a.status} statusTones={tones} options={options} />
-                  </td>
-                </tr>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </TableCard>
+            </ul>
+
+            {/* Desktop: full table. */}
+            <div className="hidden lg:block">
+              <TableCard label="Seller applications" minWidth="48rem">
+                <THead><Th>Shop</Th><Th>Category</Th><Th>Area</Th><Th>Status & actions</Th></THead>
+                <tbody className={tbodyClass}>
+                  {applications.map((a) => (
+                    <tr key={a.id}>
+                      <th scope="row" className={`${tdClass} font-medium`}>
+                        {a.name}
+                        <span className="block text-xs font-normal text-muted">{a.address}</span>
+                      </th>
+                      <td className={tdClass}>{getCategory(a.category)?.name ?? a.category}</td>
+                      <td className={`${tdClass} capitalize`}>{a.area}</td>
+                      <td className={tdClass}>
+                        <LiveModerationActions kind="shop" id={a.id} subject={a.name} status={a.status} statusTones={tones} options={options} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </TableCard>
+            </div>
+          </>
         )}
       </section>
 

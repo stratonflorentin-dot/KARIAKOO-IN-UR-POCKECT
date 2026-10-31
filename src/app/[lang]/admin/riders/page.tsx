@@ -31,24 +31,46 @@ export default async function AdminRidersPage() {
         {applications.length === 0 ? (
           <EmptyState title="No rider applications yet" body="When someone applies to ride through the app, they appear here for review." />
         ) : (
-          <TableCard label="Rider applications" minWidth="48rem">
-            <THead><Th>Rider</Th><Th>Vehicle</Th><Th>Base area</Th><Th>Status & actions</Th></THead>
-            <tbody className={tbodyClass}>
+          <>
+            {/* Mobile: one card per application so the review controls stay reachable. */}
+            <ul className="space-y-3 lg:hidden">
               {applications.map((a) => (
-                <tr key={a.id}>
-                  <th scope="row" className={`${tdClass} font-medium`}>
-                    {a.name}
-                    {a.phone && <span className="block text-xs font-normal text-muted">{formatTzPhone(a.phone)}</span>}
-                  </th>
-                  <td className={tdClass}>{a.vehicle}<span className="block text-xs text-muted">{a.plate}</span></td>
-                  <td className={tdClass}>{isDeliveryZoneId(a.baseZone) ? getZone(a.baseZone).name.split(" (")[0] : a.baseZone}</td>
-                  <td className={tdClass}>
+                <li key={a.id} className="rounded-2xl border border-line bg-white p-4">
+                  <p className="font-medium leading-tight">{a.name}</p>
+                  {a.phone && <p className="mt-0.5 text-xs text-muted">{formatTzPhone(a.phone)}</p>}
+                  <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                    <div><dt className="inline font-medium">Vehicle: </dt><dd className="inline">{a.vehicle}{a.plate && ` · ${a.plate}`}</dd></div>
+                    <div><dt className="inline font-medium">Base area: </dt><dd className="inline">{isDeliveryZoneId(a.baseZone) ? getZone(a.baseZone).name.split(" (")[0] : a.baseZone}</dd></div>
+                  </dl>
+                  <div className="mt-3 border-t border-line pt-3">
                     <LiveModerationActions kind="rider" id={a.id} subject={a.name} status={a.status} statusTones={tones} options={options} />
-                  </td>
-                </tr>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </TableCard>
+            </ul>
+
+            {/* Desktop: full table. */}
+            <div className="hidden lg:block">
+              <TableCard label="Rider applications" minWidth="48rem">
+                <THead><Th>Rider</Th><Th>Vehicle</Th><Th>Base area</Th><Th>Status & actions</Th></THead>
+                <tbody className={tbodyClass}>
+                  {applications.map((a) => (
+                    <tr key={a.id}>
+                      <th scope="row" className={`${tdClass} font-medium`}>
+                        {a.name}
+                        {a.phone && <span className="block text-xs font-normal text-muted">{formatTzPhone(a.phone)}</span>}
+                      </th>
+                      <td className={tdClass}>{a.vehicle}<span className="block text-xs text-muted">{a.plate}</span></td>
+                      <td className={tdClass}>{isDeliveryZoneId(a.baseZone) ? getZone(a.baseZone).name.split(" (")[0] : a.baseZone}</td>
+                      <td className={tdClass}>
+                        <LiveModerationActions kind="rider" id={a.id} subject={a.name} status={a.status} statusTones={tones} options={options} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </TableCard>
+            </div>
+          </>
         )}
       </section>
 
