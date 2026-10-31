@@ -82,30 +82,58 @@ export default async function SellerFinancesPage() {
       </Card>
 
       <div className="mt-6">
-        <TableCard label="Commission by order" minWidth="52rem">
-          <THead><Th>Order</Th><Th align="right">Merchandise</Th><Th align="right">Rate</Th><Th align="right">Commission</Th><Th align="right">Your proceeds</Th><Th>Settlement</Th></THead>
-          <tbody className={tbodyClass}>
-            {orders.map((o) => {
-              const b = breakdown(o.items);
-              const excluded = o.paymentStatus !== "successful" || ["rejected", "cancelled"].includes(o.group.status);
-              return (
-                <tr key={o.orderId} className={excluded ? "text-muted" : ""}>
-                  <th scope="row" className={`${tdClass} font-medium`}>
-                    {o.reference}
-                    <span className="block text-xs font-normal text-muted">{formatDate(o.placedAt)}</span>
-                  </th>
-                  <td className={`${tdClass} text-right tabular-nums`}>{formatTzs(b.merchandiseTzs)}</td>
-                  <td className={`${tdClass} text-right tabular-nums`}>{formatBps(o.items[0].commissionBps)}</td>
-                  <td className={`${tdClass} text-right tabular-nums`}>{excluded ? "—" : `−${formatTzs(b.commissionTzs)}`}</td>
-                  <td className={`${tdClass} text-right font-semibold tabular-nums`}>{excluded ? "—" : formatTzs(b.sellerProceedsTzs)}</td>
-                  <td className={tdClass}>
-                    {excluded ? <Badge>{o.paymentStatus === "refunded" ? "Refunded" : "Not paid yet"}</Badge> : <Badge tone={settlementTone[o.group.settlement]}>{settlementLabel[o.group.settlement]}</Badge>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </TableCard>
+        {/* Mobile: one card per order so every money column stays readable without sideways scrolling. */}
+        <ul className="space-y-3 lg:hidden">
+          {orders.map((o) => {
+            const b = breakdown(o.items);
+            const excluded = o.paymentStatus !== "successful" || ["rejected", "cancelled"].includes(o.group.status);
+            return (
+              <li key={o.orderId} className={`rounded-2xl border border-line bg-white p-4 ${excluded ? "text-muted" : ""}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium leading-tight text-ink">{o.reference}</p>
+                    <p className="mt-0.5 text-xs text-muted">{formatDate(o.placedAt)}</p>
+                  </div>
+                  {excluded ? <Badge>{o.paymentStatus === "refunded" ? "Refunded" : "Not paid yet"}</Badge> : <Badge tone={settlementTone[o.group.settlement]}>{settlementLabel[o.group.settlement]}</Badge>}
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm tabular-nums">
+                  <div><dt className="text-xs text-muted">Merchandise</dt><dd>{formatTzs(b.merchandiseTzs)}</dd></div>
+                  <div><dt className="text-xs text-muted">Rate</dt><dd>{formatBps(o.items[0].commissionBps)}</dd></div>
+                  <div><dt className="text-xs text-muted">Commission</dt><dd>{excluded ? "—" : `−${formatTzs(b.commissionTzs)}`}</dd></div>
+                  <div><dt className="text-xs text-muted">Your proceeds</dt><dd className="font-semibold text-ink">{excluded ? "—" : formatTzs(b.sellerProceedsTzs)}</dd></div>
+                </dl>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Desktop: full table. */}
+        <div className="hidden lg:block">
+          <TableCard label="Commission by order" minWidth="52rem">
+            <THead><Th>Order</Th><Th align="right">Merchandise</Th><Th align="right">Rate</Th><Th align="right">Commission</Th><Th align="right">Your proceeds</Th><Th>Settlement</Th></THead>
+            <tbody className={tbodyClass}>
+              {orders.map((o) => {
+                const b = breakdown(o.items);
+                const excluded = o.paymentStatus !== "successful" || ["rejected", "cancelled"].includes(o.group.status);
+                return (
+                  <tr key={o.orderId} className={excluded ? "text-muted" : ""}>
+                    <th scope="row" className={`${tdClass} font-medium`}>
+                      {o.reference}
+                      <span className="block text-xs font-normal text-muted">{formatDate(o.placedAt)}</span>
+                    </th>
+                    <td className={`${tdClass} text-right tabular-nums`}>{formatTzs(b.merchandiseTzs)}</td>
+                    <td className={`${tdClass} text-right tabular-nums`}>{formatBps(o.items[0].commissionBps)}</td>
+                    <td className={`${tdClass} text-right tabular-nums`}>{excluded ? "—" : `−${formatTzs(b.commissionTzs)}`}</td>
+                    <td className={`${tdClass} text-right font-semibold tabular-nums`}>{excluded ? "—" : formatTzs(b.sellerProceedsTzs)}</td>
+                    <td className={tdClass}>
+                      {excluded ? <Badge>{o.paymentStatus === "refunded" ? "Refunded" : "Not paid yet"}</Badge> : <Badge tone={settlementTone[o.group.settlement]}>{settlementLabel[o.group.settlement]}</Badge>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableCard>
+        </div>
       </div>
     </>
   );
