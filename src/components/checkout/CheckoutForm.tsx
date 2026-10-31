@@ -5,7 +5,7 @@ import { Briefcase, Bus, CircleCheck, Home, LocateFixed, Lock, MapPin, ShieldChe
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { fmt, localizePath } from "@/i18n/config";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useEffectEvent, useRef, useState } from "react";
 import { placeOrder, reviewCheckout, type CheckoutState, type PlaceState } from "@/app/[lang]/customer/checkout/actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Field, fieldAria, inputClass } from "@/components/ui/Field";
@@ -60,16 +60,19 @@ export function CheckoutForm({ zones, payments, canOrder = false }: { zones: Del
   const [selectedZone, setSelectedZone] = useState<string>(v?.zone ?? savedZone ?? "kariakoo");
   const [instructionsText, setInstructionsText] = useState(v?.instructions ?? "");
   const dropoffWasManuallyPlaced = useRef(false);
+  const autoPlaceDropoff = useEffectEvent((lng: number, lat: number) => {
+    if (!dropoffWasManuallyPlaced.current) setDropoff([lng, lat]);
+  });
 
   const selectedVehiclePrice = getVehiclePriceForDropoff(selectedVehicleId, dropoff, selectedZone).totalFareTzs;
 
   useEffect(() => {
-    if (!position || dropoffWasManuallyPlaced.current) return;
+    if (!position) return;
     // Only auto-place the pin from an accurate (GPS) fix. A coarse IP-based fix
     // on desktop or weak signal can be kilometres off, which would silently set
     // the wrong delivery point — leave the pin unset so the customer taps/drags.
     if (!Number.isFinite(position.accuracy) || position.accuracy > 150) return;
-    setDropoff([position.lng, position.lat]);
+    autoPlaceDropoff(position.lng, position.lat);
   }, [position]);
 
   function selectDropoff(location: LngLat) {

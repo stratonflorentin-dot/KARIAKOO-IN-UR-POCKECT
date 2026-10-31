@@ -16,7 +16,10 @@ export function DeliveryLiveShare({ orderId }: { orderId: string }) {
   const { position, requestLocation } = useAppLocation();
   const [sharing, setSharing] = useState(false);
   const posRef = useRef(position);
-  posRef.current = position;
+
+  useEffect(() => {
+    posRef.current = position;
+  }, [position]);
 
   // Make sure the device is actively reporting position for this delivery.
   useEffect(() => {

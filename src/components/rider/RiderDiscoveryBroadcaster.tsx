@@ -13,15 +13,19 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 export const DISCOVERY_CHANNEL = "riders:discovery";
 const BROADCAST_MS = 5000;
 const CHECK_MS = 10000;
+const GRID_STEP = 0.002;
 
 function snap(n: number): number {
-  return Math.round(n / 0.002) * 0.002;
+  return Math.round(n / GRID_STEP) * GRID_STEP;
 }
 
 export function RiderDiscoveryBroadcaster() {
   const { position, requestLocation } = useAppLocation();
   const posRef = useRef(position);
-  posRef.current = position;
+
+  useEffect(() => {
+    posRef.current = position;
+  }, [position]);
 
   useEffect(() => {
     requestLocation();
@@ -33,7 +37,7 @@ export function RiderDiscoveryBroadcaster() {
     let vehicle = "pikipiki";
     let cancelled = false;
 
-    const channel = sb.channel(DISCOVERY_CHANNEL, { config: { broadcast: { ack: false } } });
+    const channel = sb.channel(DISCOVERY_CHANNEL, { config: { private: true, broadcast: { ack: false } } });
     channel.subscribe();
 
     async function check() {

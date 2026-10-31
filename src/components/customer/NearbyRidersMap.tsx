@@ -40,6 +40,10 @@ const FILTERS: { id: VehId | "all"; label: string }[] = [
 
 const AVG_SPEED_KMH = 20; // rough until route-based ETA (Phase 3)
 const STALE_MS = 15_000;
+const MAX_LIVE_RIDERS = 50;
+const GRID_STEP = 0.002;
+const VEHICLES = new Set<VehId>(["pikipiki", "bajaji", "pickup", "lori_dogo"]);
+
 function approxMinutes(distanceM: number): number {
   return Math.max(1, Math.round((distanceM / 1000 / AVG_SPEED_KMH) * 60));
 }
@@ -65,10 +69,12 @@ export function NearbyRidersMap({
   const [snapshot, setSnapshot] = useState<Rider[]>([]);
   const [live, setLive] = useState<Record<string, LivePing>>({});
   const [error, setError] = useState("");
-  const [eta, setEta] = useState<{ minutes: number; approximate: boolean } | null>(null);
+  const [eta, setEta] = useState<{ riderId: string; minutes: number; approximate: boolean } | null>(null);
   const posRef = useRef(position);
-  posRef.current = position;
-  const nearestRef = useRef<Rider | undefined>(undefined);
+
+  useEffect(() => {
+    posRef.current = position;
+  }, [position]);
 
   useEffect(() => {
     requestLocation();
@@ -111,11 +117,21 @@ export function NearbyRidersMap({
 
   // Live movement over the broadcast channel.
   useEffect(() => {
-    const channel = client.channel(DISCOVERY_CHANNEL, { config: { broadcast: { ack: false } } });
+    const channel = client.channel(DISCOVERY_CHANNEL, { config: { private: true, broadcast: { ack: false } } });
     channel.on("broadcast", { event: "pos" }, ({ payload }) => {
       const p = payload as { id?: string; v?: VehId; lat?: number; lng?: number };
-      if (!p?.id || typeof p.lat !== "number" || typeof p.lng !== "number") return;
-      setLive((prev) => ({ ...prev, [p.id!]: { v: (p.v ?? "pikipiki") as VehId, lat: p.lat!, lng: p.lng!, lastSeen: Date.now() } }));
+      if (
+        typeof p?.id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(p.id) ||
+        typeof p.v !== "string" || !VEHICLES.has(p.v as VehId) ||
+        typeof p.lat !== "number" || !Number.isFinite(p.lat) || p.lat < -90 || p.lat > 90 ||
+        typeof p.lng !== "number" || !Number.isFinite(p.lng) || p.lng < -180 || p.lng > 180 ||
+        Math.abs(p.lat / GRID_STEP - Math.round(p.lat / GRID_STEP)) > 0.000001 ||
+        Math.abs(p.lng / GRID_STEP - Math.round(p.lng / GRID_STEP)) > 0.000001
+      ) return;
+      setLive((prev) => {
+        if (!(p.id! in prev) && Object.keys(prev).length >= MAX_LIVE_RIDERS) return prev;
+        return { ...prev, [p.id!]: { v: p.v as VehId, lat: p.lat!, lng: p.lng!, lastSeen: Date.now() } };
+      });
     });
     channel.subscribe();
     // Drop riders we haven't heard from recently so a stale marker never looks live.
@@ -165,22 +181,21 @@ export function NearbyRidersMap({
     };
   });
   const nearest = riders[0];
-  nearestRef.current = nearest;
+  const nearestId = nearest?.id;
+  const nearestLat = nearest?.lat;
+  const nearestLng = nearest?.lng;
 
   // Road-based ETA for the nearest rider, refreshed on a new nearest rider and
   // every 30s (bounded so we respect the routing API's free-tier limits).
   useEffect(() => {
-    if (!nearestRef.current) {
-      setEta(null);
-      return;
-    }
+    if (!nearestId || nearestLat === undefined || nearestLng === undefined) return;
+    const currentNearestId = nearestId;
     let alive = true;
     async function fetchEta() {
       const p = posRef.current;
-      const n = nearestRef.current;
-      if (!p || !n) return;
-      const r = await riderRouteEta(n.lat, n.lng, p.lat, p.lng);
-      if (alive) setEta({ minutes: Math.max(1, Math.round(r.durationS / 60)), approximate: r.approximate });
+      if (!p) return;
+      const r = await riderRouteEta(nearestLat, nearestLng, p.lat, p.lng);
+      if (alive) setEta({ riderId: currentNearestId, minutes: Math.max(1, Math.round(r.durationS / 60)), approximate: r.approximate });
     }
     void fetchEta();
     const id = window.setInterval(() => void fetchEta(), 30_000);
@@ -188,7 +203,8 @@ export function NearbyRidersMap({
       alive = false;
       window.clearInterval(id);
     };
-  }, [nearest?.id]);
+  }, [nearestId, nearestLat, nearestLng]);
+  const visibleEta = eta?.riderId === nearestId ? eta : null;
 
   return (
     <section aria-label="Madereva walio karibu" className="space-y-3">
@@ -218,8 +234,8 @@ export function NearbyRidersMap({
             <span className="font-semibold">{riders.length} {riders.length === 1 ? "dereva" : "madereva"} karibu</span>
             {nearest && (
               <span className="text-muted">
-                Aliye karibu zaidi ~{eta ? eta.minutes : approxMinutes(nearest.distanceM)} dakika{" "}
-                {eta && !eta.approximate ? "(njia)" : "(makisio)"}
+                Aliye karibu zaidi ~{visibleEta ? visibleEta.minutes : approxMinutes(nearest.distanceM)} dakika{" "}
+                {visibleEta && !visibleEta.approximate ? "(njia)" : "(makisio)"}
               </span>
             )}
           </div>
