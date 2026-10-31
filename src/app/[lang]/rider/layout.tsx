@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { AvailabilityToggle } from "@/components/rider/AvailabilityToggle";
+import { RiderDiscoveryBroadcaster } from "@/components/rider/RiderDiscoveryBroadcaster";
 import { RiderNav } from "@/components/rider/RiderNav";
 import { SafetyButton } from "@/components/rider/SafetyButton";
 import { Logo } from "@/components/ui/Logo";
@@ -37,6 +38,8 @@ export default async function RiderLayout({ children }: LayoutProps<"/[lang]/rid
             <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none">
               <SafetyButton />
               <AvailabilityToggle initialOnline={online} />
+              {/* Invisible: broadcasts coarse live position while discoverable. */}
+              <RiderDiscoveryBroadcaster />
             </div>
           )}
         </div>

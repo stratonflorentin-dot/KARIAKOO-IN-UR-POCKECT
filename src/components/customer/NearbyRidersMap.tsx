@@ -1,25 +1,35 @@
 "use client";
 
-// "Riders near you" discovery map for the pre-order customer. Calls the
-// nearby_available_riders RPC (de-identified, approximate positions) directly
-// from the browser and plots vehicle-type markers on the existing MapLibre map,
-// with a vehicle filter. Positions are approximate by design; the precise live
-// location of the rider assigned to an order is shown only after booking.
+// "Riders near you" discovery map for the pre-order customer. Live rider movement
+// arrives over a Supabase Realtime Broadcast channel (de-identified, approximate
+// positions); an RPC snapshot (nearby_available_riders) seeds the map and acts as
+// a fallback when no one is broadcasting. The precise live location of the rider
+// assigned to an order is shown only after booking.
 import { useEffect, useMemo, useState } from "react";
 import { MapLoader } from "@/components/map/MapLoader";
 import type { MapPoint } from "@/components/map/MarketMap";
+import { DISCOVERY_CHANNEL } from "@/components/rider/RiderDiscoveryBroadcaster";
 import { useAppLocation } from "@/components/location/AppLocationProvider";
 import { getVehicleById, type GroundTransportVehicleId } from "@/lib/parcel-transport";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-interface NearbyRider {
-  vehicle: GroundTransportVehicleId;
-  approx_lat: number;
-  approx_lng: number;
-  distance_m: number;
+type VehId = GroundTransportVehicleId;
+
+interface Rider {
+  id: string;
+  vehicle: VehId;
+  lat: number;
+  lng: number;
+  distanceM: number;
+}
+interface LivePing {
+  v: VehId;
+  lat: number;
+  lng: number;
+  lastSeen: number;
 }
 
-const FILTERS: { id: GroundTransportVehicleId | "all"; label: string }[] = [
+const FILTERS: { id: VehId | "all"; label: string }[] = [
   { id: "all", label: "Zote" },
   { id: "pikipiki", label: "Pikipiki" },
   { id: "bajaji", label: "Bajaji" },
@@ -27,23 +37,32 @@ const FILTERS: { id: GroundTransportVehicleId | "all"; label: string }[] = [
   { id: "lori_dogo", label: "Lori" },
 ];
 
-// Rough travel-time estimate until route-based ETA (Phase 3) is wired.
-const AVG_SPEED_KMH = 20;
+const AVG_SPEED_KMH = 20; // rough until route-based ETA (Phase 3)
+const STALE_MS = 15_000;
 function approxMinutes(distanceM: number): number {
   return Math.max(1, Math.round((distanceM / 1000 / AVG_SPEED_KMH) * 60));
+}
+function haversineM(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6_371_000;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
 }
 
 export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
   const { position, requestLocation } = useAppLocation();
   const client = useMemo(() => createSupabaseBrowserClient(), []);
-  const [filter, setFilter] = useState<GroundTransportVehicleId | "all">("all");
-  const [riders, setRiders] = useState<NearbyRider[]>([]);
+  const [filter, setFilter] = useState<VehId | "all">("all");
+  const [snapshot, setSnapshot] = useState<Rider[]>([]);
+  const [live, setLive] = useState<Record<string, LivePing>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
     requestLocation();
   }, [requestLocation]);
 
+  // RPC snapshot (seed + fallback), refreshed every 12s.
   useEffect(() => {
     if (!position) return;
     let alive = true;
@@ -52,7 +71,7 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
         p_lat: position!.lat,
         p_lng: position!.lng,
         p_radius_m: radiusM,
-        p_vehicle: filter === "all" ? null : filter,
+        p_vehicle: null,
       });
       if (!alive) return;
       if (rpcError) {
@@ -60,7 +79,15 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
         return;
       }
       setError("");
-      setRiders((data ?? []) as NearbyRider[]);
+      setSnapshot(
+        ((data ?? []) as { vehicle: VehId; approx_lat: number; approx_lng: number; distance_m: number }[]).map((r, i) => ({
+          id: `snap-${i}`,
+          vehicle: r.vehicle,
+          lat: r.approx_lat,
+          lng: r.approx_lng,
+          distanceM: r.distance_m,
+        })),
+      );
     }
     void refresh();
     const id = window.setInterval(() => void refresh(), 12_000);
@@ -68,18 +95,61 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
       alive = false;
       window.clearInterval(id);
     };
-  }, [client, position, filter, radiusM]);
+  }, [client, position, radiusM]);
 
-  const points: MapPoint[] = riders.map((r, i) => {
-    const v = getVehicleById(r.vehicle);
+  // Live movement over the broadcast channel.
+  useEffect(() => {
+    const channel = client.channel(DISCOVERY_CHANNEL, { config: { broadcast: { ack: false } } });
+    channel.on("broadcast", { event: "pos" }, ({ payload }) => {
+      const p = payload as { id?: string; v?: VehId; lat?: number; lng?: number };
+      if (!p?.id || typeof p.lat !== "number" || typeof p.lng !== "number") return;
+      setLive((prev) => ({ ...prev, [p.id!]: { v: (p.v ?? "pikipiki") as VehId, lat: p.lat!, lng: p.lng!, lastSeen: Date.now() } }));
+    });
+    channel.subscribe();
+    // Drop riders we haven't heard from recently so a stale marker never looks live.
+    const prune = window.setInterval(() => {
+      const cutoff = Date.now() - STALE_MS;
+      setLive((prev) => {
+        const next: Record<string, LivePing> = {};
+        let changed = false;
+        for (const [k, v] of Object.entries(prev)) {
+          if (v.lastSeen >= cutoff) next[k] = v;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 4_000);
+    return () => {
+      window.clearInterval(prune);
+      void client.removeChannel(channel);
+    };
+  }, [client]);
+
+  // Prefer live broadcast riders; fall back to the RPC snapshot when none are live.
+  const liveRiders: Rider[] = position
+    ? Object.entries(live).map(([id, v]) => ({
+        id,
+        vehicle: v.v,
+        lat: v.lat,
+        lng: v.lng,
+        distanceM: Math.round(haversineM(position.lat, position.lng, v.lat, v.lng)),
+      }))
+    : [];
+  const source = liveRiders.length > 0 ? liveRiders : snapshot;
+  const riders = (filter === "all" ? source : source.filter((r) => r.vehicle === filter))
+    .filter((r) => r.distanceM <= radiusM)
+    .sort((a, b) => a.distanceM - b.distanceM);
+
+  const points: MapPoint[] = riders.map((r) => {
+    const veh = getVehicleById(r.vehicle);
     return {
-      id: `nearby-rider-${i}`,
+      id: r.id,
       kind: "rider" as const,
-      badge: `${approxMinutes(r.distance_m)} min`,
-      label: `${v.name} · ~${(r.distance_m / 1000).toFixed(1)} km`,
-      geo: [r.approx_lng, r.approx_lat] as [number, number],
+      badge: `${approxMinutes(r.distanceM)} min`,
+      label: `${veh.name} · ~${(r.distanceM / 1000).toFixed(1)} km`,
+      geo: [r.lng, r.lat] as [number, number],
       vehicleType: r.vehicle,
-      vehicleImageUrl: v.imageUrl,
+      vehicleImageUrl: veh.imageUrl,
     };
   });
   const nearest = riders[0];
@@ -110,7 +180,7 @@ export function NearbyRidersMap({ radiusM = 5000 }: { radiusM?: number }) {
         <>
           <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm">
             <span className="font-semibold">{riders.length} {riders.length === 1 ? "dereva" : "madereva"} karibu</span>
-            {nearest && <span className="text-muted">Aliye karibu zaidi ~{approxMinutes(nearest.distance_m)} dakika (makisio)</span>}
+            {nearest && <span className="text-muted">Aliye karibu zaidi ~{approxMinutes(nearest.distanceM)} dakika (makisio)</span>}
           </div>
           <div className="overflow-hidden rounded-2xl border border-line">
             <MapLoader
