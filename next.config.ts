@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   experimental: {
     turbopackPluginRuntimeStrategy: "forceWorkerThreads",
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
   },
   async headers() {
     // Baseline security headers for every response.

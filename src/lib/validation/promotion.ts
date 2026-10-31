@@ -6,7 +6,7 @@ const optionalText = (max: number) => z.preprocess(
 );
 
 export const promotionDraftSchema = z.object({
-  kind: z.enum(["status", "teaser", "branding"]),
+  kind: z.enum(["status", "teaser", "branding", "banner"]),
   title: optionalText(120),
   body: optionalText(600),
   imageUrl: z.preprocess(
@@ -22,6 +22,9 @@ export const promotionDraftSchema = z.object({
   message: "Add a title, message, or image.",
 }).refine((value) => value.expiresIn !== "always" || value.kind === "branding", {
   message: "Only a shop introduction can stay visible until you remove it.",
+}).refine((value) => value.kind !== "banner" || Boolean(value.title && value.imageUrl), {
+  message: "Homepage banner ads need a headline and a banner image.",
+  path: ["imageUrl"],
 });
 
 export type PromotionDraft = z.infer<typeof promotionDraftSchema>;

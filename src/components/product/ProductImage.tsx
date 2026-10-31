@@ -23,19 +23,22 @@ const tints: Record<CategorySlug, string> = {
   food: "from-red-200 to-white text-red-900",
 };
 
-export function ProductImage({ category, name, imageUrl, size = "md" }: {
+export function ProductImage({ category, name, imageUrl, size = "md", ratio = "square", priority = false }: {
   category: CategorySlug;
   name: string;
   imageUrl?: string;
   size?: "sm" | "md" | "lg";
+  ratio?: "square" | "wide";
+  priority?: boolean;
 }) {
   const src = safeImageUrl(imageUrl);
+  const ratioClass = ratio === "wide" ? "min-h-64 sm:min-h-80" : "aspect-square";
   if (src) {
     return (
-      <div className="relative aspect-square w-full overflow-hidden bg-subtle">
+      <div className={`relative ${ratioClass} w-full overflow-hidden bg-subtle`}>
         {/* Plain <img>: seller photos come from Supabase Storage (and blob: previews). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+        <img src={src} alt={name} fetchPriority={priority ? "high" : "auto"} loading={priority ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
       </div>
     );
   }
@@ -45,7 +48,7 @@ export function ProductImage({ category, name, imageUrl, size = "md" }: {
     <div
       role="img"
       aria-label={`${name}, illustration`}
-      className={`relative grid aspect-square w-full place-items-center overflow-hidden bg-gradient-to-br ${tints[category]}`}
+      className={`relative grid ${ratioClass} w-full place-items-center overflow-hidden bg-gradient-to-br ${tints[category]}`}
     >
       <div aria-hidden="true" className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
       <div aria-hidden="true" className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-black/5" />

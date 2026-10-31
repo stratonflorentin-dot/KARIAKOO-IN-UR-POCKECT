@@ -14,7 +14,7 @@ export function StockBadge({ stock }: { stock: number }) {
 }
 
 /** The "Offer" ribbon on a product card. */
-export function OfferBadge() {
+export function OfferBadge({ className = "" }: { className?: string }) {
   const { t } = useI18n();
-  return <span className="absolute right-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">{t.product.offer}</span>;
+  return <span className={`absolute right-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white ${className}`}>{t.product.offer}</span>;
 }

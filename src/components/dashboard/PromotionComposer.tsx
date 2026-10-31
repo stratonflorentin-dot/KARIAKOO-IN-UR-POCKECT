@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createPromotion, type PromotionActionState } from "@/app/[lang]/seller/advertising/actions";
 import { Button } from "@/components/ui/Button";
 import { Field, inputClass } from "@/components/ui/Field";
@@ -13,15 +13,17 @@ export function PromotionComposer({ products }: { products: SellerProductLive[] 
   const { t } = useI18n();
   const ad = t.advertising;
   const [state, action, pending] = useActionState<PromotionActionState, FormData>(createPromotion, initial);
+  const [kind, setKind] = useState("status");
   return (
     <form action={action} className="space-y-4">
       {state.message && <p role={state.status === "error" ? "alert" : "status"} className={`rounded-xl p-3 text-sm ${state.status === "error" ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="kind" label={ad.promType} hint={ad.promTypeHint}>
-          <select id="kind" name="kind" defaultValue="status" className={inputClass}>
+          <select id="kind" name="kind" defaultValue="status" onChange={(event) => setKind(event.currentTarget.value)} className={inputClass}>
             <option value="status">{ad.shopUpdate}</option>
             <option value="teaser">{ad.productTeaser}</option>
             <option value="branding">{ad.shopIntro}</option>
+            <option value="banner">{ad.bannerAd}</option>
           </select>
         </Field>
         <Field id="title" label={ad.headline} hint={ad.headlineHint}>
@@ -53,8 +55,9 @@ export function PromotionComposer({ products }: { products: SellerProductLive[] 
           </select>
         </Field>
       </div>
+      {kind === "banner" && <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-900">{ad.bannerUseNote}</p>}
       <p className="text-xs text-muted">{ad.freeNote}</p>
-      <Button type="submit" variant="dark" disabled={pending}>{pending ? ad.publishing : ad.publishPromotion}</Button>
+      <Button type="submit" variant="dark" disabled={pending}>{pending ? ad.publishing : kind === "banner" ? ad.publishAd : ad.publishPromotion}</Button>
     </form>
   );
 }

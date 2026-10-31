@@ -5,8 +5,9 @@ import type { Product } from "@/lib/types";
 import { Price } from "./Price";
 import { ProductImage } from "./ProductImage";
 import { OfferBadge, StockBadge } from "./StockBadge";
+import { QuickAddButton } from "./QuickAddButton";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, quickAdd = false }: { product: Product; quickAdd?: boolean }) {
   const hasWholesale = Boolean(
     product.wholesalePriceTzs &&
       product.wholesaleMinQty &&
@@ -17,7 +18,8 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm shadow-stone-950/[0.025] transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_16px_40px_-22px_rgba(5,150,105,0.5)] focus-within:ring-2 focus-within:ring-brand-500">
       <div className="relative">
         <ProductImage category={product.category} name={product.name} imageUrl={product.imageUrl} />
-        {isOnOffer(product) && <OfferBadge />}
+        {isOnOffer(product) && <OfferBadge className={quickAdd ? "left-2 right-auto" : undefined} />}
+        {quickAdd && <QuickAddButton productId={product.id} productName={product.name} maxQuantity={product.stock} />}
         {hasWholesale && (
           <span className="absolute bottom-2 left-2 rounded-full bg-amber-500/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
             Bei ya Jumla

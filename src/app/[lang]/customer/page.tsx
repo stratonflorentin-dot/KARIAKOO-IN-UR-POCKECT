@@ -3,8 +3,13 @@ import Link from "@/components/i18n/Link";
 import { RecentlyViewed } from "@/components/customer/RecentlyViewed";
 import { SectionHeading } from "@/components/customer/SectionHeading";
 import { ShopPromotions } from "@/components/customer/ShopPromotions";
+import { BannerAdSpot } from "@/components/customer/BannerAdSpot";
 import { OrderStatusBadge } from "@/components/orders/StatusBadges";
 import { ProductGrid } from "@/components/product/ProductCard";
+import { ProductImage } from "@/components/product/ProductImage";
+import { ProductRail } from "@/components/product/ProductRail";
+import { QuickAddButton } from "@/components/product/QuickAddButton";
+import { Price } from "@/components/product/Price";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { SearchBar } from "@/components/ui/SearchBar";
@@ -41,16 +46,19 @@ export default async function CustomerHomePage() {
   const recentOrders = customer ? (await liveCustomerOrders(customer)).slice(0, 3) : [];
 
   const catalog = await getCatalog();
-  const promotions = await customerPromotions();
+  const [promotions, bannerAds] = await Promise.all([customerPromotions(), customerPromotions("banner")]);
   const categories = getCategories();
   const featured = catalog.searchProducts({ sort: "popular", inStockOnly: true, pageSize: 8 }).items;
   const newest = catalog.searchProducts({ sort: "newest", inStockOnly: true, pageSize: 8 }).items;
-  const offers = catalog.getProducts().filter(isOnOffer);
+  const offers = catalog.getProducts().filter((product) => isOnOffer(product) && product.stock > 0)
+    .sort((a, b) => (b.compareAtTzs! - b.priceTzs) / b.compareAtTzs! - (a.compareAtTzs! - a.priceTzs) / a.compareAtTzs!)
+    .slice(0, 8);
+  const spotlight = offers[0] ?? featured[0];
   const shops = [...catalog.getShops()].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 6);
   const recentInfo = catalog.getProducts().map((p) => ({ id: p.id, slug: p.slug, name: p.name, priceTzs: p.priceTzs, shopName: catalog.getShopName(p.shopId) }));
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7 px-4 pb-10 pt-5 sm:px-6">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 pb-28 pt-5 sm:px-6 sm:pb-10">
       {/* Greeting (reference: avatar, "Good morning, Amina", location). */}
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-base font-bold text-white" aria-hidden="true">
@@ -67,18 +75,43 @@ export default async function CustomerHomePage() {
 
       <SearchBar id="home-search" />
 
-      {/* Promo banner. */}
-      <section aria-label={t.home.bannerTitle} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-night p-5 text-white sm:p-8">
-        <span aria-hidden="true" className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
-        <span aria-hidden="true" className="absolute -bottom-16 right-16 h-32 w-32 rounded-full bg-gold-400/20" />
-        <div className="relative max-w-[62%] sm:max-w-md">
-          <h1 className="text-xl font-bold leading-tight sm:text-3xl">{t.home.bannerTitle}</h1>
-          <Link href="/customer/search" className="mt-4 inline-flex h-10 items-center rounded-full bg-gold-400 px-5 text-sm font-bold text-ink transition hover:bg-gold-300">
-            {t.home.shopNow}
-          </Link>
-        </div>
-        <ShoppingBag aria-hidden="true" strokeWidth={1.4} className="absolute -right-1 bottom-2 h-28 w-28 text-gold-400 sm:right-8 sm:h-40 sm:w-40" />
-      </section>
+      {spotlight ? (
+        <section aria-labelledby="spotlight-heading" className="relative isolate grid overflow-hidden rounded-[2rem] bg-night text-white sm:grid-cols-[1.05fr_0.95fr]">
+          <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_82%_50%,rgba(245,190,30,0.2),transparent_34%)]" />
+          <div className="relative z-10 flex flex-col items-start justify-center p-6 sm:p-9 lg:p-12">
+            <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-bold uppercase tracking-wide text-ink">
+              {isOnOffer(spotlight) ? t.home.spotlightDeal : t.home.spotlightPick}
+            </span>
+            <h1 id="spotlight-heading" className="mt-4 max-w-xl text-2xl font-black leading-tight sm:text-4xl lg:text-5xl">
+              {spotlight.name}
+            </h1>
+            <p className="mt-2 text-sm font-medium text-white/75">{spotlight.shopName}</p>
+            <div className="mt-4"><Price amount={spotlight.priceTzs} compareAt={spotlight.compareAtTzs} size="lg" tone="inverse" /></div>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">{t.home.spotlightSubtitle}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link href={`/customer/product/${spotlight.slug}`} className="inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-bold text-ink transition hover:bg-gold-300">
+                {t.home.viewProduct} <ChevronRight size={16} aria-hidden="true" />
+              </Link>
+              <QuickAddButton productId={spotlight.id} productName={spotlight.name} maxQuantity={spotlight.stock} wide />
+            </div>
+          </div>
+          <div className="relative mx-5 mb-5 overflow-hidden rounded-3xl bg-white/10 sm:m-5 sm:min-h-80 lg:m-8">
+            <ProductImage category={spotlight.category} name={spotlight.name} imageUrl={spotlight.imageUrl} size="lg" ratio="wide" priority />
+          </div>
+        </section>
+      ) : (
+        <section aria-label={t.home.bannerTitle} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-night p-5 text-white sm:p-8">
+          <span aria-hidden="true" className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <span aria-hidden="true" className="absolute -bottom-16 right-16 h-32 w-32 rounded-full bg-gold-400/20" />
+          <div className="relative max-w-[62%] sm:max-w-md">
+            <h1 className="text-xl font-bold leading-tight sm:text-3xl">{t.home.bannerTitle}</h1>
+            <Link href="/customer/search" className="mt-4 inline-flex h-10 items-center rounded-full bg-gold-400 px-5 text-sm font-bold text-ink transition hover:bg-gold-300">
+              {t.home.shopNow}
+            </Link>
+          </div>
+          <ShoppingBag aria-hidden="true" strokeWidth={1.4} className="absolute -right-1 bottom-2 h-28 w-28 text-gold-400 sm:right-8 sm:h-40 sm:w-40" />
+        </section>
+      )}
 
       {/* Categories as round icon buttons. */}
       <nav aria-label={t.home.categoriesLabel}>
@@ -99,6 +132,25 @@ export default async function CustomerHomePage() {
           ))}
         </ul>
       </nav>
+
+      <BannerAdSpot
+        ads={bannerAds}
+        title={t.advertising.bannerSpotTitle}
+        adLabel={t.advertising.advertisement}
+        visitShop={t.advertising.visitShop}
+        previousAd={t.advertising.previousAd}
+        nextAd={t.advertising.nextAd}
+        positionLabel={t.advertising.adPosition}
+      />
+
+      {offers.length > 0 && (
+        <section aria-labelledby="offers-heading" className="rounded-3xl bg-brand-50 p-4 sm:p-6">
+          <SectionHeading id="offers-heading" title={t.home.dealsTitle} subtitle={t.home.dealsSubtitle} />
+          <ProductRail products={offers} label={t.home.dealsTitle} />
+        </section>
+      )}
+
+      {promotions.length > 0 && <ShopPromotions promotions={promotions} />}
 
       {/* Price Comparison Banner (Linganisha Bei) */}
       <Link
@@ -173,14 +225,6 @@ export default async function CustomerHomePage() {
       )}
 
       <RecentlyViewed products={recentInfo} />
-      <ShopPromotions promotions={promotions} />
-
-      {offers.length > 0 && (
-        <section aria-labelledby="offers-heading" className="rounded-3xl bg-brand-50 p-4 sm:p-6">
-          <SectionHeading id="offers-heading" title={t.home.offers} subtitle={t.home.offersSubtitle} />
-          <ProductGrid products={offers} />
-        </section>
-      )}
 
       {newest.length > 0 && (
         <section aria-labelledby="new-heading">

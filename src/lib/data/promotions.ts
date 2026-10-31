@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ShopPromotion {
   id: string;
-  kind: "status" | "teaser" | "branding";
+  kind: "status" | "teaser" | "branding" | "banner";
   title: string | null;
   body: string | null;
   imageUrl: string | null;
@@ -36,13 +36,15 @@ export async function sellerPromotions(session: Session | null, shopId: string):
 }
 
 /** Public promotions are still filtered by the table's RLS policy. */
-export async function customerPromotions(): Promise<CustomerPromotion[]> {
+export async function customerPromotions(kind?: ShopPromotion["kind"]): Promise<CustomerPromotion[]> {
   try {
     const sb = await createSupabaseServerClient();
-    const { data, error } = await sb.from("shop_promotions")
+    let query = sb.from("shop_promotions")
       .select("id,shop_id,kind,title,body,image_url,link_product_id,expires_at,created_at")
       .order("created_at", { ascending: false })
       .limit(8);
+    query = kind ? query.eq("kind", kind) : query.neq("kind", "banner");
+    const { data, error } = await query;
     if (error || !data?.length) return [];
     const shopIds = [...new Set(data.map((row) => row.shop_id))];
     const productIds = [...new Set(data.map((row) => row.link_product_id).filter((id): id is string => Boolean(id)))];
