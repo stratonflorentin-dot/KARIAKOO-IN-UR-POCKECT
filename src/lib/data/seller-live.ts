@@ -14,6 +14,9 @@ export interface SellerShopLive {
   name: string;
   slug: string;
   primaryCategory: string;
+  area: string;
+  address: string;
+  description: string;
   status: string;
   lat: number | null;
   lng: number | null;
@@ -81,7 +84,7 @@ export async function liveSellerShop(session: Session | null): Promise<SellerSho
     const sb = await createSupabaseServerClient();
     const { data } = await sb
       .from("shops")
-      .select("id,name,slug,primary_category,status,lat,lng,banner_url")
+      .select("id,name,slug,primary_category,area,address,description,status,lat,lng,banner_url")
       .eq("owner_id", session.userId)
       .limit(1);
     const r = data?.[0] as Record<string, unknown> | undefined;
@@ -91,6 +94,9 @@ export async function liveSellerShop(session: Session | null): Promise<SellerSho
       name: String(r.name ?? ""),
       slug: String(r.slug ?? ""),
       primaryCategory: String(r.primary_category ?? ""),
+      area: String(r.area ?? "kariakoo"),
+      address: String(r.address ?? ""),
+      description: String(r.description ?? ""),
       status: String(r.status ?? "pending"),
       lat: r.lat == null ? null : Number(r.lat),
       lng: r.lng == null ? null : Number(r.lng),

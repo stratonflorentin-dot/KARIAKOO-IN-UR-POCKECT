@@ -26,7 +26,7 @@ export async function SellerAppShell({ title, tabs, children }: { title: string;
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher tone="light" />
-            <Link href="/customer" className="hidden text-sm text-muted hover:underline sm:inline">{t.dash.store}</Link>
+            <Link href="/seller/storefront" className="hidden text-sm text-muted hover:underline sm:inline">{t.seller.previewStorefront}</Link>
             <SignOutButton variant="outline" />
           </div>
         </div>

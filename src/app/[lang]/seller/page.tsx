@@ -64,10 +64,10 @@ export default async function SellerDashboardPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/customer/shops/${shop.slug}`}
+            href="/seller/storefront"
             className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-white px-3.5 text-xs font-semibold text-ink transition hover:border-brand-400 hover:text-brand-800"
           >
-            <Eye size={14} aria-hidden="true" /> View Storefront
+            <Eye size={14} aria-hidden="true" /> {s.previewStorefront}
           </Link>
           <ShareAction
             title={shop.name}
