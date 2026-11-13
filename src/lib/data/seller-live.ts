@@ -43,6 +43,7 @@ export interface SellerOrderLive {
   placedAt: string;
   paymentStatus: PaymentStatus;
   zone: string;
+  transportVehicle?: string;
   deliveryStatus: DeliveryStatus;
   fulfillmentStatus: FulfillmentStatus;
   settlementStatus: SettlementStatus;
@@ -58,7 +59,7 @@ export async function liveSellerOrders(session: Session | null, shopId: string):
   const { data, error } = await sb.rpc("seller_order_feed", { p_shop: shopId });
   if (error) throw new Error(`Could not load seller orders: ${error.message}`);
   return ((data ?? []) as unknown as {
-    order_id: string; reference: string; placed_at: string; payment_status: string; zone: string;
+    order_id: string; reference: string; placed_at: string; payment_status: string; zone: string; transport_vehicle: string | null;
     delivery_status: string; fulfillment_status: string; settlement_status: string;
     items: { productId: string; productName: string; unitPriceTzs: number; quantity: number; commissionBps: number; commissionTzs: number }[];
     merchandise_tzs: number; commission_tzs: number;
@@ -68,6 +69,7 @@ export async function liveSellerOrders(session: Session | null, shopId: string):
     placedAt: row.placed_at,
     paymentStatus: row.payment_status as PaymentStatus,
     zone: row.zone,
+    transportVehicle: row.transport_vehicle ?? undefined,
     deliveryStatus: row.delivery_status as DeliveryStatus,
     fulfillmentStatus: row.fulfillment_status as FulfillmentStatus,
     settlementStatus: row.settlement_status as SettlementStatus,

@@ -17,6 +17,7 @@ export interface SellerOrderViewItem {
   reference: string;
   placedAt: string;
   zone: string;
+  transportVehicle?: string;
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   fulfillmentStatus: FulfillmentStatus;
@@ -234,13 +235,13 @@ export function SellerOrdersManager({
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <PaymentStatusBadge status={o.paymentStatus} />
                   <DeliveryStatusBadge status={o.deliveryStatus} />
-                  {orderVehicles[o.orderId] ? (
-                    <span className="flex items-center gap-1 text-2xs font-bold text-emerald-800"><Truck size={12} className="text-emerald-600" aria-hidden="true" />{orderVehicles[o.orderId]}</span>
-                  ) : (
+                  {(o.transportVehicle || orderVehicles[o.orderId]) ? (
+                    <span className="flex items-center gap-1 text-2xs font-bold text-emerald-800"><Truck size={12} className="text-emerald-600" aria-hidden="true" />{o.transportVehicle || orderVehicles[o.orderId]}</span>
+                  ) : o.deliveryStatus === "PENDING_ASSIGNMENT" ? (
                     <button type="button" onClick={() => setTransportModalOrder(o)} className="inline-flex items-center gap-1 rounded-lg border border-line bg-subtle px-2 py-1 text-2xs font-semibold text-ink hover:border-brand-400 hover:bg-white">
                       <Truck size={11} className="text-brand-600" aria-hidden="true" /><span>Chagua Usafiri</span>
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <div className="mt-3 border-t border-line pt-3">
                   <LiveSellerOrderActions orderId={o.orderId} initialStatus={o.fulfillmentStatus} />
@@ -288,12 +289,12 @@ export function SellerOrdersManager({
                   <td className={tdClass}>
                     <div className="space-y-1">
                       <DeliveryStatusBadge status={o.deliveryStatus} />
-                      {orderVehicles[o.orderId] ? (
+                      {(o.transportVehicle || orderVehicles[o.orderId]) ? (
                         <div className="flex items-center gap-1 text-2xs font-bold text-emerald-800">
                           <Truck size={12} className="text-emerald-600" />
-                          <span>{orderVehicles[o.orderId]}</span>
+                          <span>{o.transportVehicle || orderVehicles[o.orderId]}</span>
                         </div>
-                      ) : (
+                      ) : o.deliveryStatus === "PENDING_ASSIGNMENT" ? (
                         <button
                           type="button"
                           onClick={() => setTransportModalOrder(o)}
@@ -302,7 +303,7 @@ export function SellerOrdersManager({
                           <Truck size={11} className="text-brand-600" />
                           <span>Chagua Usafiri</span>
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                   <td className={`${tdClass} text-right tabular-nums`}>
