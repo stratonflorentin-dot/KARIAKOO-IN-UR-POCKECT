@@ -3,6 +3,7 @@ import Link from "@/components/i18n/Link";
 import { ShareAction } from "@/components/ui/ShareAction";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
 import { SellerShopLocation } from "@/components/dashboard/SellerShopLocation";
+import { SellerShopPhoto } from "@/components/dashboard/SellerShopPhoto";
 import { fmt } from "@/i18n/config";
 import { getDictionary } from "@/i18n/server";
 import { requireRole } from "@/lib/auth/session";
@@ -76,6 +77,8 @@ export default async function SellerDashboardPage() {
           />
         </div>
       </div>
+
+      <SellerShopPhoto shopId={shop.id} shopName={shop.name} initialUrl={shop.imageUrl} />
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={s.statProducts} value={String(summary.productCount)} hint={fmt(s.activeCount, { count: summary.activeProducts })} icon={<Package size={18} />} />

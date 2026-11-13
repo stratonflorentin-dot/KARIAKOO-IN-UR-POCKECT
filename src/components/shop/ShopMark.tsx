@@ -6,11 +6,16 @@ import { shopKind, shopKindAccent } from "@/lib/shop-kind";
 import type { Shop } from "@/lib/types";
 
 /** The shop's "logo": an accent tile with its shop-type icon. */
-export function ShopMark({ shop, size = "md" }: { shop: Pick<Shop, "categories">; size?: "sm" | "md" | "lg" }) {
+export function ShopMark({ shop, size = "md" }: { shop: Pick<Shop, "categories" | "imageUrl" | "name">; size?: "sm" | "md" | "lg" }) {
   const kind = shopKind(shop);
   const box = { sm: "h-8 w-8 rounded-lg", md: "h-12 w-12 rounded-xl", lg: "h-16 w-16 rounded-2xl" }[size];
   const icon = { sm: 16, md: 22, lg: 30 }[size];
-  return (
+  return shop.imageUrl ? (
+    <span className={`relative block shrink-0 overflow-hidden ${box} bg-white/10`} role="img" aria-label={`${shop.name} shop photo`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- Public Supabase Storage URL. */}
+      <img src={shop.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+    </span>
+  ) : (
     <span aria-hidden="true" className={`grid shrink-0 place-items-center ${box} ${shopKindAccent[kind]}`}>
       <CategoryIcon slug={kind} size={icon} />
     </span>

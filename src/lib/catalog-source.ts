@@ -31,6 +31,7 @@ interface ShopRow {
   area: string;
   address: string;
   description: string;
+  banner_url: string | null;
   opening_hours: string;
   status: Shop["status"];
   verified: boolean;
@@ -75,7 +76,7 @@ async function loadFromSupabase(): Promise<LoadResult> {
   try {
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const [shopsRes, productsRes] = await Promise.all([
-      db.from("shops").select("id,slug,name,primary_category,area,address,description,opening_hours,status,verified,rating,review_count,lat,lng,created_at,is_demo").eq("is_demo", false).returns<ShopRow[]>(),
+      db.from("shops").select("id,slug,name,primary_category,area,address,description,banner_url,opening_hours,status,verified,rating,review_count,lat,lng,created_at,is_demo").eq("is_demo", false).returns<ShopRow[]>(),
       db.from("products").select("id,shop_id,slug,name,category,price_tzs,compare_at_tzs,stock,unit,description,highlights,status,sold_count,audience,product_type,image_url,created_at,is_demo").eq("is_demo", false).returns<ProductRow[]>(),
     ]);
     if (shopsRes.error) throw new Error(shopsRes.error.message);
@@ -104,6 +105,7 @@ async function loadFromSupabase(): Promise<LoadResult> {
           area: AREAS.includes(r.area as ShopArea) ? (r.area as ShopArea) : "kariakoo",
           address: r.address,
           description: r.description,
+          imageUrl: r.banner_url ?? undefined,
           categories: [primary, ...[...(productCats.get(r.id) ?? [])].filter((c) => c !== primary)],
           rating: Number(r.rating),
           reviewCount: r.review_count,

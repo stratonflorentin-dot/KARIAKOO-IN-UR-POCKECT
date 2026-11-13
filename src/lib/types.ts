@@ -44,6 +44,8 @@ export interface Shop {
   /** Street / landmark. */
   address: string;
   description: string;
+  /** Optional seller-uploaded shop profile image. */
+  imageUrl?: string;
   categories: CategorySlug[];
   rating: number;
   reviewCount: number;

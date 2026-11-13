@@ -24,9 +24,20 @@ export function productImagePath(shopId: string, type: string): string {
   return `${shopId}/${id}.${imageExtForType(type)}`;
 }
 
+/** Public object path for a shop's profile photo in the store-banners bucket. */
+export function storeBannerPath(shopId: string, type: string): string {
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${shopId}/${id}.${imageExtForType(type)}`;
+}
+
 /** The public-URL prefix for a shop's product images, for validating saves. */
 export function productImagePublicPrefix(supabaseUrl: string, shopId: string): string {
   return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${shopId}/`;
+}
+
+/** Public URL prefix allowed for a shop's own profile photo. */
+export function storeBannerPublicPrefix(supabaseUrl: string, shopId: string): string {
+  return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${STORE_BANNERS_BUCKET}/${shopId}/`;
 }
 
 /** Object path (within the private delivery-proof bucket) for an order's proof photo.
