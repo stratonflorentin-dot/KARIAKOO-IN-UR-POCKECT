@@ -44,8 +44,13 @@ async function ShopContent({ params, searchParams }: PageProps<"/[lang]/customer
 
   return (
     <>
-      <section className="relative overflow-hidden bg-night text-white">
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_20rem_at_90%_0%,rgba(16,185,129,0.4),transparent_60%)]" />
+      <section className="relative isolate overflow-hidden bg-night text-white">
+        {shop.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- Supabase Storage public shop photo.
+          <img src={shop.imageUrl} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-35 blur-[2px]" />
+        )}
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/80 to-emerald-950/75" />
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(40rem_20rem_at_90%_0%,rgba(16,185,129,0.35),transparent_60%)]" />
         <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-12">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <ShopMark shop={shop} size="lg" />
