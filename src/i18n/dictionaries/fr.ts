@@ -137,7 +137,6 @@ const fr: Dictionary = {
     previewStorefront: "Prévisualiser la boutique",
     storefrontPreviewTitle: "Aperçu de votre boutique",
     storefrontPreviewDescription: "Voyez votre boutique comme les clients la voient. Cet aperçu vous garde dans l'espace vendeur.",
-    storefrontPreviewNote: "Cet aperçu est réservé au vendeur. Actualiser la page vous garde dans votre compte vendeur.",
     previewProducts: "Produits visibles par les clients",
     previewNoProducts: "Aucun produit actif à afficher pour le moment",
     previewNoProductsBody: "Ajoutez et activez des produits pour les voir dans l'aperçu de votre boutique.",

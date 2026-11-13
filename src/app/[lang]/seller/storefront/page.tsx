@@ -6,7 +6,7 @@ import { getCategory } from "@/lib/catalog";
 import { shopAreaLabel } from "@/lib/areas";
 import { liveSellerProducts, liveSellerShop } from "@/lib/data/seller-live";
 import { ProductImage } from "@/components/product/ProductImage";
-import { EmptyState, Notice } from "@/components/ui/States";
+import { EmptyState } from "@/components/ui/States";
 import { PageHeader } from "@/components/ui/Card";
 import type { ShopArea } from "@/lib/types";
 
@@ -23,7 +23,6 @@ export default async function SellerStorefrontPreviewPage() {
   return (
     <>
       <PageHeader title={labels.storefrontPreviewTitle} description={labels.storefrontPreviewDescription} />
-      <Notice tone="info">{labels.storefrontPreviewNote}</Notice>
 
       <section className="relative isolate mt-4 overflow-hidden rounded-3xl bg-night text-white">
         {shop.imageUrl && (

@@ -136,7 +136,6 @@ const sw: Dictionary = {
     previewStorefront: "Hakiki duka lako",
     storefrontPreviewTitle: "Muonekano wa duka lako",
     storefrontPreviewDescription: "Ona jinsi duka lako linavyoonekana kwa wateja. Hakiki hii inakuacha ndani ya dashibodi ya muuzaji.",
-    storefrontPreviewNote: "Hii ni hakiki ya muuzaji pekee. Ukipakia ukurasa upya, utaendelea kuwa kwenye akaunti ya muuzaji.",
     previewProducts: "Bidhaa zinazoonekana kwa wateja",
     previewNoProducts: "Bado hakuna bidhaa hai za kuonyesha",
     previewNoProductsBody: "Ongeza na uwashe bidhaa ili uzione kwenye hakiki ya duka lako.",

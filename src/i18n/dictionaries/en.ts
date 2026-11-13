@@ -135,7 +135,6 @@ const en = {
     previewStorefront: "Preview storefront",
     storefrontPreviewTitle: "Your storefront preview",
     storefrontPreviewDescription: "See your shop as it appears to customers. This preview keeps you in the seller dashboard.",
-    storefrontPreviewNote: "This is a seller-only preview. Refreshing the page keeps you in your seller account.",
     previewProducts: "Products customers can see",
     previewNoProducts: "No active products to show yet",
     previewNoProductsBody: "Add and activate products to see them in your storefront preview.",
