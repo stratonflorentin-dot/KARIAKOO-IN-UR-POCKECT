@@ -28,6 +28,7 @@ export function SellerShopPhoto({ shopId, shopName, initialUrl }: { shopId: stri
     setBusy(true);
     const path = storeBannerPath(shopId, file.type);
     let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+    let uploaded = false;
     try {
       supabase = createSupabaseBrowserClient();
       const { error: uploadError } = await supabase.storage.from(STORE_BANNERS_BUCKET).upload(path, file, {
@@ -35,11 +36,13 @@ export function SellerShopPhoto({ shopId, shopName, initialUrl }: { shopId: stri
         upsert: false,
       });
       if (uploadError) throw uploadError;
+      uploaded = true;
 
       const publicUrl = supabase.storage.from(STORE_BANNERS_BUCKET).getPublicUrl(path).data.publicUrl;
       const result = await saveSellerShopPhoto(publicUrl);
       if (!result.ok) {
         await supabase.storage.from(STORE_BANNERS_BUCKET).remove([path]).catch(() => undefined);
+        uploaded = false;
         setMessage(result.error);
         return;
       }
@@ -47,6 +50,9 @@ export function SellerShopPhoto({ shopId, shopName, initialUrl }: { shopId: stri
       setImageUrl(publicUrl);
       setMessage(labels.shopPhotoSaved);
     } catch {
+      if (uploaded && supabase) {
+        await supabase.storage.from(STORE_BANNERS_BUCKET).remove([path]).catch(() => undefined);
+      }
       setMessage(labels.shopPhotoUploadFailed);
     } finally {
       setBusy(false);

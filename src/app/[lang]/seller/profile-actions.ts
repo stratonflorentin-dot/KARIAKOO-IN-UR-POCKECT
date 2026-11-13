@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
-import { requireRole } from "@/lib/auth/session";
+import { getSessionWithRole } from "@/lib/auth/session";
 import { storeBannerPublicPrefix } from "@/lib/storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 export async function saveSellerShopPhoto(imageUrl: string) {
-  const session = await requireRole("seller");
+  const session = await getSessionWithRole("seller");
+  if (!session) return { ok: false as const, error: "Switch to your seller account to edit your shop photo." };
   const supabase = await createSupabaseServerClient();
   const { data: shop, error: shopError } = await supabase
     .from("shops")
