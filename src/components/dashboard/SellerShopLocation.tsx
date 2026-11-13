@@ -43,7 +43,7 @@ export function SellerShopLocation({
   };
 
   return (
-    <section className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-sm shadow-stone-950/[0.025] sm:p-5" aria-labelledby="seller-location-title">
+    <section id="seller-location" className="scroll-mt-24 rounded-3xl border border-stone-200/80 bg-white p-4 shadow-sm shadow-stone-950/[0.025] sm:p-5" aria-labelledby="seller-location-title">
       <div className="mb-3">
         <h2 id="seller-location-title" className="font-semibold tracking-tight text-ink">{labels.title}</h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{labels.description}</p>

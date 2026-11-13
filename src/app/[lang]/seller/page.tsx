@@ -1,4 +1,4 @@
-import { AlertTriangle, BadgeCheck, ClipboardList, Eye, Megaphone, Package, Plus, Receipt, Timer, Truck } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Check, ClipboardList, Eye, ImagePlus, MapPin, Megaphone, Package, Plus, Receipt, Timer, Truck } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { ShareAction } from "@/components/ui/ShareAction";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui/Card";
@@ -23,6 +23,12 @@ export default async function SellerDashboardPage() {
   }
   const [summary, products] = await Promise.all([liveSellerSummary(session, shop.id), liveSellerProducts(session, shop.id)]);
   const verified = shop.status === "approved";
+  const activeProducts = products.filter((product) => product.status === "active");
+  const missingPhotos = activeProducts.filter((product) => !product.imageUrl).length;
+  const outOfStock = activeProducts.filter((product) => product.stock === 0).length;
+  const noActiveProducts = activeProducts.length === 0;
+  const missingPickupPoint = shop.lat === null || shop.lng === null;
+  const storefrontNeedsWork = noActiveProducts || missingPhotos > 0 || outOfStock > 0 || missingPickupPoint;
 
   const actions = [
     { href: "/seller/products", Icon: Package, title: s.myProducts, sub: fmt(s.listedCount, { count: summary.productCount }) },
@@ -92,6 +98,58 @@ export default async function SellerDashboardPage() {
           </li>
         ))}
       </ul>
+
+      <Card className="mt-6" aria-labelledby="seller-store-health">
+        <CardHeader
+          id="seller-store-health"
+          title={s.storeHealthTitle}
+          subtitle={s.storeHealthDescription}
+        />
+        {storefrontNeedsWork ? (
+          <ul className="space-y-2">
+            {noActiveProducts && (
+              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 p-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 text-amber-950">
+                  <Package size={17} aria-hidden="true" />
+                  <span>{s.noActiveProducts}</span>
+                </span>
+                <Link href="/seller/products" className="shrink-0 font-semibold text-brand-800 hover:underline">{s.addProduct}</Link>
+              </li>
+            )}
+            {missingPhotos > 0 && (
+              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 p-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 text-amber-950">
+                  <ImagePlus size={17} aria-hidden="true" />
+                  <span>{fmt(s.productsNeedPhotos, { count: missingPhotos })}</span>
+                </span>
+                <Link href="/seller/products" className="shrink-0 font-semibold text-brand-800 hover:underline">{s.fixProducts}</Link>
+              </li>
+            )}
+            {outOfStock > 0 && (
+              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 p-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 text-amber-950">
+                  <Package size={17} aria-hidden="true" />
+                  <span>{fmt(s.productsOutOfStock, { count: outOfStock })}</span>
+                </span>
+                <Link href="/seller/products" className="shrink-0 font-semibold text-brand-800 hover:underline">{s.updateStock}</Link>
+              </li>
+            )}
+            {missingPickupPoint && (
+              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 p-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 text-amber-950">
+                  <MapPin size={17} aria-hidden="true" />
+                  <span>{s.pickupPointMissing}</span>
+                </span>
+                <a href="#seller-location" className="shrink-0 font-semibold text-brand-800 hover:underline">{s.setPickupPoint}</a>
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
+            <Check size={17} aria-hidden="true" /> {s.storefrontReady}
+          </p>
+        )}
+      </Card>
 
       <SellerShopLocation
         shopName={shop.name}

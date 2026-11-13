@@ -5,10 +5,10 @@
 // under RLS (owner-scoped); the UI updates optimistically and reverts on error.
 // Product photos can be uploaded to the shop's Supabase Storage folder from
 // ProductComposer. Products without an uploaded photo use a category placeholder.
-import { ChevronDown, Eye, Search } from "lucide-react";
+import { ChevronDown, Eye, ImagePlus, Search } from "lucide-react";
 import Link from "@/components/i18n/Link";
-import { Fragment, useState } from "react";
-import { createProduct, saveProductFields, setProductStatus } from "@/app/[lang]/seller/products/actions";
+import { Fragment, useRef, useState } from "react";
+import { createProduct, saveProductFields, setProductImage, setProductStatus } from "@/app/[lang]/seller/products/actions";
 import { ProductImage } from "@/components/product/ProductImage";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -19,6 +19,9 @@ import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/config";
 import { audienceLabel, productTypeLabel } from "@/lib/departments";
 import { formatTzs } from "@/lib/format";
+import { PRODUCT_IMAGES_BUCKET, productImagePath } from "@/lib/storage";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { IMAGE_TYPES, validateImageFile } from "@/lib/validation/product";
 import type { Category, Product } from "@/lib/types";
 import { ProductComposer, type PublishResult, type PublishedDraft } from "./ProductComposer";
 
@@ -45,11 +48,15 @@ function groupOf(r: Row): Exclude<Tab, "all"> {
 export function SellerProductsManager({ initialProducts, categories, shopName, shopId }: { initialProducts: Row[]; categories: Category[]; shopName: string; shopId: string }) {
   const { t } = useI18n();
   const sp = t.sellerProducts;
+  const c = t.composer;
   const [rows, setRows] = useState<Row[]>(initialProducts);
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const photoInput = useRef<HTMLInputElement>(null);
+  const photoTargetId = useRef<string | null>(null);
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
 
   const counts = { all: rows.length } as Record<Tab, number>;
   for (const t of ["active", "low", "out", "archived"] as const) counts[t] = 0;
@@ -111,8 +118,51 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
     }
   }
 
+  function pickPhoto(productId: string) {
+    photoTargetId.current = productId;
+    photoInput.current?.click();
+  }
+
+  // Upload a replacement/added photo for an existing product to this shop's
+  // storage folder, then persist the public URL. Lets a seller give a product a
+  // picture after it was published without one.
+  async function onPhotoChosen(file: File | undefined) {
+    const productId = photoTargetId.current;
+    photoTargetId.current = null;
+    if (photoInput.current) photoInput.current.value = "";
+    if (!file || !productId) return;
+
+    const problem = validateImageFile(file);
+    if (problem) { setMessage(problem); return; }
+
+    setPhotoBusyId(productId);
+    try {
+      const sb = createSupabaseBrowserClient();
+      const path = productImagePath(shopId, file.type);
+      const { error: upErr } = await sb.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const url = sb.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
+      const fd = new FormData();
+      fd.set("id", productId);
+      fd.set("imageUrl", url);
+      const res = await setProductImage(fd);
+      if (res.ok) {
+        update(productId, { imageUrl: url });
+        setMessage(fmt(sp.savedProduct, { name: rows.find((r) => r.id === productId)?.name ?? "" }));
+      } else {
+        setMessage(res.error ?? sp.couldNotSave);
+      }
+    } catch {
+      setMessage(c.uploadFailed);
+    } finally {
+      setPhotoBusyId(null);
+    }
+  }
+
   return (
     <>
+      {/* One hidden picker shared by every row's add/replace-photo button. */}
+      <input ref={photoInput} type="file" accept={IMAGE_TYPES.join(",")} className="sr-only" onChange={(e) => onPhotoChosen(e.target.files?.[0])} />
       <ProductComposer categories={categories} shopName={shopName} shopId={shopId} onPublish={publish} />
       <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-emerald-800">{message}</p>
 
@@ -194,6 +244,11 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
               )}
 
               <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
+                {r.status !== "archived" && (
+                  <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle disabled:opacity-60">
+                    <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}
+                  </button>
+                )}
                 <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle">
                   <ChevronDown size={15} className={open === r.id ? "rotate-180" : ""} aria-hidden="true" /> {sp.details}
                 </button>
@@ -294,6 +349,12 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
                     {r.status === "archived" ? <Badge>{sp.archived}</Badge> : r.stock === 0 ? <Badge tone="danger">{sp.outOfStock}</Badge> : r.stock <= 5 ? <Badge tone="warning">{sp.lowStock}</Badge> : <Badge tone="success">{sp.live}</Badge>}
                   </td>
                   <td className={`${tdClass} whitespace-nowrap text-right`}>
+                    {r.status !== "archived" && (
+                      <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id}
+                        className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle disabled:opacity-60">
+                        <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}<span className="sr-only"> {r.name}</span>
+                      </button>
+                    )}
                     <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}
                       className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle">
                       <ChevronDown size={15} className={open === r.id ? "rotate-180" : ""} aria-hidden="true" /> {sp.details}<span className="sr-only"> {r.name}</span>
