@@ -123,6 +123,25 @@ export async function saveProductFields(formData: FormData): Promise<ProductActi
   return { ok: true };
 }
 
+/** Update the name shown to customers while keeping the existing product URL stable. */
+export async function saveProductName(formData: FormData): Promise<ProductActionResult> {
+  const id = String(formData.get("id") ?? "");
+  if (!UUID.test(id)) return { ok: false, error: "Unknown product." };
+
+  const parsedName = productDraftSchema.shape.name.safeParse(formData.get("name"));
+  if (!parsedName.success) return { ok: false, error: parsedName.error.issues[0]?.message ?? "Please check the product name." };
+
+  const sb = await createSupabaseServerClient();
+  const shop = await sellerShopId(sb);
+  if ("error" in shop) return { ok: false, error: shop.error };
+
+  const { data, error } = await sb.from("products").update({ name: parsedName.data }).eq("id", id).eq("shop_id", shop.shopId).select("id").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Product not found or name could not be saved." };
+  refreshProductListings();
+  return { ok: true };
+}
+
 /** Set or clear a product's photo. The browser uploads the file to
  *  product-images/{shopId}/ (enforced by storage RLS) and passes the public
  *  URL here; we verify it lives under this shop's folder before saving, and an

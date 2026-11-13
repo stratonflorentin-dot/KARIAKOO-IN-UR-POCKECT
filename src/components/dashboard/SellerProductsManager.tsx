@@ -5,10 +5,10 @@
 // under RLS (owner-scoped); the UI updates optimistically and reverts on error.
 // Product photos can be uploaded to the shop's Supabase Storage folder from
 // ProductComposer. Products without an uploaded photo use a category placeholder.
-import { ChevronDown, Eye, ImagePlus, Search } from "lucide-react";
+import { Check, ChevronDown, Eye, ImagePlus, Pencil, Search, X } from "lucide-react";
 import Link from "@/components/i18n/Link";
 import { Fragment, useRef, useState } from "react";
-import { createProduct, saveProductFields, setProductImage, setProductStatus } from "@/app/[lang]/seller/products/actions";
+import { createProduct, saveProductFields, saveProductName, setProductImage, setProductStatus } from "@/app/[lang]/seller/products/actions";
 import { ProductImage } from "@/components/product/ProductImage";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -54,6 +54,9 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameBusyId, setNameBusyId] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const photoTargetId = useRef<string | null>(null);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
@@ -159,6 +162,32 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
     }
   }
 
+  function startEditing(r: Row) {
+    setEditingId(r.id);
+    setNameDraft(r.name);
+  }
+
+  async function saveName(r: Row) {
+    const fd = new FormData();
+    fd.set("id", r.id);
+    fd.set("name", nameDraft);
+    setNameBusyId(r.id);
+    try {
+      const res = await saveProductName(fd);
+      if (res.ok) {
+        update(r.id, { name: nameDraft.trim() });
+        setEditingId(null);
+        setMessage(fmt(sp.savedProductName, { name: nameDraft.trim() }));
+      } else {
+        setMessage(fmt(sp.couldNotUpdate, { name: r.name, error: res.error ?? "" }));
+      }
+    } catch {
+      setMessage(fmt(sp.couldNotUpdate, { name: r.name, error: sp.couldNotSave }));
+    } finally {
+      setNameBusyId(null);
+    }
+  }
+
   return (
     <>
       {/* One hidden picker shared by every row's add/replace-photo button. */}
@@ -245,8 +274,8 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
 
               <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
                 {r.status !== "archived" && (
-                  <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle disabled:opacity-60">
-                    <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}
+                  <button type="button" onClick={() => editingId === r.id ? setEditingId(null) : startEditing(r)} aria-expanded={editingId === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-medium text-brand-800 hover:bg-brand-50">
+                    <Pencil size={15} aria-hidden="true" /> {sp.editProduct}
                   </button>
                 )}
                 <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-ink hover:bg-subtle">
@@ -270,6 +299,23 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
               {open === r.id && (
                 <div className="mt-3 rounded-xl bg-subtle p-3">
                   <p className="whitespace-pre-line text-sm text-muted">{r.description}</p>
+                </div>
+              )}
+              {editingId === r.id && (
+                <div className="mt-3 space-y-3 rounded-xl border border-brand-100 bg-brand-50/60 p-3">
+                  <label htmlFor={`edit-name-${r.id}`} className="block text-xs font-semibold text-ink">{sp.productNameLabel}</label>
+                  <input id={`edit-name-${r.id}`} value={nameDraft} maxLength={120} disabled={nameBusyId === r.id} onChange={(event) => setNameDraft(event.target.value)} className={`${compactInputClass} w-full bg-white disabled:opacity-60`} />
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => saveName(r)} disabled={nameBusyId === r.id || !nameDraft.trim()} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-sm font-semibold text-white disabled:opacity-50">
+                      <Check size={15} aria-hidden="true" /> {nameBusyId === r.id ? t.seller.saving : sp.saveName}
+                    </button>
+                    <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink disabled:opacity-50">
+                      <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}
+                    </button>
+                    <button type="button" onClick={() => setEditingId(null)} className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-muted hover:bg-white">
+                      <X size={15} aria-hidden="true" /> {sp.cancelEdit}
+                    </button>
+                  </div>
                 </div>
               )}
             </li>
@@ -350,9 +396,9 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
                   </td>
                   <td className={`${tdClass} whitespace-nowrap text-right`}>
                     {r.status !== "archived" && (
-                      <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id}
-                        className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm text-ink hover:bg-subtle disabled:opacity-60">
-                        <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}<span className="sr-only"> {r.name}</span>
+                      <button type="button" onClick={() => editingId === r.id ? setEditingId(null) : startEditing(r)} aria-expanded={editingId === r.id}
+                        className="mr-1 inline-flex h-10 items-center gap-1 rounded-lg px-3 text-sm font-medium text-brand-800 hover:bg-brand-50">
+                        <Pencil size={15} aria-hidden="true" /> {sp.editProduct}<span className="sr-only"> {r.name}</span>
                       </button>
                     )}
                     <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}
@@ -397,6 +443,27 @@ export function SellerProductsManager({ initialProducts, categories, shopName, s
                           <p className="font-semibold">{r.name}</p>
                           <p className="mt-1 whitespace-pre-line text-sm text-muted">{r.description}</p>
                         </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {editingId === r.id && (
+                  <tr className="bg-brand-50/50">
+                    <td colSpan={5} className="px-4 py-4">
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="min-w-64 flex-1">
+                          <label htmlFor={`edit-name-${r.id}`} className="mb-1 block text-xs font-semibold text-ink">{sp.productNameLabel}</label>
+                          <input id={`edit-name-${r.id}`} value={nameDraft} maxLength={120} disabled={nameBusyId === r.id} onChange={(event) => setNameDraft(event.target.value)} className={`${compactInputClass} w-full bg-white disabled:opacity-60`} />
+                        </div>
+                        <button type="button" onClick={() => saveName(r)} disabled={nameBusyId === r.id || !nameDraft.trim()} className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-sm font-semibold text-white disabled:opacity-50">
+                          <Check size={15} aria-hidden="true" /> {nameBusyId === r.id ? t.seller.saving : sp.saveName}
+                        </button>
+                        <button type="button" onClick={() => pickPhoto(r.id)} disabled={photoBusyId === r.id} className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink disabled:opacity-50">
+                          <ImagePlus size={15} aria-hidden="true" /> {photoBusyId === r.id ? t.seller.saving : r.imageUrl ? c.changePhoto : c.chooseAPhoto}
+                        </button>
+                        <button type="button" onClick={() => setEditingId(null)} className="inline-flex h-10 items-center gap-1 rounded-lg px-2.5 text-sm text-muted hover:bg-white">
+                          <X size={15} aria-hidden="true" /> {sp.cancelEdit}
+                        </button>
                       </div>
                     </td>
                   </tr>
